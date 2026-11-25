@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"net"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -39,23 +38,4 @@ func NewDB(cfg *config.DBConfig) (*DB, error) {
 	}
 
 	return &DB{Pool: pool}, nil
-}
-
-func (db *DB) RunMigrations() error {
-	migrationFiles := []string{
-		"migrations/001_init_schema.sql",
-	}
-
-	for _, file := range migrationFiles {
-		content, err := os.ReadFile(file)
-		if err != nil {
-			return fmt.Errorf("failed to read migration file %s: %w", file, err)
-		}
-
-		if _, err := db.Pool.Exec(context.Background(), string(content)); err != nil {
-			return fmt.Errorf("failed to run migration %s: %w", file, err)
-		}
-	}
-
-	return nil
 }
