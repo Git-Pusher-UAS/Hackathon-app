@@ -1,9 +1,8 @@
 package models
 
 import (
-	"time"
-
 	"github.com/google/uuid"
+	"time"
 )
 
 // Proyecciones de solo lectura (vistas SQL). No son tablas: no se migran con AutoMigrate.
