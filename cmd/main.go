@@ -1,24 +1,31 @@
 package main
 
 import (
-	"backend-hackathon/internal/config"
-	"backend-hackathon/internal/repositories"
 	"log"
-	// "os"
-	// "github.com/jackc/pgx/v5"
-	// "github.com/joho/godotenv"
+
+	"backend-hackathon/internal/config"
+	gormrepo "backend-hackathon/internal/repository/gorm"
 )
 
 func main() {
 	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
 
+	db, err := gormrepo.Open(&cfg.DB)
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("database: %v", err)
 	}
-	db, err := repositories.NewDB(&cfg.DB) // cargo la configuracion de la bd
+
+	sqlDB, err := db.DB()
 	if err != nil {
-		panic(err)
+		log.Fatalf("database: %v", err)
 	}
-	defer db.Pool.Close()
-	// defer conn.Close(context.Background())
+	defer func() { _ = sqlDB.Close() }()
+
+	// El UnitOfWork es el punto de entrada para la capa de servicios.
+	_ = gormrepo.NewUnitOfWork(db)
+
+	log.Println("conexión a la base de datos establecida (GORM)")
 }
