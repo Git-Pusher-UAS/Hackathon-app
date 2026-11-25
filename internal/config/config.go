@@ -62,7 +62,7 @@ func Load() (*Config, error) {
 		},
 		JWT: JWTConfig{
 			Secret:    getEnv("JWT_SECRET", ""),
-			ExpiresIn: getEnvAsDuration("JWT_EXPIRES_IN", 24*time.Hour),
+			ExpiresIn: getEnvAsDuration("JWT_EXPIRES_IN", 12*time.Hour),
 		},
 		InitialAdmin: InitialAdminConfig{
 			Username: getEnv("INITIAL_ADMIN_USERNAME", ""),
