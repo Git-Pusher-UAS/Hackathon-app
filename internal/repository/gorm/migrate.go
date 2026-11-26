@@ -104,6 +104,14 @@ func Migrate(db *gorm.DB) error {
 		return fmt.Errorf("automigrate: %w", err)
 	}
 
+	// AutoMigrate no crea índices funcionales. El login busca por lower(usuario),
+	// así que la unicidad debe vivir en la base.
+	if err := db.Exec(
+		"CREATE UNIQUE INDEX IF NOT EXISTS ux_personal_usuario_lower ON identidad.personal (lower(usuario))",
+	).Error; err != nil {
+		return fmt.Errorf("índice único de usuario: %w", err)
+	}
+
 	if err := createViews(db); err != nil {
 		return err
 	}
