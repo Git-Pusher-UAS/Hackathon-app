@@ -1,0 +1,58 @@
+package middleware
+
+import (
+	"backend-hackathon/internal/repository/repositories"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/google/uuid"
+)
+
+// Claves de Locals donde AuthMiddleware guarda el contexto de la petición.
+const (
+	localPersonalID = "personalID"
+	localActorID    = "actorID"
+	localSessionID  = "sessionID"
+	localRol        = "rol"
+	localPermisos   = "permisos"
+	localActor      = "actor"
+)
+
+// RequestID devuelve el id de correlación de Fiber como UUID.
+func RequestID(c *fiber.Ctx) uuid.UUID {
+	raw, _ := c.Locals(requestid.ConfigDefault.ContextKey).(string)
+	if id, err := uuid.Parse(raw); err == nil {
+		return id
+	}
+	return uuid.New()
+}
+
+// PersonalID devuelve el id de identidad.personal autenticado.
+func PersonalID(c *fiber.Ctx) (uuid.UUID, bool) {
+	id, ok := c.Locals(localPersonalID).(uuid.UUID)
+	return id, ok
+}
+
+// SessionID devuelve el id de la sesión autenticada.
+func SessionID(c *fiber.Ctx) (uuid.UUID, bool) {
+	id, ok := c.Locals(localSessionID).(uuid.UUID)
+	return id, ok
+}
+
+// Rol devuelve el código del rol autenticado.
+func Rol(c *fiber.Ctx) (string, bool) {
+	rol, ok := c.Locals(localRol).(string)
+	return rol, ok
+}
+
+// Permisos devuelve los códigos de permiso efectivos del token.
+func Permisos(c *fiber.Ctx) []string {
+	perms, _ := c.Locals(localPermisos).([]string)
+	return perms
+}
+
+// ActorFrom devuelve el contexto de actor para abrir una transacción con RLS.
+func ActorFrom(c *fiber.Ctx) (repository.ActorContext, bool) {
+	actor, ok := c.Locals(localActor).(repository.ActorContext)
+	return actor, ok
+}
