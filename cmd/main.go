@@ -120,7 +120,7 @@ func main() {
 	api.Post("/auth/mfa/verify", optionalAuth, authHandler.VerifyMFA)
 
 	// Protegido: JWT + sesión revocable
-	protected := api.Group("", authMw)
+	protected := api.Group("", authMw, middleware.CSRF(uow))
 	protected.Get("/auth/me", authHandler.Me)
 	protected.Get("/auth/csrf-token", authHandler.CSRFToken)
 	protected.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
