@@ -54,7 +54,7 @@ func Load() (*Config, error) {
 		// ("Clave del dato que busca, clave pro defecto que pondra si no lo encuentra")
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
+			Port:     getEnv("DB_PORT", "5438"),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			Name:     getEnv("DB_NAME", "sd_voting"),
