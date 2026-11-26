@@ -11,10 +11,18 @@ var (
 	ErrDemasiadosIntentos = errors.New("demasiados intentos de inicio de sesión")
 	// ErrSuspendido indica una cuenta con estado suspendido.
 	ErrSuspendido = errors.New("cuenta suspendida")
-	// ErrMFARequerido indica que la cuenta tiene MFA activo (aún no implementado).
+	// ErrMFARequerido indica que la cuenta tiene MFA activo y requiere segundo factor.
 	ErrMFARequerido = errors.New("mfa_requerido")
 	// ErrTokenInvalido indica un JWT ausente, alterado, vencido o con emisor incorrecto.
 	ErrTokenInvalido = errors.New("token inválido o expirado")
 	// ErrSesionInvalida indica una sesión revocada, vencida o inexistente.
 	ErrSesionInvalida = errors.New("sesión inválida")
+	// ErrCodigoMFAInvalido indica un código TOTP incorrecto, expirado o ya usado.
+	ErrCodigoMFAInvalido = errors.New("código mfa inválido")
+	// ErrMFAYaActivo indica que la cuenta ya tiene MFA activo.
+	ErrMFAYaActivo = errors.New("mfa ya está activo")
+	// ErrMFANoIniciado indica que no hay un enrolamiento MFA pendiente.
+	ErrMFANoIniciado = errors.New("mfa no iniciado")
+	// ErrDesafioInvalido indica un challenge_token ausente, alterado, vencido o consumido.
+	ErrDesafioInvalido = errors.New("desafío mfa inválido o expirado")
 )

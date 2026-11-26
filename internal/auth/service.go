@@ -30,11 +30,15 @@ type Service struct {
 	uow    repository.UnitOfWork
 	secret string
 	ttl    time.Duration
+	mfaKey []byte
 }
 
 // NewService construye el servicio de autenticación.
-func NewService(uow repository.UnitOfWork, secret string, ttl time.Duration) *Service {
-	return &Service{uow: uow, secret: secret, ttl: ttl}
+func NewService(uow repository.UnitOfWork, secret string, ttl time.Duration, mfaKey []byte) (*Service, error) {
+	if len(mfaKey) != 32 {
+		return nil, errors.New("auth: MFA_ENCRYPTION_KEY debe decodificar a 32 bytes")
+	}
+	return &Service{uow: uow, secret: secret, ttl: ttl, mfaKey: mfaKey}, nil
 }
 
 // LoginInput son los datos de una petición de login.
@@ -66,6 +70,7 @@ type LoginResult struct {
 }
 
 // Login valida credenciales, aplica rate limit y crea una sesión revocable.
+// Si la cuenta tiene MFA activo devuelve *MFAChallengeError con el challenge_token.
 func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginResult, error) {
 	usuario := strings.ToLower(strings.TrimSpace(in.Usuario))
 	if usuario == "" || in.Password == "" {
@@ -116,8 +121,12 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginResult, error
 	mfa, err := repos.MFA().GetByPersonalID(ctx, p.ID)
 	switch {
 	case err == nil && mfa.Estado == models.MFAActivo:
-		s.audit(ctx, &p.ID, "auth.login_fallido", models.ResultadoDenegado, &p.ID, in.RequestID, in.IP)
-		return nil, ErrMFARequerido
+		token, err := s.crearDesafio(ctx, repos, p.ID, mfa.ID, now)
+		if err != nil {
+			return nil, err
+		}
+		s.audit(ctx, &p.ID, "auth.login_mfa_pendiente", models.ResultadoDenegado, &p.ID, in.RequestID, in.IP)
+		return nil, &MFAChallengeError{Challenge: token}
 	case err != nil && !errors.Is(err, repository.ErrNotFound):
 		return nil, fmt.Errorf("auth: consultar MFA: %w", err)
 	}
@@ -126,6 +135,18 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginResult, error
 		return nil, fmt.Errorf("auth: reiniciar fallos: %w", err)
 	}
 
+	return s.emitirSesion(ctx, repos, p, now, in)
+}
+
+// emitirSesion crea la sesión revocable y arma el LoginResult.
+// La usan Login (sin MFA) y VerifyMFA (con challenge).
+func (s *Service) emitirSesion(
+	ctx context.Context,
+	repos repository.Repositories,
+	p *models.Personal,
+	now time.Time,
+	in LoginInput,
+) (*LoginResult, error) {
 	rol, err := s.rolCodigo(ctx, repos, p.RolID)
 	if err != nil {
 		return nil, err

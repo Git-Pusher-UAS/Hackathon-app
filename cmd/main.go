@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	_ "backend-hackathon/docs"
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
@@ -19,6 +21,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/gofiber/swagger"
 )
 
 // version se puede sobrescribir en el build:
@@ -26,6 +29,14 @@ import (
 //	go build -ldflags "-X main.version=1.2.3" ./cmd
 var version = "dev"
 
+// @title           SAI API
+// @version         1.0
+// @description     Documentación de endpoints de la API.
+// @host            localhost:3000
+// @BasePath        /api
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -46,7 +57,19 @@ func main() {
 	// El UnitOfWork es el punto de entrada para la capa de servicios.
 	uow := gormrepo.NewUnitOfWork(db)
 
-	authService := auth.NewService(uow, cfg.JWT.Secret, cfg.JWT.ExpiresIn)
+	// La clave de cifrado de semillas TOTP debe ser base64 de 32 bytes.
+	mfaKey, err := base64.RawStdEncoding.DecodeString(cfg.MFA.Secret)
+	if err != nil {
+		mfaKey, err = base64.StdEncoding.DecodeString(cfg.MFA.Secret)
+	}
+	if err != nil {
+		log.Fatalf("mfa key: %v", err)
+	}
+
+	authService, err := auth.NewService(uow, cfg.JWT.Secret, cfg.JWT.ExpiresIn, mfaKey)
+	if err != nil {
+		log.Fatalf("auth: %v", err)
+	}
 	authHandler := handlers.NewAuthHandler(authService)
 
 	app := fiber.New(fiber.Config{
@@ -68,21 +91,39 @@ func main() {
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: cfg.Server.CORSOrigin,
-		AllowHeaders: "Authorization, Content-Type",
+		AllowHeaders: "Authorization, Content-Type, X-CSRF-Token",
 	}))
 
 	statusHandler := handlers.NewStatusHandler(sqlDB, version)
+
+	// Documentación Swagger
+	app.Get("/docs/*", swagger.HandlerDefault)
 
 	// Público
 	app.Get("/health", handlers.Healthcheck)
 
 	api := app.Group("/api")
 	api.Get("/status", statusHandler.Status)
+
+	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
+
+	// Igual que authMw, pero si no hay header Authorization deja pasar la petición.
+	optionalAuth := func(c *fiber.Ctx) error {
+		if c.Get(fiber.HeaderAuthorization) == "" {
+			return c.Next()
+		}
+		return authMw(c)
+	}
+
+	// Público
 	api.Post("/auth/login", authHandler.Login)
+	api.Post("/auth/mfa/verify", optionalAuth, authHandler.VerifyMFA)
 
 	// Protegido: JWT + sesión revocable
-	protected := api.Group("", middleware.AuthMiddleware(cfg.JWT.Secret, uow))
+	protected := api.Group("", authMw)
 	protected.Get("/auth/me", authHandler.Me)
+	protected.Get("/auth/csrf-token", authHandler.CSRFToken)
+	protected.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
 	protected.Post("/auth/logout", authHandler.Logout)
 
 	// Apagado ordenado: cierra Fiber y luego el pool de GORM (defer).

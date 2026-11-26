@@ -12,6 +12,7 @@ type Config struct {
 	DB           DBConfig
 	JWT          JWTConfig
 	InitialAdmin InitialAdminConfig
+	MFA          MFAConfig
 }
 
 type ServerConfig struct {
@@ -27,6 +28,9 @@ type DBConfig struct {
 	Password string
 	Name     string
 	SSLMode  string
+}
+type MFAConfig struct {
+	Secret string
 }
 
 type JWTConfig struct {
@@ -54,7 +58,7 @@ func Load() (*Config, error) {
 		// ("Clave del dato que busca, clave pro defecto que pondra si no lo encuentra")
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5438"),
+			Port:     getEnv("DB_PORT", "5433"),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			Name:     getEnv("DB_NAME", "sd_voting"),
@@ -64,13 +68,18 @@ func Load() (*Config, error) {
 			Secret:    getEnv("JWT_SECRET", ""),
 			ExpiresIn: getEnvAsDuration("JWT_EXPIRES_IN", 12*time.Hour),
 		},
+		MFA: MFAConfig{
+			Secret: getEnv("MFA_ENCRYPTION_KEY", ""),
+		},
 		InitialAdmin: InitialAdminConfig{
 			Username: getEnv("INITIAL_ADMIN_USERNAME", ""),
 			Email:    getEnv("INITIAL_ADMIN_EMAIL", ""),
 			Password: getEnv("INITIAL_ADMIN_PASSWORD", ""),
 		},
 	}
-
+	if cfg.MFA.Secret == "" {
+		return nil, fmt.Errorf("MFA_ENCRYPTION_KEY es obligatoria")
+	}
 	if cfg.JWT.Secret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
