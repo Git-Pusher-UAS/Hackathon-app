@@ -2,22 +2,24 @@ package middleware
 
 import (
 	"log"
-	"net/http"
 	"runtime/debug"
 
 	"backend-hackathon/internal/httpx"
+
+	"github.com/gofiber/fiber/v3"
+	fiberrecover "github.com/gofiber/fiber/v3/middleware/recover"
 )
 
-// Recover convierte un panic en un 500 JSON en lugar de tumbar el proceso.
-func Recover(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rec := recover(); rec != nil {
-				log.Printf("panic en %s %s (request_id=%s): %v\n%s",
-					r.Method, r.URL.Path, RequestIDFrom(r.Context()), rec, debug.Stack())
-				httpx.Error(w, http.StatusInternalServerError, "internal_error", "error interno del servidor")
-			}
-		}()
-		next.ServeHTTP(w, r)
+// Recover convierte un panic en un 500 JSON mediante el middleware de Fiber.
+func Recover() fiber.Handler {
+	return fiberrecover.New(fiberrecover.Config{
+		EnableStackTrace: true,
+		StackTraceHandler: func(c fiber.Ctx, rec any) {
+			log.Printf("panic en %s %s (request_id=%s): %v\n%s",
+				c.Method(), c.Path(), RequestIDFrom(c.Context()), rec, debug.Stack())
+		},
+		PanicHandler: func(c fiber.Ctx, _ any) error {
+			return httpx.Error(c, fiber.StatusInternalServerError, "internal_error", "error interno del servidor")
+		},
 	})
 }

@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"backend-hackathon/internal/httpx"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 // Pinger es lo mínimo que necesita el status para comprobar la base de datos.
@@ -48,13 +49,13 @@ type statusResponse struct {
 }
 
 // Health es el liveness probe: no toca la base de datos.
-func (h *Status) Health(w http.ResponseWriter, r *http.Request) {
-	httpx.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
+func (h *Status) Health(c fiber.Ctx) error {
+	return httpx.JSON(c, fiber.StatusOK, map[string]string{"status": "ok"})
 }
 
 // Status es el readiness probe: comprueba la conexión a la base de datos.
-func (h *Status) Status(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+func (h *Status) Status(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(c.Context(), 2*time.Second)
 	defer cancel()
 
 	start := time.Now()
@@ -72,13 +73,13 @@ func (h *Status) Status(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	code := http.StatusOK
+	code := fiber.StatusOK
 	if err != nil {
 		resp.Status = "degraded"
 		resp.Database.Status = "down"
 		resp.Database.Error = err.Error()
-		code = http.StatusServiceUnavailable
+		code = fiber.StatusServiceUnavailable
 	}
 
-	httpx.JSON(w, code, resp)
+	return httpx.JSON(c, code, resp)
 }

@@ -4,7 +4,8 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"net/http"
+
+	"github.com/gofiber/fiber/v3"
 )
 
 type ctxKey string
@@ -17,16 +18,17 @@ const (
 )
 
 // RequestID propaga o genera un identificador de petición.
-func RequestID(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := r.Header.Get(HeaderRequestID)
-		if id == "" {
-			id = newRequestID()
-		}
-		w.Header().Set(HeaderRequestID, id)
-		ctx := context.WithValue(r.Context(), RequestIDKey, id)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+// Se conserva la propagación literal: el middleware oficial de Fiber sustituye
+// los IDs con caracteres no ASCII que la API anterior aceptaba.
+func RequestID(c fiber.Ctx) error {
+	id := c.Get(HeaderRequestID)
+	if id == "" {
+		id = newRequestID()
+	}
+	c.Set(HeaderRequestID, id)
+	ctx := context.WithValue(c.Context(), RequestIDKey, id)
+	c.SetContext(ctx)
+	return c.Next()
 }
 
 // RequestIDFrom devuelve el request id del contexto, si existe.

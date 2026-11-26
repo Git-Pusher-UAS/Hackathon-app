@@ -2,62 +2,59 @@ package server
 
 import (
 	"context"
-	"errors"
 	"log"
-	"net/http"
 	"time"
 
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+
+	"github.com/gofiber/fiber/v3"
 )
 
-// Server envuelve el http.Server con apagado ordenado.
+// Server envuelve la aplicación Fiber con apagado ordenado.
 type Server struct {
-	httpServer *http.Server
-	log        *log.Logger
+	app  *fiber.App
+	addr string
+	log  *log.Logger
 }
 
 // New construye el servidor HTTP con timeouts y el router de la API.
 func New(cfg *config.Config, db handlers.Pinger, version string) *Server {
-	return &Server{
-		httpServer: &http.Server{
-			Addr:              ":" + cfg.Server.Port,
-			Handler:           router(cfg, db, version),
-			ReadHeaderTimeout: 5 * time.Second,
-			ReadTimeout:       15 * time.Second,
-			WriteTimeout:      15 * time.Second,
-			IdleTimeout:       60 * time.Second,
-		},
-		log: log.Default(),
+	s := &Server{
+		app:  router(cfg, db, version),
+		addr: ":" + cfg.Server.Port,
+		log:  log.Default(),
 	}
+	s.app.Hooks().OnPreShutdown(func() error {
+		s.log.Println("apagando servidor...")
+		return nil
+	})
+	return s
 }
 
 // Addr devuelve la dirección de escucha (por ejemplo ":3001").
 func (s *Server) Addr() string {
-	return s.httpServer.Addr
+	return s.addr
 }
 
-// Run escucha hasta que ctx se cancele y luego apaga el servidor con un
-// timeout de 10s para terminar las peticiones en curso.
+// Run escucha hasta que ctx se cancele y espera hasta 10 s a las peticiones
+// en curso. Fiber sincroniza el arranque y el apagado, incluso si ctx ya terminó.
 func (s *Server) Run(ctx context.Context) error {
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- s.httpServer.ListenAndServe()
-	}()
-
-	select {
-	case err := <-errCh:
-		if errors.Is(err, http.ErrServerClosed) {
-			return nil
-		}
-		return err
-	case <-ctx.Done():
-		s.log.Println("apagando servidor...")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
-			return err
-		}
+	var shutdownErr error
+	s.app.Hooks().OnPostShutdown(func(err error) error {
+		shutdownErr = err
 		return nil
+	})
+	err := s.app.Listen(s.addr, fiber.ListenConfig{
+		ListenerNetwork:       fiber.NetworkTCP,
+		GracefulContext:       ctx,
+		ShutdownTimeout:       10 * time.Second,
+		DisableStartupMessage: true,
+	})
+	// Listen espera a OnPostShutdown antes de retornar; conserva también los
+	// errores de apagado, que Fiber entrega al hook y no al retorno de Listen.
+	if err != nil {
+		return err
 	}
+	return shutdownErr
 }
