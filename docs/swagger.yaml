@@ -57,6 +57,272 @@ definitions:
       login:
         $ref: '#/definitions/backend-hackathon_internal_auth.LoginResult'
     type: object
+  backend-hackathon_internal_httpx.ErrorDetail:
+    properties:
+      code:
+        example: VALIDATION_ERROR
+        type: string
+      message:
+        example: alias debe tener entre 1 y 100 caracteres
+        type: string
+      requestId:
+        example: 6f1c2f7e-6f3f-4f0e-9f3a-2b1d4c5e6f70
+        type: string
+    type: object
+  backend-hackathon_internal_httpx.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorDetail'
+    type: object
+  backend-hackathon_internal_models.DecisionConsentimiento:
+    enum:
+    - aceptado
+    - rechazado
+    type: string
+    x-enum-varnames:
+    - DecisionAceptado
+    - DecisionRechazado
+  backend-hackathon_internal_models.EstadoExpediente:
+    enum:
+    - abierto
+    - en_seguimiento
+    - cerrado
+    type: string
+    x-enum-varnames:
+    - ExpedienteAbierto
+    - ExpedienteEnSeguimiento
+    - ExpedienteCerrado
+  backend-hackathon_internal_models.EstadoPersonal:
+    enum:
+    - activo
+    - suspendido
+    type: string
+    x-enum-varnames:
+    - PersonalActivo
+    - PersonalSuspendido
+  backend-hackathon_internal_models.ModalidadConsentimiento:
+    enum:
+    - presencial
+    - digital
+    type: string
+    x-enum-varnames:
+    - ModalidadPresencial
+    - ModalidadDigital
+  backend-hackathon_internal_models.OrigenContacto:
+    enum:
+    - presencial
+    - institucion
+    - linea_atencion
+    - patrulla_genero
+    - emergencia_referida
+    type: string
+    x-enum-varnames:
+    - OrigenPresencial
+    - OrigenInstitucion
+    - OrigenLineaAtencion
+    - OrigenPatrullaGenero
+    - OrigenEmergenciaReferida
+  backend-hackathon_internal_models_casefile.AssignRequest:
+    properties:
+      departamentoId:
+        type: string
+      motivo:
+        type: string
+      personalId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.ConsentInput:
+    properties:
+      capturadoEn:
+        type: string
+      decision:
+        $ref: '#/definitions/backend-hackathon_internal_models.DecisionConsentimiento'
+      modalidad:
+        $ref: '#/definitions/backend-hackathon_internal_models.ModalidadConsentimiento'
+      propositoIds:
+        items:
+          type: string
+        type: array
+    type: object
+  backend-hackathon_internal_models_casefile.CreateRequest:
+    properties:
+      alias:
+        type: string
+      consentimiento:
+        $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentInput'
+      curp:
+        type: string
+      domicilio:
+        type: string
+      fechaNacimiento:
+        description: YYYY-MM-DD
+        type: string
+      institucionOrigenId:
+        type: string
+      nombre:
+        type: string
+      origenContacto:
+        $ref: '#/definitions/backend-hackathon_internal_models.OrigenContacto'
+      sectorId:
+        type: string
+      telefono:
+        type: string
+      tipoCasoId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.DisclosureRequest:
+    properties:
+      campo:
+        description: nombre|curp|fechaNacimiento|telefono|domicilio
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.DuplicateCheckRequest:
+    properties:
+      curp:
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.DuplicateCheckResponse:
+    properties:
+      duplicate:
+        type: boolean
+    type: object
+  backend-hackathon_internal_models_casefile.NoteCreateRequest:
+    properties:
+      corrigeNotaId:
+        type: string
+      ocurridoEn:
+        type: string
+      texto:
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.ReferralCreateRequest:
+    properties:
+      destinoId:
+        type: string
+      resumen:
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.RevokeConsentRequest:
+    properties:
+      motivo:
+        type: string
+      propositoIds:
+        items:
+          type: string
+        type: array
+    type: object
+  backend-hackathon_internal_models_casefile.UpdateRequest:
+    properties:
+      alias:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoExpediente'
+      motivo:
+        type: string
+      tipoCasoId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.Actor:
+    properties:
+      departmentId:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      rol:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.CreateRequest:
+    properties:
+      departamentoId:
+        type: string
+      nombreLaboral:
+        type: string
+      password:
+        type: string
+      rol:
+        type: string
+      usuario:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.MeResponse:
+    properties:
+      actor:
+        $ref: '#/definitions/backend-hackathon_internal_models_user.Actor'
+      expiresAt:
+        type: string
+      idleExpiresAt:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_user.SessionSummary'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_StaffSummary:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.RevokeSessionsRequest:
+    properties:
+      motivo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.SessionSummary:
+    properties:
+      createdAt:
+        type: string
+      current:
+        type: boolean
+      deviceLabel:
+        type: string
+      expiresAt:
+        type: string
+      id:
+        type: string
+      lastActivityAt:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.StaffSummary:
+    properties:
+      departamentoId:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoPersonal'
+      id:
+        type: string
+      nombreLaboral:
+        type: string
+      rol:
+        type: string
+      usuario:
+        type: string
+      versionTag:
+        type: string
+    type: object
+  backend-hackathon_internal_models_user.UpdateRequest:
+    properties:
+      departamentoId:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoPersonal'
+      rol:
+        type: string
+    type: object
   internal_handlers.ErrorResponse:
     properties:
       error:
@@ -125,6 +391,772 @@ info:
   title: SAI API
   version: "1.0"
 paths:
+  /api/v1/case-files:
+    get:
+      description: Obtiene una página de expedientes filtrable por estado y alias.
+      parameters:
+      - description: Tamaño de página (1-100, default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor de paginación
+        in: query
+        name: cursor
+        type: string
+      - description: Estado del expediente
+        in: query
+        name: estado
+        type: string
+      - description: Alias de búsqueda
+        in: query
+        name: alias
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Listar expedientes
+      tags:
+      - case-files
+    post:
+      consumes:
+      - application/json
+      description: Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.
+      parameters:
+      - description: UUID de operación idempotente
+        in: header
+        name: X-Operation-Id
+        required: true
+        type: string
+      - description: Datos del expediente
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          headers:
+            ETag:
+              description: Versión actual del recurso
+              type: string
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Crear expediente
+      tags:
+      - case-files
+  /api/v1/case-files/{recordId}:
+    get:
+      description: Devuelve los datos de un expediente por recordId y su cabecera
+        ETag.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            ETag:
+              description: Versión actual del recurso
+              type: string
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Obtener expediente
+      tags:
+      - case-files
+    patch:
+      consumes:
+      - application/json
+      description: Actualiza un expediente requiriendo la cabecera If-Match con la
+        versión esperada.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: ETag / versión actual del recurso
+        in: header
+        name: If-Match
+        required: true
+        type: string
+      - description: Campos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            ETag:
+              description: Nueva versión del recurso
+              type: string
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "412":
+          description: Precondition Failed
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Actualizar expediente
+      tags:
+      - case-files
+  /api/v1/case-files/{recordId}/assignments:
+    post:
+      consumes:
+      - application/json
+      description: Crea una asignación activa sobre el expediente indicado.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: Datos de asignación
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.AssignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Asignar personal al expediente
+      tags:
+      - case-files-assignments
+  /api/v1/case-files/{recordId}/assignments/{assignmentId}:
+    delete:
+      description: Revoca una asignación específica dentro de un expediente.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: UUID de la asignación
+        in: path
+        name: assignmentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Revocar asignación
+      tags:
+      - case-files-assignments
+  /api/v1/case-files/{recordId}/consents:
+    get:
+      description: Devuelve los consentimientos asociados a un expediente bajo la
+        clave items.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Listar consentimientos
+      tags:
+      - case-files-consents
+    post:
+      consumes:
+      - application/json
+      description: Guarda un consentimiento con cabecera X-Operation-Id opcional.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: UUID de operación idempotente (opcional)
+        in: header
+        name: X-Operation-Id
+        type: string
+      - description: Datos del consentimiento
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Registrar consentimiento
+      tags:
+      - case-files-consents
+  /api/v1/case-files/{recordId}/consents/{consentId}/revoke:
+    post:
+      consumes:
+      - application/json
+      description: Registra la revocación de un consentimiento identificado por consentId.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: UUID del consentimiento
+        in: path
+        name: consentId
+        required: true
+        type: string
+      - description: Motivo o datos de revocación
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.RevokeConsentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Revocar consentimiento
+      tags:
+      - case-files-consents
+  /api/v1/case-files/{recordId}/departments/{departmentId}/notes:
+    get:
+      description: Obtiene notas paginadas de un expediente para un departamento dado.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: UUID del departamento
+        in: path
+        name: departmentId
+        required: true
+        type: string
+      - description: Tamaño de página (1-100, default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor de paginación
+        in: query
+        name: cursor
+        type: string
+      - description: UUID del episodio (opcional)
+        in: query
+        name: episodeId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Listar notas por departamento
+      tags:
+      - case-files-notes
+    post:
+      consumes:
+      - application/json
+      description: Registra una nota en un expediente y departamento usando X-Operation-Id.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: UUID del departamento
+        in: path
+        name: departmentId
+        required: true
+        type: string
+      - description: UUID de operación idempotente
+        in: header
+        name: X-Operation-Id
+        required: true
+        type: string
+      - description: Contenido de la nota
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.NoteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Crear nota
+      tags:
+      - case-files-notes
+  /api/v1/case-files/{recordId}/disclose:
+    post:
+      consumes:
+      - application/json
+      description: Solicita la divulgación o consulta de un campo específico del expediente.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: Campo a revelar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.DisclosureRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Revelar campo del expediente
+      tags:
+      - case-files
+  /api/v1/case-files/{recordId}/referrals:
+    post:
+      consumes:
+      - application/json
+      description: Registra una canalización para el expediente requiriendo X-Operation-Id
+        y devuelve ETag.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: UUID de operación idempotente
+        in: header
+        name: X-Operation-Id
+        required: true
+        type: string
+      - description: Datos de la canalización
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.ReferralCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          headers:
+            ETag:
+              description: Versión actual del recurso
+              type: string
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Crear canalización
+      tags:
+      - case-files-referrals
+  /api/v1/case-files/{recordId}/timeline:
+    get:
+      description: Lista eventos del expediente filtrables por tipos, rango de fechas
+        RFC3339 y paginación.
+      parameters:
+      - description: UUID del expediente
+        in: path
+        name: recordId
+        required: true
+        type: string
+      - description: Tamaño de página (1-100, default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor de paginación
+        in: query
+        name: cursor
+        type: string
+      - description: Tipos de evento separados por coma
+        in: query
+        name: tipos
+        type: string
+      - description: Fecha inicial en formato RFC3339
+        in: query
+        name: desde
+        type: string
+      - description: Fecha final en formato RFC3339
+        in: query
+        name: hasta
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Línea de tiempo del expediente
+      tags:
+      - case-files
+  /api/v1/case-files/duplicate-check:
+    post:
+      consumes:
+      - application/json
+      description: Consulta si ya existe un expediente registrado con el CURP proporcionado.
+      parameters:
+      - description: CURP a verificar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.DuplicateCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_casefile.DuplicateCheckResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Verificar duplicado por CURP
+      tags:
+      - case-files
   /auth/csrf-token:
     get:
       description: Genera un token CSRF nuevo para la sesión autenticada e invalida
@@ -339,6 +1371,350 @@ paths:
       summary: Readiness probe
       tags:
       - status
+  /v1/users:
+    get:
+      description: Lista las cuentas de personal. Requiere permiso de administración.
+      parameters:
+      - description: Búsqueda por usuario o nombre laboral
+        in: query
+        name: q
+        type: string
+      - default: 20
+        description: Tamaño de página (1-100)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco de paginación
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_StaffSummary'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar cuentas
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Crea una cuenta de personal. Requiere permiso de administración.
+      parameters:
+      - description: Datos de la cuenta
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_user.CreateRequest'
+      - description: Token CSRF de la sesión (GET /api/auth/csrf-token)
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          headers:
+            ETag:
+              description: ETag de la versión creada
+              type: string
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear cuenta
+      tags:
+      - users
+  /v1/users/{userId}:
+    patch:
+      consumes:
+      - application/json
+      description: Actualiza rol, departamento o estado de una cuenta. Requiere el
+        ETag actual en If-Match.
+      parameters:
+      - description: ID de la cuenta
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Campos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_user.UpdateRequest'
+      - description: Token CSRF de la sesión (GET /api/auth/csrf-token)
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: ETag de la versión actual (versionTag)
+        in: header
+        name: If-Match
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            ETag:
+              description: Nuevo ETag de la versión
+              type: string
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "412":
+          description: Precondition Failed
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "428":
+          description: Precondition Required
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar cuenta
+      tags:
+      - users
+  /v1/users/{userId}/session-revocations:
+    post:
+      consumes:
+      - application/json
+      description: Revoca todas las sesiones de una cuenta. Requiere permiso de administración.
+      parameters:
+      - description: ID de la cuenta
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Motivo de la revocación
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_user.RevokeSessionsRequest'
+      - description: Token CSRF de la sesión (GET /api/auth/csrf-token)
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Sin contenido
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revocar sesiones de una cuenta
+      tags:
+      - users
+  /v1/users/me:
+    get:
+      description: Devuelve la cuenta autenticada, sus permisos y los vencimientos
+        de la sesión.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_user.MeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cuenta autenticada
+      tags:
+      - users
+  /v1/users/me/sessions:
+    get:
+      description: Devuelve las sesiones de la cuenta autenticada en orden de actividad
+        reciente.
+      parameters:
+      - default: 20
+        description: Tamaño de página (1-100)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco de paginación
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar sesiones propias
+      tags:
+      - users
+  /v1/users/me/sessions/{sessionId}:
+    delete:
+      description: Revoca una sesión de la cuenta autenticada. No permite revocar
+        la sesión actual.
+      parameters:
+      - description: ID de la sesión
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      - description: Token CSRF de la sesión (GET /api/auth/csrf-token)
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Sin contenido
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revocar sesión propia
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     in: header

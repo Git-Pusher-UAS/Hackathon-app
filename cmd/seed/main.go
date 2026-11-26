@@ -8,10 +8,10 @@ import (
 
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
+	casemw "backend-hackathon/internal/middleware/casefile"
 	"backend-hackathon/internal/models"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	repository "backend-hackathon/internal/repository/repositories"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -89,7 +89,37 @@ func main() {
 	if err := ensureRolPermiso(db, adminTI.ID, permiso.ID); err != nil {
 		log.Fatalf("rol_permiso AdministradorTI: %v", err)
 	}
-
+	// Permisos de casefile: todos al admin; el resto seg\u00fan el rol.
+	porRol := map[string][]string{
+		"TrabajoSocial":     {casemw.PermRead, casemw.PermWrite, casemw.PermConsent, casemw.PermRefer},
+		"Psicolog\u00eda":   {casemw.PermRead, casemw.PermWrite, casemw.PermConsent, casemw.PermRefer},
+		"Jur\u00eddico":     {casemw.PermRead, casemw.PermWrite, casemw.PermRefer},
+		"Coordinaci\u00f3n": {casemw.PermRead, casemw.PermWrite, casemw.PermAssign, casemw.PermDisclose, casemw.PermConsent, casemw.PermRefer},
+		"Direcci\u00f3n":    {casemw.PermRead, casemw.PermAssign, casemw.PermDisclose},
+	}
+	for _, p := range casemw.Permisos {
+		perm, err := ensurePermiso(db, p.Codigo, p.Descripcion)
+		if err != nil {
+			log.Fatalf("permiso %s: %v", p.Codigo, err)
+		}
+		if err := ensureRolPermiso(db, rol.ID, perm.ID); err != nil { // rol = admin
+			log.Fatalf("rol_permiso admin/%s: %v", p.Codigo, err)
+		}
+		for codRol, perms := range porRol {
+			for _, pc := range perms {
+				if pc != p.Codigo {
+					continue
+				}
+				r, err := ensureRol(db, codRol, codRol)
+				if err != nil {
+					log.Fatalf("rol %s: %v", codRol, err)
+				}
+				if err := ensureRolPermiso(db, r.ID, perm.ID); err != nil {
+					log.Fatalf("rol_permiso %s/%s: %v", codRol, p.Codigo, err)
+				}
+			}
+		}
+	}
 	usuario := strings.ToLower(strings.TrimSpace(cfg.InitialAdmin.Username))
 
 	var existente models.Personal

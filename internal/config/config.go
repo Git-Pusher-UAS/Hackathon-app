@@ -16,6 +16,7 @@ type Config struct {
 	KEK          KEKConfig
 	InitialAdmin InitialAdminConfig
 	MFA          MFAConfig
+	CURPKey      string
 }
 
 type ServerConfig struct {
@@ -75,6 +76,7 @@ func Load() (*Config, error) {
 			Port:       getEnv("PORT", "3000"),
 			CORSOrigin: getEnv("CORS_ORIGIN", "http://localhost:3000"),
 		},
+		CURPKey: getEnv("CURP_HMAC_KEY", ""),
 		// ("Clave del dato que busca, clave pro defecto que pondra si no lo encuentra")
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
