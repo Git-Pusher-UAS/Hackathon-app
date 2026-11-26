@@ -15,6 +15,1149 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/case-files": {
+            "get": {
+                "description": "Obtiene una página de expedientes filtrable por estado y alias.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Listar expedientes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Tamaño de página (1-100, default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor de paginación",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Estado del expediente",
+                        "name": "estado",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Alias de búsqueda",
+                        "name": "alias",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Crear expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID de operación idempotente",
+                        "name": "X-Operation-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del expediente",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Versión actual del recurso"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/duplicate-check": {
+            "post": {
+                "description": "Consulta si ya existe un expediente registrado con el CURP proporcionado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Verificar duplicado por CURP",
+                "parameters": [
+                    {
+                        "description": "CURP a verificar",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.DuplicateCheckRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.DuplicateCheckResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}": {
+            "get": {
+                "description": "Devuelve los datos de un expediente por recordId y su cabecera ETag.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Obtener expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Versión actual del recurso"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Actualiza un expediente requiriendo la cabecera If-Match con la versión esperada.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Actualizar expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ETag / versión actual del recurso",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Campos a actualizar",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.UpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Nueva versión del recurso"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/assignments": {
+            "post": {
+                "description": "Crea una asignación activa sobre el expediente indicado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-assignments"
+                ],
+                "summary": "Asignar personal al expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de asignación",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.AssignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/assignments/{assignmentId}": {
+            "delete": {
+                "description": "Revoca una asignación específica dentro de un expediente.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-assignments"
+                ],
+                "summary": "Revocar asignación",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de la asignación",
+                        "name": "assignmentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/consents": {
+            "get": {
+                "description": "Devuelve los consentimientos asociados a un expediente bajo la clave items.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-consents"
+                ],
+                "summary": "Listar consentimientos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Guarda un consentimiento con cabecera X-Operation-Id opcional.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-consents"
+                ],
+                "summary": "Registrar consentimiento",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de operación idempotente (opcional)",
+                        "name": "X-Operation-Id",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Datos del consentimiento",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/consents/{consentId}/revoke": {
+            "post": {
+                "description": "Registra la revocación de un consentimiento identificado por consentId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-consents"
+                ],
+                "summary": "Revocar consentimiento",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID del consentimiento",
+                        "name": "consentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo o datos de revocación",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.RevokeConsentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/departments/{departmentId}/notes": {
+            "get": {
+                "description": "Obtiene notas paginadas de un expediente para un departamento dado.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-notes"
+                ],
+                "summary": "Listar notas por departamento",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID del departamento",
+                        "name": "departmentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Tamaño de página (1-100, default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor de paginación",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID del episodio (opcional)",
+                        "name": "episodeId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Registra una nota en un expediente y departamento usando X-Operation-Id.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-notes"
+                ],
+                "summary": "Crear nota",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID del departamento",
+                        "name": "departmentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de operación idempotente",
+                        "name": "X-Operation-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Contenido de la nota",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.NoteCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/disclose": {
+            "post": {
+                "description": "Solicita la divulgación o consulta de un campo específico del expediente.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Revelar campo del expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campo a revelar",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.DisclosureRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/referrals": {
+            "post": {
+                "description": "Registra una canalización para el expediente requiriendo X-Operation-Id y devuelve ETag.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files-referrals"
+                ],
+                "summary": "Crear canalización",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de operación idempotente",
+                        "name": "X-Operation-Id",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos de la canalización",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ReferralCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Versión actual del recurso"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/case-files/{recordId}/timeline": {
+            "get": {
+                "description": "Lista eventos del expediente filtrables por tipos, rango de fechas RFC3339 y paginación.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-files"
+                ],
+                "summary": "Línea de tiempo del expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Tamaño de página (1-100, default 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor de paginación",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tipos de evento separados por coma",
+                        "name": "tipos",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha inicial en formato RFC3339",
+                        "name": "desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha final en formato RFC3339",
+                        "name": "hasta",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/csrf-token": {
             "get": {
                 "security": [
@@ -339,6 +1482,531 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista las cuentas de personal. Requiere permiso de administración.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Listar cuentas",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Búsqueda por usuario o nombre laboral",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Tamaño de página (1-100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor opaco de paginación",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_StaffSummary"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una cuenta de personal. Requiere permiso de administración.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Crear cuenta",
+                "parameters": [
+                    {
+                        "description": "Datos de la cuenta",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.CreateRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "ETag de la versión creada"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve la cuenta autenticada, sus permisos y los vencimientos de la sesión.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Cuenta autenticada",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.MeResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/me/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve las sesiones de la cuenta autenticada en orden de actividad reciente.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Listar sesiones propias",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Tamaño de página (1-100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor opaco de paginación",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/me/sessions/{sessionId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoca una sesión de la cuenta autenticada. No permite revocar la sesión actual.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Revocar sesión propia",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID de la sesión",
+                        "name": "sessionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Sin contenido"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualiza rol, departamento o estado de una cuenta. Requiere el ETag actual en If-Match.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Actualizar cuenta",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID de la cuenta",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campos a actualizar",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.UpdateRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ETag de la versión actual (versionTag)",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Nuevo ETag de la versión"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "428": {
+                        "description": "Precondition Required",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/{userId}/session-revocations": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoca todas las sesiones de una cuenta. Requiere permiso de administración.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Revocar sesiones de una cuenta",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID de la cuenta",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo de la revocación",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.RevokeSessionsRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Sin contenido"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -427,6 +2095,404 @@ const docTemplate = `{
                 },
                 "login": {
                     "$ref": "#/definitions/backend-hackathon_internal_auth.LoginResult"
+                }
+            }
+        },
+        "backend-hackathon_internal_httpx.ErrorDetail": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "VALIDATION_ERROR"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "alias debe tener entre 1 y 100 caracteres"
+                },
+                "requestId": {
+                    "type": "string",
+                    "example": "6f1c2f7e-6f3f-4f0e-9f3a-2b1d4c5e6f70"
+                }
+            }
+        },
+        "backend-hackathon_internal_httpx.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorDetail"
+                }
+            }
+        },
+        "backend-hackathon_internal_models.DecisionConsentimiento": {
+            "type": "string",
+            "enum": [
+                "aceptado",
+                "rechazado"
+            ],
+            "x-enum-varnames": [
+                "DecisionAceptado",
+                "DecisionRechazado"
+            ]
+        },
+        "backend-hackathon_internal_models.EstadoExpediente": {
+            "type": "string",
+            "enum": [
+                "abierto",
+                "en_seguimiento",
+                "cerrado"
+            ],
+            "x-enum-varnames": [
+                "ExpedienteAbierto",
+                "ExpedienteEnSeguimiento",
+                "ExpedienteCerrado"
+            ]
+        },
+        "backend-hackathon_internal_models.EstadoPersonal": {
+            "type": "string",
+            "enum": [
+                "activo",
+                "suspendido"
+            ],
+            "x-enum-varnames": [
+                "PersonalActivo",
+                "PersonalSuspendido"
+            ]
+        },
+        "backend-hackathon_internal_models.ModalidadConsentimiento": {
+            "type": "string",
+            "enum": [
+                "presencial",
+                "digital"
+            ],
+            "x-enum-varnames": [
+                "ModalidadPresencial",
+                "ModalidadDigital"
+            ]
+        },
+        "backend-hackathon_internal_models.OrigenContacto": {
+            "type": "string",
+            "enum": [
+                "presencial",
+                "institucion",
+                "linea_atencion",
+                "patrulla_genero",
+                "emergencia_referida"
+            ],
+            "x-enum-varnames": [
+                "OrigenPresencial",
+                "OrigenInstitucion",
+                "OrigenLineaAtencion",
+                "OrigenPatrullaGenero",
+                "OrigenEmergenciaReferida"
+            ]
+        },
+        "backend-hackathon_internal_models_casefile.AssignRequest": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "motivo": {
+                    "type": "string"
+                },
+                "personalId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.ConsentInput": {
+            "type": "object",
+            "properties": {
+                "capturadoEn": {
+                    "type": "string"
+                },
+                "decision": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.DecisionConsentimiento"
+                },
+                "modalidad": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.ModalidadConsentimiento"
+                },
+                "propositoIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "consentimiento": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentInput"
+                },
+                "curp": {
+                    "type": "string"
+                },
+                "domicilio": {
+                    "type": "string"
+                },
+                "fechaNacimiento": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "institucionOrigenId": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "origenContacto": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.OrigenContacto"
+                },
+                "sectorId": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                },
+                "tipoCasoId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.DisclosureRequest": {
+            "type": "object",
+            "properties": {
+                "campo": {
+                    "description": "nombre|curp|fechaNacimiento|telefono|domicilio",
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.DuplicateCheckRequest": {
+            "type": "object",
+            "properties": {
+                "curp": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.DuplicateCheckResponse": {
+            "type": "object",
+            "properties": {
+                "duplicate": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.NoteCreateRequest": {
+            "type": "object",
+            "properties": {
+                "corrigeNotaId": {
+                    "type": "string"
+                },
+                "ocurridoEn": {
+                    "type": "string"
+                },
+                "texto": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.ReferralCreateRequest": {
+            "type": "object",
+            "properties": {
+                "destinoId": {
+                    "type": "string"
+                },
+                "resumen": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.RevokeConsentRequest": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string"
+                },
+                "propositoIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.UpdateRequest": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoExpediente"
+                },
+                "motivo": {
+                    "type": "string"
+                },
+                "tipoCasoId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.Actor": {
+            "type": "object",
+            "properties": {
+                "departmentId": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "rol": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "nombreLaboral": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "rol": {
+                    "type": "string"
+                },
+                "usuario": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.MeResponse": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_user.Actor"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "idleExpiresAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_user.SessionSummary"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_StaffSummary": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.RevokeSessionsRequest": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.SessionSummary": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "current": {
+                    "type": "boolean"
+                },
+                "deviceLabel": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastActivityAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.StaffSummary": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoPersonal"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombreLaboral": {
+                    "type": "string"
+                },
+                "rol": {
+                    "type": "string"
+                },
+                "usuario": {
+                    "type": "string"
+                },
+                "versionTag": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.UpdateRequest": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoPersonal"
+                },
+                "rol": {
+                    "type": "string"
                 }
             }
         },

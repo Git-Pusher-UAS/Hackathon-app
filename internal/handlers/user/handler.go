@@ -26,7 +26,22 @@ func New(service userservice.Service) *Handler {
 	return &Handler{service: service}
 }
 
+// MFAResetResponse es la respuesta de API-014.
+type MFAResetResponse struct {
+	ResetID uuid.UUID `json:"resetId"`
+}
+
 // Me responde API-006.
+//
+// @Summary      Cuenta autenticada
+// @Description  Devuelve la cuenta autenticada, sus permisos y los vencimientos de la sesión.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  usermodels.MeResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /v1/users/me [get]
 func (h *Handler) Me(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -45,6 +60,19 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 }
 
 // ListMySessions responde API-008.
+//
+// @Summary      Listar sesiones propias
+// @Description  Devuelve las sesiones de la cuenta autenticada en orden de actividad reciente.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit   query   int     false  "Tamaño de página (1-100)"  default(20)
+// @Param        cursor  query   string  false  "Cursor opaco de paginación"
+// @Success      200     {object}  usermodels.Page[usermodels.SessionSummary]
+// @Failure      401     {object}  httpx.ErrorResponse
+// @Failure      422     {object}  httpx.ErrorResponse
+// @Failure      500     {object}  httpx.ErrorResponse
+// @Router       /v1/users/me/sessions [get]
 func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -67,6 +95,21 @@ func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 }
 
 // RevokeMySession responde API-009.
+//
+// @Summary      Revocar sesión propia
+// @Description  Revoca una sesión de la cuenta autenticada. No permite revocar la sesión actual.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        sessionId      path    string  true   "ID de la sesión"
+// @Param        X-CSRF-Token   header  string  true   "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Success      204            "Sin contenido"
+// @Failure      401            {object}  httpx.ErrorResponse
+// @Failure      403            {object}  httpx.ErrorResponse
+// @Failure      404            {object}  httpx.ErrorResponse
+// @Failure      422            {object}  httpx.ErrorResponse
+// @Failure      500            {object}  httpx.ErrorResponse
+// @Router       /v1/users/me/sessions/{sessionId} [delete]
 func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -88,6 +131,21 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 }
 
 // List responde API-010.
+//
+// @Summary      Listar cuentas
+// @Description  Lista las cuentas de personal. Requiere permiso de administración.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        q       query   string  false  "Búsqueda por usuario o nombre laboral"
+// @Param        limit   query   int     false  "Tamaño de página (1-100)"  default(20)
+// @Param        cursor  query   string  false  "Cursor opaco de paginación"
+// @Success      200     {object}  usermodels.Page[usermodels.StaffSummary]
+// @Failure      401     {object}  httpx.ErrorResponse
+// @Failure      403     {object}  httpx.ErrorResponse
+// @Failure      422     {object}  httpx.ErrorResponse
+// @Failure      500     {object}  httpx.ErrorResponse
+// @Router       /v1/users [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -106,6 +164,24 @@ func (h *Handler) List(c *fiber.Ctx) error {
 }
 
 // Create responde API-011.
+//
+// @Summary      Crear cuenta
+// @Description  Crea una cuenta de personal. Requiere permiso de administración.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request       body    usermodels.CreateRequest  true  "Datos de la cuenta"
+// @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Success      201           {object}  usermodels.StaffSummary
+// @Header       201           {string}  ETag  "ETag de la versión creada"
+// @Failure      400           {object}  httpx.ErrorResponse
+// @Failure      401           {object}  httpx.ErrorResponse
+// @Failure      403           {object}  httpx.ErrorResponse
+// @Failure      409           {object}  httpx.ErrorResponse
+// @Failure      422           {object}  httpx.ErrorResponse
+// @Failure      500           {object}  httpx.ErrorResponse
+// @Router       /v1/users [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -126,6 +202,29 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 }
 
 // Update responde API-012.
+//
+// @Summary      Actualizar cuenta
+// @Description  Actualiza rol, departamento o estado de una cuenta. Requiere el ETag actual en If-Match.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId        path    string                    true  "ID de la cuenta"
+// @Param        request       body    usermodels.UpdateRequest  true  "Campos a actualizar"
+// @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Param        If-Match      header  string                    true  "ETag de la versión actual (versionTag)"
+// @Success      200           {object}  usermodels.StaffSummary
+// @Header       200           {string}  ETag  "Nuevo ETag de la versión"
+// @Failure      400           {object}  httpx.ErrorResponse
+// @Failure      401           {object}  httpx.ErrorResponse
+// @Failure      403           {object}  httpx.ErrorResponse
+// @Failure      404           {object}  httpx.ErrorResponse
+// @Failure      409           {object}  httpx.ErrorResponse
+// @Failure      412           {object}  httpx.ErrorResponse
+// @Failure      422           {object}  httpx.ErrorResponse
+// @Failure      428           {object}  httpx.ErrorResponse
+// @Failure      500           {object}  httpx.ErrorResponse
+// @Router       /v1/users/{userId} [patch]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -155,6 +254,24 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 }
 
 // RevokeAllSessions responde API-013.
+//
+// @Summary      Revocar sesiones de una cuenta
+// @Description  Revoca todas las sesiones de una cuenta. Requiere permiso de administración.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId        path    string                         true  "ID de la cuenta"
+// @Param        request       body    usermodels.RevokeSessionsRequest  true  "Motivo de la revocación"
+// @Param        X-CSRF-Token  header  string                         true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Success      204           "Sin contenido"
+// @Failure      400           {object}  httpx.ErrorResponse
+// @Failure      401           {object}  httpx.ErrorResponse
+// @Failure      403           {object}  httpx.ErrorResponse
+// @Failure      404           {object}  httpx.ErrorResponse
+// @Failure      422           {object}  httpx.ErrorResponse
+// @Failure      500           {object}  httpx.ErrorResponse
+// @Router       /v1/users/{userId}/session-revocations [post]
 func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {

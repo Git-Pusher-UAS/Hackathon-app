@@ -14,14 +14,16 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+	casehandler "backend-hackathon/internal/handlers/casefile"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	casemw "backend-hackathon/internal/middleware/casefile"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
+	caseservice "backend-hackathon/internal/services/casefile"
 	userservice "backend-hackathon/internal/services/user"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -92,7 +94,11 @@ func main() {
 
 	userService := userservice.New(uow, keyring, cfg.JWT.Secret)
 	userHandler := userhandler.New(userService)
-
+	if cfg.CURPKey == "" {
+		log.Println("warning: CURP_HMAC_KEY no configurada; POST /case-files y duplicate-checks responder\u00e1n 503")
+	}
+	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
+	caseHandler := casehandler.New(caseService)
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -118,7 +124,7 @@ func main() {
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:  cfg.Server.CORSOrigin,
-		AllowHeaders:  "Authorization, Content-Type, X-CSRF-Token, If-Match",
+		AllowHeaders:  "Authorization, Content-Type, X-CSRF-Token, If-Match, X-Operation-Id",
 		ExposeHeaders: "ETag",
 	}))
 
@@ -166,6 +172,23 @@ func main() {
 	admin.Patch("/:userId", usermiddleware.RequireCSRF, userHandler.Update)
 	admin.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
 	admin.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
+	csrf := usermiddleware.RequireCSRF
+	cf := v1.Group("/case-files")
+	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
+	cf.Post("", csrf, casemw.Require(casemw.PermWrite), caseHandler.Create)
+	cf.Get("", casemw.Require(casemw.PermRead), caseHandler.List)
+	cf.Get("/:recordId", casemw.Require(casemw.PermRead), caseHandler.Get)
+	cf.Patch("/:recordId", csrf, casemw.Require(casemw.PermWrite), caseHandler.Update)
+	cf.Get("/:recordId/timeline", casemw.Require(casemw.PermRead), caseHandler.Timeline)
+	cf.Post("/:recordId/disclosures", csrf, casemw.Require(casemw.PermDisclose), caseHandler.Disclose)
+	cf.Post("/:recordId/assignments", csrf, casemw.Require(casemw.PermAssign), caseHandler.Assign)
+	cf.Post("/:recordId/assignments/:assignmentId/revocations", csrf, casemw.Require(casemw.PermAssign), caseHandler.RevokeAssignment)
+	cf.Get("/:recordId/departments/:departmentId/notes", casemw.Require(casemw.PermRead), caseHandler.ListNotes)
+	cf.Post("/:recordId/departments/:departmentId/notes", csrf, casemw.Require(casemw.PermWrite), caseHandler.CreateNote)
+	cf.Get("/:recordId/consents", casemw.Require(casemw.PermRead), caseHandler.ListConsents)
+	cf.Post("/:recordId/consents", csrf, casemw.Require(casemw.PermConsent), caseHandler.RecordConsent)
+	cf.Post("/:recordId/consents/:consentId/revocations", csrf, casemw.Require(casemw.PermConsent), caseHandler.RevokeConsent)
+	cf.Post("/:recordId/referrals", csrf, casemw.Require(casemw.PermRefer), caseHandler.CreateReferral)
 
 	// Apagado ordenado: cierra Fiber y luego el pool de GORM (defer).
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
