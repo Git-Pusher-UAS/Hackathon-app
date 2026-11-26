@@ -92,7 +92,8 @@ type MFAPersonalRepository interface {
 	// Invalidar marca estado = invalidado (reset de MFA).
 	Invalidar(ctx context.Context, personalID uuid.UUID) error
 
-	// DeletePendiente elimina un enrolamiento pendiente que nunca se activó.
+	// DeletePendiente elimina un enrolamiento no activo (pendiente o invalidado)
+	// para permitir un nuevo enrolamiento.
 	DeletePendiente(ctx context.Context, personalID uuid.UUID) error
 }
 
@@ -108,6 +109,9 @@ type SesionPersonalRepository interface {
 
 	// Touch actualiza ultima_actividad.
 	Touch(ctx context.Context, id uuid.UUID, now time.Time) error
+
+	// ActualizarCSRF rota el hash CSRF de una sesión activa.
+	ActualizarCSRF(ctx context.Context, id uuid.UUID, csrfHash []byte) error
 
 	Revocar(ctx context.Context, id uuid.UUID, at time.Time) error
 

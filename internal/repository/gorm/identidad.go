@@ -300,8 +300,9 @@ func (r *mfaRepo) Invalidar(ctx context.Context, personalID uuid.UUID) error {
 }
 
 func (r *mfaRepo) DeletePendiente(ctx context.Context, personalID uuid.UUID) error {
+	// Un registro invalidado también debe poder reemplazarse al reenrolar.
 	res := r.db.WithContext(ctx).
-		Where("personal_id = ? AND estado = ?", personalID, models.MFAPendiente).
+		Where("personal_id = ? AND estado <> ?", personalID, models.MFAActivo).
 		Delete(&models.MFAPersonal{})
 	if res.Error != nil {
 		return translate(res.Error)
@@ -341,6 +342,19 @@ func (r *sesionRepo) ListByTitular(ctx context.Context, titularID uuid.UUID, sol
 func (r *sesionRepo) Touch(ctx context.Context, id uuid.UUID, now time.Time) error {
 	res := r.db.WithContext(ctx).Model(&models.SesionPersonal{}).
 		Where("id = ?", id).Update("ultima_actividad", now)
+	if res.Error != nil {
+		return translate(res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return repository.ErrNotFound
+	}
+	return nil
+}
+
+func (r *sesionRepo) ActualizarCSRF(ctx context.Context, id uuid.UUID, csrfHash []byte) error {
+	res := r.db.WithContext(ctx).Model(&models.SesionPersonal{}).
+		Where("id = ? AND revocado_en IS NULL", id).
+		Update("csrf_hash", csrfHash)
 	if res.Error != nil {
 		return translate(res.Error)
 	}
