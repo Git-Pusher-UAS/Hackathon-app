@@ -1,9 +1,11 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/joho/godotenv"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -11,6 +13,7 @@ type Config struct {
 	Server       ServerConfig
 	DB           DBConfig
 	JWT          JWTConfig
+	KEK          KEKConfig
 	InitialAdmin InitialAdminConfig
 }
 
@@ -34,6 +37,14 @@ type JWTConfig struct {
 	ExpiresIn time.Duration
 }
 
+// KEKConfig contiene la clave maestra externa usada para envolver las DEK de
+// los registros cifrados. Master queda vacío si KEK_MASTER no está definida;
+// los comandos de migración/seed no la necesitan, la API sí.
+type KEKConfig struct {
+	Master  []byte
+	Version int
+}
+
 type InitialAdminConfig struct {
 	Username string
 	Email    string
@@ -44,6 +55,15 @@ func Load() (*Config, error) {
 	//busca el .env
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: .env file not found, using system environment variables")
+	}
+
+	kekMaster, err := decodeKEK(getEnv("KEK_MASTER", ""))
+	if err != nil {
+		return nil, err
+	}
+	kekVersion := getEnvAsInt("KEK_VERSION", 1)
+	if kekVersion < 1 {
+		return nil, fmt.Errorf("KEK_VERSION debe ser mayor que cero")
 	}
 
 	cfg := &Config{
@@ -63,6 +83,10 @@ func Load() (*Config, error) {
 		JWT: JWTConfig{
 			Secret:    getEnv("JWT_SECRET", ""),
 			ExpiresIn: getEnvAsDuration("JWT_EXPIRES_IN", 12*time.Hour),
+		},
+		KEK: KEKConfig{
+			Master:  kekMaster,
+			Version: kekVersion,
 		},
 		InitialAdmin: InitialAdminConfig{
 			Username: getEnv("INITIAL_ADMIN_USERNAME", ""),
@@ -92,4 +116,30 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 		}
 	}
 	return defaultValue
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func decodeKEK(raw string) ([]byte, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, fmt.Errorf("KEK_MASTER no es base64 válido: %w", err)
+	}
+	if len(decoded) != 32 {
+		return nil, fmt.Errorf("KEK_MASTER debe decodificar a 32 bytes, tiene %d", len(decoded))
+	}
+	return decoded, nil
 }

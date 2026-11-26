@@ -5,14 +5,20 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+	userhandler "backend-hackathon/internal/handlers/user"
+	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
+	"backend-hackathon/internal/security"
+	userservice "backend-hackathon/internal/services/user"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -49,9 +55,30 @@ func main() {
 	authService := auth.NewService(uow, cfg.JWT.Secret, cfg.JWT.ExpiresIn)
 	authHandler := handlers.NewAuthHandler(authService)
 
+	// La KEK solo es obligatoria para las operaciones cifradas (API-013/014).
+	// Sin ella la API arranca, pero esos endpoints responden 503.
+	var keyring *security.Keyring
+	if len(cfg.KEK.Master) > 0 {
+		keyring, err = security.NewKeyring(cfg.KEK.Master, cfg.KEK.Version)
+		if err != nil {
+			log.Fatalf("kek: %v", err)
+		}
+	} else {
+		log.Println("warning: KEK_MASTER no configurada; API-013/API-014 responderán 503")
+	}
+
+	userService := userservice.New(uow, keyring, cfg.JWT.Secret)
+	userHandler := userhandler.New(userService)
+
 	app := fiber.New(fiber.Config{
-		AppName: handlers.ServiceName,
+		AppName:   handlers.ServiceName,
+		BodyLimit: 256 * 1024,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			// /api/v1 usa el sobre de error del contrato; /api conserva el
+			// formato legado.
+			if strings.HasPrefix(c.Path(), "/api/v1/") {
+				return httpx.Write(c, err)
+			}
 			code := fiber.StatusInternalServerError
 			if e, ok := err.(*fiber.Error); ok {
 				code = e.Code
@@ -67,8 +94,9 @@ func main() {
 		Format: "[${time}] ${status} - ${latency} ${method} ${path} (${ip}) rid=${locals:requestid}\n",
 	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: cfg.Server.CORSOrigin,
-		AllowHeaders: "Authorization, Content-Type",
+		AllowOrigins:  cfg.Server.CORSOrigin,
+		AllowHeaders:  "Authorization, Content-Type, X-CSRF-Token, If-Match",
+		ExposeHeaders: "ETag",
 	}))
 
 	statusHandler := handlers.NewStatusHandler(sqlDB, version)
@@ -84,6 +112,19 @@ func main() {
 	protected := api.Group("", middleware.AuthMiddleware(cfg.JWT.Secret, uow))
 	protected.Get("/auth/me", authHandler.Me)
 	protected.Post("/auth/logout", authHandler.Logout)
+
+	// /api/v1: contrato nuevo. Comparte el mismo JWT y añade CSRF en escrituras.
+	v1 := app.Group("/api/v1", middleware.AuthMiddleware(cfg.JWT.Secret, uow), usermiddleware.NoStore)
+	v1.Get("/users/me", userHandler.Me)
+	v1.Get("/users/me/sessions", userHandler.ListMySessions)
+	v1.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, userHandler.RevokeMySession)
+
+	admin := v1.Group("/users", middleware.RequirePermiso("admin"))
+	admin.Get("", userHandler.List)
+	admin.Post("", usermiddleware.RequireCSRF, userHandler.Create)
+	admin.Patch("/:userId", usermiddleware.RequireCSRF, userHandler.Update)
+	admin.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
+	admin.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
 
 	// Apagado ordenado: cierra Fiber y luego el pool de GORM (defer).
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

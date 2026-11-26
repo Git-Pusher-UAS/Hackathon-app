@@ -59,6 +59,11 @@ type PersonalRepository interface {
 	// LockAdministradoresActivos bloquea las filas de administradores activos (SELECT ... FOR UPDATE)
 	// y devuelve cuántos son. Serializa cambios que podrían dejar al sistema sin administrador.
 	LockAdministradoresActivos(ctx context.Context) (int, error)
+
+	// LockActivosConPermiso bloquea las filas de cuentas activas cuyo rol incluye
+	// el permiso indicado y devuelve sus ids. Serializa cambios que podrían dejar
+	// al sistema sin ningún administrador activo.
+	LockActivosConPermiso(ctx context.Context, codigoPermiso string) ([]uuid.UUID, error)
 }
 
 // A13 · identidad.delegaciones
@@ -102,9 +107,9 @@ type SesionPersonalRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.SesionPersonal, error)
 	GetByTokenHash(ctx context.Context, tokenHash []byte) (*models.SesionPersonal, error)
 
-	// ListByTitular lista las sesiones del titular (API-008); soloActivas excluye
-	// revocadas y vencidas.
-	ListByTitular(ctx context.Context, titularID uuid.UUID, soloActivas bool, now time.Time) ([]models.SesionPersonal, error)
+	// ListByTitular lista las sesiones del titular (API-008) con paginación por
+	// cursor; soloActivas excluye revocadas y vencidas.
+	ListByTitular(ctx context.Context, titularID uuid.UUID, soloActivas bool, now time.Time, page PageRequest) (Page[models.SesionPersonal], error)
 
 	// Touch actualiza ultima_actividad.
 	Touch(ctx context.Context, id uuid.UUID, now time.Time) error

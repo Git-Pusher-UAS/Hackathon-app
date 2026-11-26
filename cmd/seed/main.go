@@ -61,6 +61,35 @@ func main() {
 		log.Fatalf("rol_permiso: %v", err)
 	}
 
+	// Roles del contrato SAI MVP. Se crean de forma idempotente; el rol "admin"
+	// se conserva para no romper las cuentas existentes.
+	rolesSpec := []struct {
+		Codigo string
+		Nombre string
+	}{
+		{"TrabajoSocial", "Trabajo Social"},
+		{"Psicología", "Psicología"},
+		{"Jurídico", "Jurídico"},
+		{"Coordinación", "Coordinación"},
+		{"Dirección", "Dirección"},
+		{"AdministradorTI", "Administrador de TI"},
+		{"AdministraciónAnalítica", "Administración Analítica"},
+	}
+	for _, item := range rolesSpec {
+		if _, err := ensureRol(db, item.Codigo, item.Nombre); err != nil {
+			log.Fatalf("rol %s: %v", item.Codigo, err)
+		}
+	}
+
+	// El perfil de TI administra cuentas y sesiones.
+	adminTI, err := ensureRol(db, "AdministradorTI", "Administrador de TI")
+	if err != nil {
+		log.Fatalf("rol AdministradorTI: %v", err)
+	}
+	if err := ensureRolPermiso(db, adminTI.ID, permiso.ID); err != nil {
+		log.Fatalf("rol_permiso AdministradorTI: %v", err)
+	}
+
 	usuario := strings.ToLower(strings.TrimSpace(cfg.InitialAdmin.Username))
 
 	var existente models.Personal

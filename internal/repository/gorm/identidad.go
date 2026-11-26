@@ -2,6 +2,7 @@ package gormrepo
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"backend-hackathon/internal/models"
@@ -67,8 +68,8 @@ func (r *personalRepo) List(ctx context.Context, f repository.PersonalFilter, pa
 		q = q.Where("departamento_id = ?", *f.DepartamentoID)
 	}
 	if f.Busqueda != "" {
-		like := "%" + f.Busqueda + "%"
-		q = q.Where("usuario ILIKE ? OR nombre_laboral ILIKE ?", like, like)
+		like := "%" + escapeLike(f.Busqueda) + "%"
+		q = q.Where(`usuario ILIKE ? ESCAPE '\' OR nombre_laboral ILIKE ? ESCAPE '\'`, like, like)
 	}
 
 	limit := pageLimit(page)
@@ -83,6 +84,12 @@ func (r *personalRepo) List(ctx context.Context, f repository.PersonalFilter, pa
 		func(m models.Personal) uuid.UUID { return m.ID },
 	)
 	return repository.Page[models.Personal]{Items: rows, NextCursor: next}, nil
+}
+
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+func escapeLike(s string) string {
+	return likeEscaper.Replace(s)
 }
 
 func (r *personalRepo) Update(ctx context.Context, p *models.Personal, expectedVersion int64) error {
@@ -192,6 +199,21 @@ func (r *personalRepo) LockAdministradoresActivos(ctx context.Context) (int, err
 	return len(ids), nil
 }
 
+func (r *personalRepo) LockActivosConPermiso(ctx context.Context, codigoPermiso string) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT p.id
+		FROM identidad.personal p
+		JOIN catalogos.rol_permisos rp ON rp.rol_id = p.rol_id
+		JOIN catalogos.permisos pe ON pe.id = rp.permiso_id
+		WHERE p.estado = ? AND pe.codigo = ?
+		FOR UPDATE OF p`, models.PersonalActivo, codigoPermiso).Scan(&ids).Error
+	if err != nil {
+		return nil, translate(err)
+	}
+	return ids, nil
+}
+
 // ---------------- A13 · identidad.delegaciones ----------------
 
 type delegacionRepo struct{ db *gorm.DB }
@@ -289,7 +311,11 @@ func (r *mfaRepo) ConsumirPaso(ctx context.Context, id uuid.UUID, paso int64) (b
 func (r *mfaRepo) Invalidar(ctx context.Context, personalID uuid.UUID) error {
 	res := r.db.WithContext(ctx).Model(&models.MFAPersonal{}).
 		Where("personal_id = ?", personalID).
-		Update("estado", models.MFAInvalidado)
+		Updates(map[string]any{
+			"estado":         models.MFAInvalidado,
+			"actualizado_en": time.Now(),
+			"version":        gorm.Expr("version + 1"),
+		})
 	if res.Error != nil {
 		return translate(res.Error)
 	}
@@ -314,6 +340,8 @@ func (r *mfaRepo) DeletePendiente(ctx context.Context, personalID uuid.UUID) err
 
 // ---------------- A15 · identidad.sesiones_personal ----------------
 
+const sessionIdleTimeout = 15 * time.Minute
+
 type sesionRepo struct{ db *gorm.DB }
 
 func (r *sesionRepo) Create(ctx context.Context, s *models.SesionPersonal) error {
@@ -328,14 +356,23 @@ func (r *sesionRepo) GetByTokenHash(ctx context.Context, tokenHash []byte) (*mod
 	return first[models.SesionPersonal](ctx, r.db, "token_hash = ?", tokenHash)
 }
 
-func (r *sesionRepo) ListByTitular(ctx context.Context, titularID uuid.UUID, soloActivas bool, now time.Time) ([]models.SesionPersonal, error) {
-	return findAll[models.SesionPersonal](ctx, r.db, func(q *gorm.DB) *gorm.DB {
-		q = q.Where("titular_id = ?", titularID)
-		if soloActivas {
-			q = q.Where("revocado_en IS NULL AND vence_absoluto > ?", now)
-		}
-		return q.Order("creado_en DESC")
-	})
+func (r *sesionRepo) ListByTitular(ctx context.Context, titularID uuid.UUID, soloActivas bool, now time.Time, page repository.PageRequest) (repository.Page[models.SesionPersonal], error) {
+	limit := pageLimit(page)
+	q := r.db.WithContext(ctx).Model(&models.SesionPersonal{}).Where("titular_id = ?", titularID)
+	if soloActivas {
+		q = q.Where("revocado_en IS NULL AND vence_absoluto > ? AND ultima_actividad > ?", now, now.Add(-sessionIdleTimeout))
+	}
+	q = applyPage(q, page, "creado_en", "id", true)
+
+	var rows []models.SesionPersonal
+	if err := q.Find(&rows).Error; err != nil {
+		return repository.Page[models.SesionPersonal]{}, translate(err)
+	}
+	rows, next := cutPage(rows, limit,
+		func(m models.SesionPersonal) time.Time { return m.CreadoEn },
+		func(m models.SesionPersonal) uuid.UUID { return m.ID },
+	)
+	return repository.Page[models.SesionPersonal]{Items: rows, NextCursor: next}, nil
 }
 
 func (r *sesionRepo) Touch(ctx context.Context, id uuid.UUID, now time.Time) error {
