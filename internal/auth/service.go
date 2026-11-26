@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	// IdleTimeout es el máximo de inactividad permitido antes de invalidar una sesión.
+	IdleTimeout = 15 * time.Minute
+
 	ambitoLogin     = "login"
 	maxIntentos     = 5
 	ventanaIntentos = 15 * time.Minute

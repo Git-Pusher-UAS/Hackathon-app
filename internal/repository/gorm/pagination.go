@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultPageSize = 50
+	defaultPageSize = 20
 	maxPageSize     = 100
 )
 

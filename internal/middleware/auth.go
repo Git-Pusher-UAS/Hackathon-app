@@ -41,7 +41,7 @@ func AuthMiddleware(secret string, uow repository.UnitOfWork) fiber.Handler {
 		now := time.Now()
 
 		sesion, err := repos.Sesiones().GetByID(ctx, claims.SessionID)
-		if err != nil || sesion.RevocadoEn != nil || !sesion.VenceAbsoluto.After(now) {
+		if err != nil || sesion.RevocadoEn != nil || !sesion.VenceAbsoluto.After(now) || !sesion.UltimaActividad.Add(auth.IdleTimeout).After(now) {
 			return unauthorized(c)
 		}
 		if sesion.TitularID != personalID {
@@ -74,6 +74,7 @@ func AuthMiddleware(secret string, uow repository.UnitOfWork) fiber.Handler {
 		c.Locals(localSessionID, sesion.ID)
 		c.Locals(localRol, claims.Rol)
 		c.Locals(localPermisos, claims.Permisos)
+		c.Locals(localCSRFHash, sesion.CSRFHash)
 		c.Locals(localActor, repository.ActorContext{
 			ActorID:   claims.ActorID,
 			RequestID: RequestID(c),

@@ -16,6 +16,7 @@ const (
 	localRol        = "rol"
 	localPermisos   = "permisos"
 	localActor      = "actor"
+	localCSRFHash   = "csrfHash"
 )
 
 // RequestID devuelve el id de correlación de Fiber como UUID.
@@ -55,4 +56,10 @@ func Permisos(c *fiber.Ctx) []string {
 func ActorFrom(c *fiber.Ctx) (repository.ActorContext, bool) {
 	actor, ok := c.Locals(localActor).(repository.ActorContext)
 	return actor, ok
+}
+
+// CSRFHash devuelve el hash del token CSRF ligado a la sesión autenticada.
+func CSRFHash(c *fiber.Ctx) ([]byte, bool) {
+	hash, ok := c.Locals(localCSRFHash).([]byte)
+	return hash, ok
 }
