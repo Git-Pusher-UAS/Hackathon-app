@@ -3,7 +3,6 @@
 .env
 .env.*
 !.env.example
-docs
 README.md
 docker-compose.yml
 node_modules/
