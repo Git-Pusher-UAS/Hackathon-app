@@ -4,6 +4,7 @@ package httpx
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
@@ -15,6 +16,10 @@ type Error struct {
 	Status  int
 	Code    string
 	Message string
+	// Fields lleva un código por campo inválido (solo en 422).
+	Fields map[string]string
+	// RetryAfter, en segundos, se envía como encabezado Retry-After (429).
+	RetryAfter int
 }
 
 func (e *Error) Error() string { return e.Message }
@@ -24,7 +29,12 @@ func E(status int, code, message string) *Error {
 	return &Error{Status: status, Code: code, Message: message}
 }
 
-// Map traduce cualquier error al sobre de error del contrato /api/v1.
+// Invalid construye un 422 validation_failed con el código de cada campo.
+func Invalid(message string, fields map[string]string) *Error {
+	return &Error{Status: fiber.StatusUnprocessableEntity, Code: "validation_failed", Message: message, Fields: fields}
+}
+
+// Map traduce cualquier error al sobre de error del contrato /api.
 func Map(err error) *Error {
 	var httpErr *Error
 	if errors.As(err, &httpErr) {
@@ -40,20 +50,25 @@ func Map(err error) *Error {
 		}
 	}
 
-	return &Error{Status: fiber.StatusInternalServerError, Code: "INTERNAL_ERROR", Message: "error interno"}
+	return &Error{Status: fiber.StatusInternalServerError, Code: "internal_error", Message: "error interno"}
 }
 
 // Write responde con el sobre de error del contrato.
 func Write(c *fiber.Ctx, err error) error {
 	mapped := Map(err)
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.Status(mapped.Status).JSON(fiber.Map{
-		"error": fiber.Map{
-			"code":      mapped.Code,
-			"message":   mapped.Message,
-			"requestId": RequestID(c),
-		},
-	})
+	if mapped.RetryAfter > 0 {
+		c.Set(fiber.HeaderRetryAfter, strconv.Itoa(mapped.RetryAfter))
+	}
+	detail := fiber.Map{
+		"code":      mapped.Code,
+		"message":   mapped.Message,
+		"requestId": RequestID(c),
+	}
+	if len(mapped.Fields) > 0 {
+		detail["fields"] = mapped.Fields
+	}
+	return c.Status(mapped.Status).JSON(fiber.Map{"error": detail})
 }
 
 // RequestID devuelve el id de correlación de Fiber o uno nuevo si falta.
@@ -68,34 +83,34 @@ func RequestID(c *fiber.Ctx) string {
 func codeForStatus(status int) string {
 	switch status {
 	case fiber.StatusBadRequest:
-		return "INVALID_JSON"
+		return "invalid_json"
 	case fiber.StatusUnauthorized:
-		return "UNAUTHENTICATED"
+		return "session_expired"
 	case fiber.StatusForbidden:
-		return "FORBIDDEN"
+		return "forbidden"
 	case fiber.StatusNotFound:
-		return "RESOURCE_NOT_FOUND"
+		return "not_found"
 	case fiber.StatusMethodNotAllowed:
-		return "METHOD_NOT_ALLOWED"
+		return "method_not_allowed"
 	case fiber.StatusConflict:
-		return "CONFLICT"
+		return "conflict"
 	case fiber.StatusGone:
-		return "GONE"
+		return "gone"
 	case fiber.StatusPreconditionFailed:
-		return "PRECONDITION_FAILED"
+		return "precondition_failed"
 	case fiber.StatusRequestEntityTooLarge:
-		return "PAYLOAD_TOO_LARGE"
+		return "payload_too_large"
 	case fiber.StatusUnsupportedMediaType:
-		return "UNSUPPORTED_MEDIA_TYPE"
+		return "unsupported_media_type"
 	case fiber.StatusUnprocessableEntity:
-		return "VALIDATION_ERROR"
+		return "validation_failed"
 	case fiber.StatusPreconditionRequired:
-		return "PRECONDITION_REQUIRED"
+		return "precondition_required"
 	case fiber.StatusTooManyRequests:
-		return "RATE_LIMITED"
+		return "too_many_attempts"
 	case fiber.StatusServiceUnavailable:
-		return "SERVICE_UNAVAILABLE"
+		return "encryption_unavailable"
 	default:
-		return "INTERNAL_ERROR"
+		return "internal_error"
 	}
 }
