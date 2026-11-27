@@ -22,6 +22,21 @@ type Serie struct {
 	Valor    *int   `json:"valor" example:"18"`
 }
 
+// NivelSuprimido es el nivel de un sector con menos de 5 casos.
+const NivelSuprimido = "suprimido"
+
+// Celda es el nivel de un AGEB: 1 a 5 por quintiles, o "suprimido".
+type Celda struct {
+	Ageb  string `json:"ageb" example:"2501000010123"`
+	Nivel any    `json:"nivel" swaggertype:"string" example:"3"` // 1..5 o "suprimido"
+}
+
+// Heatmap es la respuesta de GET /analytics/heatmap. Nunca lleva conteos.
+type Heatmap struct {
+	Corte    time.Time `json:"corte"`
+	Sectores []Celda   `json:"sectores"`
+}
+
 // Summary es la respuesta de GET /analytics/summary.
 type Summary struct {
 	Corte       time.Time   `json:"corte"`

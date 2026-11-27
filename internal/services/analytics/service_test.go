@@ -3,6 +3,8 @@ package analytics
 import (
 	"testing"
 	"time"
+
+	repository "backend-hackathon/internal/repository/repositories"
 )
 
 func TestCorteYRango(t *testing.T) {
@@ -33,5 +35,20 @@ func TestSupresion(t *testing.T) {
 	}
 	if i := indicador("abiertos", "x", 10, 2); i.Detalle != "Sin comparación con el periodo anterior" {
 		t.Fatalf("anterior suprimido no debe revelar la diferencia: %q", i.Detalle)
+	}
+}
+
+func TestNivelesPorQuintil(t *testing.T) {
+	cs := []repository.Conteo{{Etiqueta: "a", Valor: 0}, {Etiqueta: "b", Valor: 4}, {Etiqueta: "c", Valor: 5},
+		{Etiqueta: "d", Valor: 10}, {Etiqueta: "e", Valor: 10}, {Etiqueta: "f", Valor: 50}, {Etiqueta: "g", Valor: 90}}
+	got := map[string]any{}
+	for _, c := range Niveles(cs) {
+		got[c.Ageb] = c.Nivel
+	}
+	want := map[string]any{"a": "suprimido", "b": "suprimido", "c": 1, "d": 2, "e": 2, "f": 4, "g": 5}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s: nivel %v, quiero %v", k, got[k], v)
+		}
 	}
 }
