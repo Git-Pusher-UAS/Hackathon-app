@@ -30,7 +30,7 @@ type stubRepos struct {
 	sesiones    *stubSesionRepo
 }
 
-func (r *stubRepos) Empleadores() repository.EmpleadorRepository           { return r.empleadores }
+func (r *stubRepos) Empleadores() repository.EmpleadorRepository              { return r.empleadores }
 func (r *stubRepos) EmpleadorDesafios() repository.EmpleadorDesafioRepository { return r.desafios }
 func (r *stubRepos) EmpleadorSesiones() repository.EmpleadorSesionRepository  { return r.sesiones }
 
@@ -92,7 +92,7 @@ func newEmployerTestFixture(devMode bool) (*service, string, *[]string) {
 		sesiones:    &stubSesionRepo{},
 	}
 	logs := []string{}
-	svc := New(&stubUOW{repos: repos}, devMode).(*service)
+	svc := New(&stubUOW{repos: repos}, devMode, "test-otp-secret").(*service)
 	svc.now = func() time.Time { return time.Date(2026, 11, 27, 10, 0, 0, 0, time.UTC) }
 	svc.logf = func(format string, args ...any) {
 		logs = append(logs, fmt.Sprintf(format, args...))
@@ -132,4 +132,23 @@ func TestEmployerOTPLoggingRespectsDevMode(t *testing.T) {
 			t.Fatalf("expected 0 logs when devMode=false, got %v", *logs)
 		}
 	})
+}
+
+func TestEmployerLoginUnknownDoesNotEnumerate(t *testing.T) {
+	svc, _, _ := newEmployerTestFixture(false)
+	ch, err := svc.Login(context.Background(), "noexiste@empresa.mx")
+	if err != nil {
+		t.Fatalf("expected generic challenge, got err: %v", err)
+	}
+	if ch == nil || ch.ChallengeID == uuid.Nil {
+		t.Fatalf("expected challenge response, got %+v", ch)
+	}
+}
+
+func TestEmployerVerifyNonexistentChallenge(t *testing.T) {
+	svc, _, _ := newEmployerTestFixture(false)
+	_, err := svc.Verify(context.Background(), uuid.New(), "123456")
+	if err != ErrInvalid {
+		t.Fatalf("expected ErrInvalid, got %v", err)
+	}
 }

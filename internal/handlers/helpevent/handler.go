@@ -4,7 +4,6 @@ package helpevent
 import (
 	"errors"
 	"log"
-	"strings"
 
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -12,7 +11,6 @@ import (
 	svc "backend-hackathon/internal/services/helpevent"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 type Handler struct{ service svc.Service }
@@ -47,18 +45,11 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return err
 	}
-	opRaw := strings.TrimSpace(req.OperationID)
-	if opRaw == "" {
-		opRaw = strings.TrimSpace(c.Get("Idempotency-Key"))
-	}
-	if opRaw == "" {
-		opRaw = strings.TrimSpace(c.Get("X-Operation-Id"))
-	}
-	opID, err := uuid.Parse(opRaw)
+	opID, err := httpx.OperationIDFromRequest(c, true)
 	if err != nil {
-		return httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "operationId invalido")
+		return err
 	}
-	if err := h.service.Record(c.Context(), actor, opID, req); err != nil {
+	if err := h.service.Record(c.Context(), actor, *opID, req); err != nil {
 		var he *httpx.Error
 		if errors.As(err, &he) {
 			return he

@@ -40,10 +40,10 @@ type stubRepos struct {
 	portalSesiones *stubPortalSesionRepo
 }
 
-func (r *stubRepos) Cursos() repository.CursoRepository             { return r.cursos }
+func (r *stubRepos) Cursos() repository.CursoRepository              { return r.cursos }
 func (r *stubRepos) Inscripciones() repository.InscripcionRepository { return r.inscripciones }
-func (r *stubRepos) Personal() repository.PersonalRepository        { return r.personal }
-func (r *stubRepos) Sesiones() repository.SesionPersonalRepository  { return r.sesiones }
+func (r *stubRepos) Personal() repository.PersonalRepository         { return r.personal }
+func (r *stubRepos) Sesiones() repository.SesionPersonalRepository   { return r.sesiones }
 func (r *stubRepos) PortalSesiones() repository.PortalSesionRepository {
 	return r.portalSesiones
 }

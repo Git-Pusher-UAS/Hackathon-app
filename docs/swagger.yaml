@@ -696,6 +696,8 @@ definitions:
         type: string
       id:
         type: string
+      inscrita:
+        type: boolean
       inscritas:
         type: integer
       lugar:
@@ -1410,6 +1412,75 @@ definitions:
         example: "123456"
         type: string
     type: object
+  internal_handlers_bolsaextra.AdminJobRequest:
+    properties:
+      descripcion:
+        type: string
+      empresa:
+        type: string
+      horario:
+        type: string
+      puesto:
+        type: string
+      requisitos:
+        type: string
+      sector:
+        type: string
+      tipoEmpleo:
+        type: string
+      ubicacion:
+        type: string
+    type: object
+  internal_handlers_bolsaextra.AdminReviewRequest:
+    properties:
+      decision:
+        type: string
+      motivo:
+        type: string
+    type: object
+  internal_handlers_bolsaextra.ContactReleaseRequest:
+    properties:
+      campos:
+        items:
+          type: string
+        type: array
+      motivo:
+        type: string
+    type: object
+  internal_handlers_bolsaextra.EstadoUpdateResponse:
+    properties:
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoPostulacion'
+      id:
+        type: string
+    type: object
+  internal_handlers_bolsaextra.InterviewResponseRequest:
+    properties:
+      respuesta:
+        type: string
+    type: object
+  internal_handlers_bolsaextra.PortalApplicationView:
+    properties:
+      contactoLiberado:
+        type: boolean
+      creadoEn:
+        type: string
+      empresa:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoPostulacion'
+      id:
+        type: string
+      puesto:
+        type: string
+      vacanteId:
+        type: string
+    type: object
+  internal_handlers_bolsaextra.WithdrawalRequest:
+    properties:
+      motivo:
+        type: string
+    type: object
   internal_handlers_bolsaextra.cvPayload:
     properties:
       estudios:
@@ -1478,8 +1549,7 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties: true
-          type: object
+          $ref: '#/definitions/internal_handlers_bolsaextra.ContactReleaseRequest'
       produces:
       - application/json
       responses:
@@ -1519,9 +1589,7 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/internal_handlers_bolsaextra.AdminReviewRequest'
       produces:
       - application/json
       responses:
@@ -1569,8 +1637,7 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties: true
-          type: object
+          $ref: '#/definitions/internal_handlers_bolsaextra.AdminJobRequest'
       produces:
       - application/json
       responses:
@@ -1614,9 +1681,7 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/internal_handlers_bolsaextra.AdminReviewRequest'
       produces:
       - application/json
       responses:
@@ -4307,7 +4372,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/internal_handlers_bolsaextra.PortalApplicationView'
             type: array
       summary: Mis postulaciones
       tags:
@@ -4326,7 +4391,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/internal_handlers_bolsaextra.PortalApplicationView'
       summary: Detalle de mi postulación
       tags:
       - portal-applications
@@ -4345,16 +4410,14 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/internal_handlers_bolsaextra.InterviewResponseRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/internal_handlers_bolsaextra.EstadoUpdateResponse'
       summary: Responder entrevista
       tags:
       - portal-applications
@@ -4373,16 +4436,14 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/internal_handlers_bolsaextra.WithdrawalRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/internal_handlers_bolsaextra.EstadoUpdateResponse'
       summary: Retirar postulación
       tags:
       - portal-applications

@@ -117,7 +117,7 @@ func newPortalTestFixture(devMode bool) (*service, []string, *[]string) {
 		sesiones: &stubSesionRepo{},
 	}
 	logs := []string{}
-	svc := New(&stubUOW{repos: repos}, devMode).(*service)
+	svc := New(&stubUOW{repos: repos}, devMode, "test-otp-secret").(*service)
 	svc.now = func() time.Time { return time.Date(2026, 11, 27, 10, 0, 0, 0, time.UTC) }
 	svc.logf = func(format string, args ...any) {
 		logs = append(logs, fmt.Sprintf(format, args...))
@@ -186,4 +186,23 @@ func TestPortalOTPLoggingRespectsDevMode(t *testing.T) {
 			t.Fatalf("expected 0 logs when devMode=false, got %v", *logs)
 		}
 	})
+}
+
+func TestPortalLoginUnknownDoesNotEnumerate(t *testing.T) {
+	svc, _, _ := newPortalTestFixture(false)
+	ch, err := svc.Login(context.Background(), "NOEXISTE00000000000")
+	if err != nil {
+		t.Fatalf("expected generic challenge, got err: %v", err)
+	}
+	if ch == nil || ch.ChallengeID == uuid.Nil {
+		t.Fatalf("expected challenge response, got %+v", ch)
+	}
+}
+
+func TestPortalVerifyNonexistentChallenge(t *testing.T) {
+	svc, _, _ := newPortalTestFixture(false)
+	_, err := svc.Verify(context.Background(), uuid.New(), "123456")
+	if err != ErrChallengeGone {
+		t.Fatalf("expected ErrChallengeGone, got %v", err)
+	}
 }

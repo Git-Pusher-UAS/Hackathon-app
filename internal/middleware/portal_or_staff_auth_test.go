@@ -22,9 +22,9 @@ type combinedRepos struct {
 	portalSesiones *stubPortalSesionRepo
 }
 
-func (r *combinedRepos) Personal() repository.PersonalRepository             { return r.personal }
-func (r *combinedRepos) Sesiones() repository.SesionPersonalRepository       { return r.sesiones }
-func (r *combinedRepos) PortalSesiones() repository.PortalSesionRepository   { return r.portalSesiones }
+func (r *combinedRepos) Personal() repository.PersonalRepository           { return r.personal }
+func (r *combinedRepos) Sesiones() repository.SesionPersonalRepository     { return r.sesiones }
+func (r *combinedRepos) PortalSesiones() repository.PortalSesionRepository { return r.portalSesiones }
 
 type combinedUOW struct {
 	repository.UnitOfWork

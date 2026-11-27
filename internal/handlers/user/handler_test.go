@@ -496,4 +496,24 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			t.Fatalf("body = %v (%v)", body, err)
 		}
 	})
+
+	t.Run("GET /users/me no sombreado por rutas parametricas", func(t *testing.T) {
+		svc := &stubUserService{
+			meFn: func(_ context.Context, gotActor, gotSession uuid.UUID) (*usermodels.MeResponse, error) {
+				if gotActor != actorID || gotSession != sessionID {
+					t.Fatalf("ids inesperados")
+				}
+				return &usermodels.MeResponse{Actor: usermodels.Actor{ID: actorID}}, nil
+			},
+		}
+		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
+		// registrar alias de colección como en main (seguro) y confirmar /me sigue resolviendo
+		resp, err := app.Test(httptest.NewRequest("GET", "/api/users/me", nil))
+		if err != nil {
+			t.Fatalf("app.Test: %v", err)
+		}
+		if resp.StatusCode != fiber.StatusOK {
+			t.Fatalf("status=%d, esperado 200", resp.StatusCode)
+		}
+	})
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"backend-hackathon/internal/metrics"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -78,6 +79,7 @@ func (h *StatusHandler) Status(c *fiber.Ctx) error {
 				"latency_ms": latency,
 				"error":      err.Error(),
 			},
+			"metrics": metrics.Get(),
 		})
 	}
 
@@ -90,5 +92,6 @@ func (h *StatusHandler) Status(c *fiber.Ctx) error {
 			"status":     "ok",
 			"latency_ms": latency,
 		},
+		"metrics": metrics.Get(),
 	})
 }

@@ -19,6 +19,7 @@ type Config struct {
 	InitialAdmin InitialAdminConfig
 	MFA          MFAConfig
 	CURPKey      string
+	OTPSecret    string
 }
 
 type ServerConfig struct {
@@ -79,7 +80,8 @@ func Load() (*Config, error) {
 			Port:       getEnv("PORT", "3000"),
 			CORSOrigin: getEnv("CORS_ORIGIN", "http://localhost:3000"),
 		},
-		CURPKey: getEnv("CURP_HMAC_KEY", ""),
+		CURPKey:   getEnv("CURP_HMAC_KEY", ""),
+		OTPSecret: getEnv("OTP_HMAC_KEY", ""),
 		// ("Clave del dato que busca, clave pro defecto que pondra si no lo encuentra")
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -111,6 +113,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.JWT.Secret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+	if strings.TrimSpace(cfg.OTPSecret) == "" {
+		cfg.OTPSecret = cfg.JWT.Secret
 	}
 
 	return cfg, nil
