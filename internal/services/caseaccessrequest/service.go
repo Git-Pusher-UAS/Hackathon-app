@@ -30,12 +30,15 @@ var (
 	ErrLinkInvalid       = errors.New("link token not found")
 	ErrLinkExpired       = errors.New("link token expired or used")
 	ErrRequestExists     = errors.New("pending request exists")
+	ErrNotFound          = errors.New("request not found")
+	ErrNotPending        = errors.New("request not pending")
 	ErrCryptoUnavailable = errors.New("cryptographic service unavailable")
 )
 
 type Service interface {
 	Create(ctx context.Context, actor repository.ActorContext, in carmodels.CreateRequest) (*carmodels.Created, error)
 	List(ctx context.Context, actor repository.ActorContext, estado *models.EstadoSolicitudVinculacion, page repository.PageRequest) (*carmodels.Page, error)
+	Reject(ctx context.Context, actor repository.ActorContext, id uuid.UUID, motivo string) error
 }
 
 type service struct {
@@ -118,6 +121,35 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 		return nil, err
 	}
 	return &out, nil
+}
+
+// Reject rechaza una solicitud pendiente. Aprobar se hace asignando con
+// solicitudId en POST /case-files/{recordId}/assignments.
+func (s *service) Reject(ctx context.Context, actor repository.ActorContext, id uuid.UUID, motivo string) error {
+	motivo = strings.TrimSpace(motivo)
+	if n := utf8.RuneCountInString(motivo); n < 10 || n > 500 {
+		return httpx.Invalid("motivo inválido", map[string]string{"motivo": "longitud_invalida"})
+	}
+	return s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
+		sol, err := r.SolicitudesVinculacion().GetByID(ctx, id)
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if sol.Estado != models.SolicitudPendiente {
+			return ErrNotPending
+		}
+		if err := r.SolicitudesVinculacion().Resolver(ctx, id, models.SolicitudRechazada, actor.ActorID, s.now(), nil, sol.Version); err != nil {
+			if errors.Is(err, repository.ErrVersionMismatch) {
+				return ErrNotPending // alguien la resolvió al mismo tiempo
+			}
+			return err
+		}
+		return audit.RecordResource(ctx, r, &actor.ActorID, "case_access_request.reject", "solicitud_vinculacion",
+			models.ResultadoExito, &id, actor.RequestID, actor.IPOrigen)
+	})
 }
 
 func (s *service) List(ctx context.Context, actor repository.ActorContext, estado *models.EstadoSolicitudVinculacion, page repository.PageRequest) (*carmodels.Page, error) {
