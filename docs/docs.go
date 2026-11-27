@@ -15,6 +15,51 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/analytics/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Expedientes abiertos y canalizaciones del periodo (con su cambio frente al periodo anterior), por mes, por origen de contacto y por área. El corte es la medianoche de hoy en Los Mochis. Las cifras menores a 5 llegan en null con suprimido=true. Requiere analytics.read.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Indicadores del tablero",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "30d (por defecto) | 6m | 12m",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Summary"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/audit-logs": {
             "get": {
                 "security": [
@@ -3221,6 +3266,78 @@ const docTemplate = `{
                 "SectorColonia",
                 "SectorSindicatura"
             ]
+        },
+        "backend-hackathon_internal_models_analytics.Indicador": {
+            "type": "object",
+            "properties": {
+                "clave": {
+                    "type": "string",
+                    "example": "abiertos"
+                },
+                "detalle": {
+                    "type": "string",
+                    "example": "+12 vs. periodo anterior"
+                },
+                "suprimido": {
+                    "type": "boolean"
+                },
+                "titulo": {
+                    "type": "string",
+                    "example": "Expedientes abiertos"
+                },
+                "valor": {
+                    "type": "integer",
+                    "example": 128
+                }
+            }
+        },
+        "backend-hackathon_internal_models_analytics.Serie": {
+            "type": "object",
+            "properties": {
+                "etiqueta": {
+                    "type": "string",
+                    "example": "2026-06"
+                },
+                "valor": {
+                    "type": "integer",
+                    "example": 18
+                }
+            }
+        },
+        "backend-hackathon_internal_models_analytics.Summary": {
+            "type": "object",
+            "properties": {
+                "corte": {
+                    "type": "string"
+                },
+                "indicadores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Indicador"
+                    }
+                },
+                "metodologia": {
+                    "type": "string"
+                },
+                "porArea": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Serie"
+                    }
+                },
+                "porMes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Serie"
+                    }
+                },
+                "porOrigen": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Serie"
+                    }
+                }
+            }
         },
         "backend-hackathon_internal_models_auditlog.Actor": {
             "type": "object",

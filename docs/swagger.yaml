@@ -184,6 +184,55 @@ definitions:
     - SectorSector
     - SectorColonia
     - SectorSindicatura
+  backend-hackathon_internal_models_analytics.Indicador:
+    properties:
+      clave:
+        example: abiertos
+        type: string
+      detalle:
+        example: +12 vs. periodo anterior
+        type: string
+      suprimido:
+        type: boolean
+      titulo:
+        example: Expedientes abiertos
+        type: string
+      valor:
+        example: 128
+        type: integer
+    type: object
+  backend-hackathon_internal_models_analytics.Serie:
+    properties:
+      etiqueta:
+        example: 2026-06
+        type: string
+      valor:
+        example: 18
+        type: integer
+    type: object
+  backend-hackathon_internal_models_analytics.Summary:
+    properties:
+      corte:
+        type: string
+      indicadores:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_analytics.Indicador'
+        type: array
+      metodologia:
+        type: string
+      porArea:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_analytics.Serie'
+        type: array
+      porMes:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_analytics.Serie'
+        type: array
+      porOrigen:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_analytics.Serie'
+        type: array
+    type: object
   backend-hackathon_internal_models_auditlog.Actor:
     properties:
       id:
@@ -1091,6 +1140,37 @@ info:
   title: SAI API
   version: "1.0"
 paths:
+  /analytics/summary:
+    get:
+      description: Expedientes abiertos y canalizaciones del periodo (con su cambio
+        frente al periodo anterior), por mes, por origen de contacto y por área. El
+        corte es la medianoche de hoy en Los Mochis. Las cifras menores a 5 llegan
+        en null con suprimido=true. Requiere analytics.read.
+      parameters:
+      - description: 30d (por defecto) | 6m | 12m
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_analytics.Summary'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Indicadores del tablero
+      tags:
+      - analytics
   /audit-logs:
     get:
       description: 'Eventos del más reciente al más antiguo: actor, rol, acción, expediente,

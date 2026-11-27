@@ -12,6 +12,55 @@ components:
           example: mperez
           type: string
       type: object
+    AnalyticsIndicador:
+      properties:
+        clave:
+          example: abiertos
+          type: string
+        detalle:
+          example: +12 vs. periodo anterior
+          type: string
+        suprimido:
+          type: boolean
+        titulo:
+          example: Expedientes abiertos
+          type: string
+        valor:
+          example: 128
+          type: integer
+      type: object
+    AnalyticsSerie:
+      properties:
+        etiqueta:
+          example: 2026-06
+          type: string
+        valor:
+          example: 18
+          type: integer
+      type: object
+    AnalyticsSummary:
+      properties:
+        corte:
+          type: string
+        indicadores:
+          items:
+            $ref: '#/components/schemas/AnalyticsIndicador'
+          type: array
+        metodologia:
+          type: string
+        porArea:
+          items:
+            $ref: '#/components/schemas/AnalyticsSerie'
+          type: array
+        porMes:
+          items:
+            $ref: '#/components/schemas/AnalyticsSerie'
+          type: array
+        porOrigen:
+          items:
+            $ref: '#/components/schemas/AnalyticsSerie'
+          type: array
+      type: object
     AuditLogActor:
       properties:
         id:
@@ -1097,6 +1146,39 @@ info:
   version: "1.0"
 openapi: 3.0.3
 paths:
+  /analytics/summary:
+    get:
+      description: Expedientes abiertos y canalizaciones del periodo (con su cambio frente al periodo anterior), por mes, por origen de contacto y por área. El corte es la medianoche de hoy en Los Mochis. Las cifras menores a 5 llegan en null con suprimido=true. Requiere analytics.read.
+      parameters:
+        - description: 30d (por defecto) | 6m | 12m
+          in: query
+          name: period
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsSummary'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Indicadores del tablero
+      tags:
+        - analytics
   /audit-logs:
     get:
       description: 'Eventos del más reciente al más antiguo: actor, rol, acción, expediente, resultado y detalle (por ejemplo, el campo revelado y el motivo). Nunca incluye la IP ni valores sensibles. La consulta queda en la bitácora. Requiere auditlog.read.'
