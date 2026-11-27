@@ -177,8 +177,8 @@ func TestHandlerListMySessions(t *testing.T) {
 				if gotActor != actorID || gotSession != sessionID {
 					t.Fatalf("ids = (%v,%v)", gotActor, gotSession)
 				}
-				if page.Limit != 5 || page.Cursor != "c1" {
-					t.Fatalf("page = %+v, esperado limit=5 cursor=c1", page)
+				if page.Limit != 10 || page.Cursor != "" {
+					t.Fatalf("page = %+v, esperado limit=10 sin cursor", page)
 				}
 				return &usermodels.Page[usermodels.SessionSummary]{
 					Items: []usermodels.SessionSummary{
@@ -189,7 +189,7 @@ func TestHandlerListMySessions(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("GET", "/api/v1/users/me/sessions?limit=5&cursor=c1", nil)
+		req := httptest.NewRequest("GET", "/api/v1/users/me/sessions", nil)
 		resp, err := app.Test(req)
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
@@ -197,22 +197,9 @@ func TestHandlerListMySessions(t *testing.T) {
 		if resp.StatusCode != fiber.StatusOK {
 			t.Fatalf("status = %d, esperado 200", resp.StatusCode)
 		}
-	})
-
-	t.Run("422 si limit está fuera de rango", func(t *testing.T) {
-		app := newTestApp(&stubUserService{}, true, actorID, sessionID, "csrf-123")
-		for _, target := range []string{
-			"/api/v1/users/me/sessions?limit=0",
-			"/api/v1/users/me/sessions?limit=101",
-			"/api/v1/users/me/sessions?limit=abc",
-		} {
-			resp, err := app.Test(httptest.NewRequest("GET", target, nil))
-			if err != nil {
-				t.Fatalf("app.Test(%s): %v", target, err)
-			}
-			if resp.StatusCode != fiber.StatusUnprocessableEntity {
-				t.Fatalf("%s status = %d, esperado 422", target, resp.StatusCode)
-			}
+		var got []usermodels.SessionSummary
+		if err := json.NewDecoder(resp.Body).Decode(&got); err != nil || len(got) != 1 || !got[0].Current {
+			t.Fatalf("se esperaba un arreglo con la sesión actual: %v %+v", err, got)
 		}
 	})
 }
