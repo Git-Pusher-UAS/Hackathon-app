@@ -8,6 +8,7 @@ import (
 
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
+	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
 	usermw "backend-hackathon/internal/middleware/user"
 	"backend-hackathon/internal/models"
@@ -133,6 +134,23 @@ func main() {
 		}
 		if err := ensureRolPermiso(db, r.ID, readAttention.ID); err != nil {
 			log.Fatalf("rol_permiso %s/%s: %v", codRol, usermw.PermReadAttention, err)
+		}
+	}
+
+	// Permisos por módulo con los roles que los reciben (§17). El admin los recibe todos.
+	for _, p := range carmw.Permisos {
+		perm, err := ensurePermiso(db, p.Codigo, p.Descripcion)
+		if err != nil {
+			log.Fatalf("permiso %s: %v", p.Codigo, err)
+		}
+		for _, codRol := range append([]string{"admin"}, p.Roles...) {
+			r, err := ensureRol(db, codRol, codRol)
+			if err != nil {
+				log.Fatalf("rol %s: %v", codRol, err)
+			}
+			if err := ensureRolPermiso(db, r.ID, perm.ID); err != nil {
+				log.Fatalf("rol_permiso %s/%s: %v", codRol, p.Codigo, err)
+			}
 		}
 	}
 
