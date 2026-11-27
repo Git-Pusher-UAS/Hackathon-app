@@ -1,4 +1,4 @@
-// Package user implementa las reglas de negocio de /api/v1/users.
+// Package user implementa las reglas de negocio de /api/users.
 package user
 
 import (
@@ -30,7 +30,7 @@ const (
 	justificationLifetime = 365 * 24 * time.Hour
 )
 
-// Service expone los casos de uso de las rutas /api/v1/users.
+// Service expone los casos de uso de las rutas /api/users.
 type Service interface {
 	Me(ctx context.Context, actorID, sessionID uuid.UUID) (*usermodels.MeResponse, error)
 	ListMySessions(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)

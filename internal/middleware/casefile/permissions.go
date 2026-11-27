@@ -1,4 +1,4 @@
-// Package casefile agrupa middleware de las rutas /api/v1/case-files.
+// Package casefile agrupa middleware de las rutas /api/case-files.
 package casefile
 
 import (

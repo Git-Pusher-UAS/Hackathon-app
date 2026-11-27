@@ -1,4 +1,4 @@
-// Package httpx agrupa utilidades HTTP compartidas por los handlers de /api/v1:
+// Package httpx agrupa utilidades HTTP compartidas por los handlers de /api:
 // sobre de errores, ETags/versionTag, cursores firmados y decodificación JSON.
 package httpx
 
@@ -24,7 +24,7 @@ func E(status int, code, message string) *Error {
 	return &Error{Status: status, Code: code, Message: message}
 }
 
-// Map traduce cualquier error al sobre de error del contrato /api/v1.
+// Map traduce cualquier error al sobre de error del contrato /api.
 func Map(err error) *Error {
 	var httpErr *Error
 	if errors.As(err, &httpErr) {

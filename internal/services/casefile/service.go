@@ -1,4 +1,4 @@
-// Package casefile implementa las reglas de negocio de /api/v1/case-files.
+// Package casefile implementa las reglas de negocio de /api/case-files.
 package casefile
 
 import (

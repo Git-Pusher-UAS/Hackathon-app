@@ -1,4 +1,4 @@
-// Package casefile expone los handlers HTTP de /api/v1/case-files.
+// Package casefile expone los handlers HTTP de /api/case-files.
 package casefile
 
 import (
@@ -136,7 +136,7 @@ func mapError(err error) error {
 // @Failure      401      {object}  httpx.ErrorResponse
 // @Failure      422      {object}  httpx.ErrorResponse
 // @Failure      500      {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/duplicate-check [post]
+// @Router       /case-files/duplicate-check [post]
 func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -170,7 +170,7 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 // @Failure      422             {object}  httpx.ErrorResponse
 // @Failure      500             {object}  httpx.ErrorResponse
 // @Failure      503             {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files [post]
+// @Router       /case-files [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -206,7 +206,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Failure      401     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files [get]
+// @Router       /case-files [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -237,7 +237,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId} [get]
+// @Router       /case-files/{recordId} [get]
 func (h *Handler) Get(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -274,7 +274,7 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 // @Failure      412       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId} [patch]
+// @Router       /case-files/{recordId} [patch]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -317,7 +317,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/timeline [get]
+// @Router       /case-files/{recordId}/timeline [get]
 func (h *Handler) Timeline(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -365,7 +365,7 @@ func (h *Handler) Timeline(c *fiber.Ctx) error {
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
 // @Failure      503       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/disclose [post]
+// @Router       /case-files/{recordId}/disclosures [post]
 func (h *Handler) Disclose(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -402,7 +402,7 @@ func (h *Handler) Disclose(c *fiber.Ctx) error {
 // @Failure      409       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/assignments [post]
+// @Router       /case-files/{recordId}/assignments [post]
 func (h *Handler) Assign(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -437,7 +437,7 @@ func (h *Handler) Assign(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/assignments/{assignmentId} [delete]
+// @Router       /case-files/{recordId}/assignments/{assignmentId}/revocations [post]
 func (h *Handler) RevokeAssignment(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -473,7 +473,7 @@ func (h *Handler) RevokeAssignment(c *fiber.Ctx) error {
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/departments/{departmentId}/notes [get]
+// @Router       /case-files/{recordId}/departments/{departmentId}/notes [get]
 func (h *Handler) ListNotes(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -524,7 +524,7 @@ func (h *Handler) ListNotes(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/departments/{departmentId}/notes [post]
+// @Router       /case-files/{recordId}/departments/{departmentId}/notes [post]
 func (h *Handler) CreateNote(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -565,7 +565,7 @@ func (h *Handler) CreateNote(c *fiber.Ctx) error {
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/consents [get]
+// @Router       /case-files/{recordId}/consents [get]
 func (h *Handler) ListConsents(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -599,7 +599,7 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/consents [post]
+// @Router       /case-files/{recordId}/consents [post]
 func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -641,7 +641,7 @@ func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 // @Failure      409        {object}  httpx.ErrorResponse
 // @Failure      422        {object}  httpx.ErrorResponse
 // @Failure      500        {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/consents/{consentId}/revoke [post]
+// @Router       /case-files/{recordId}/consents/{consentId}/revocations [post]
 func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -684,7 +684,7 @@ func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/referrals [post]
+// @Router       /case-files/{recordId}/referrals [post]
 func (h *Handler) CreateReferral(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {

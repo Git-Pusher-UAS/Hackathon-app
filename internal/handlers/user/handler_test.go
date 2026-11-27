@@ -77,7 +77,7 @@ func newTestAppWithPerms(svc userservice.Service, withAuth bool, actorID, sessio
 	})
 	h := New(svc)
 
-	v1 := app.Group("/api/v1", func(c *fiber.Ctx) error {
+	apiGroup := app.Group("/api", func(c *fiber.Ctx) error {
 		if withAuth {
 			csrfHash := sha256.Sum256([]byte(csrfToken))
 			c.Locals("personalID", actorID)
@@ -92,11 +92,11 @@ func newTestAppWithPerms(svc userservice.Service, withAuth bool, actorID, sessio
 		return c.Next()
 	}, usermiddleware.NoStore)
 
-	v1.Get("/users/me", h.Me)
-	v1.Get("/users/me/sessions", h.ListMySessions)
-	v1.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, h.RevokeMySession)
+	apiGroup.Get("/users/me", h.Me)
+	apiGroup.Get("/users/me/sessions", h.ListMySessions)
+	apiGroup.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, h.RevokeMySession)
 
-	admin := v1.Group("/users", middleware.RequirePermiso("admin"))
+	admin := apiGroup.Group("/users", middleware.RequirePermiso("admin"))
 	admin.Get("", h.List)
 	admin.Post("", usermiddleware.RequireCSRF, h.Create)
 	admin.Patch("/:userId", usermiddleware.RequireCSRF, h.Update)
@@ -132,7 +132,7 @@ func TestHandlerMe(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("GET", "/api/v1/users/me", nil)
+		req := httptest.NewRequest("GET", "/api/users/me", nil)
 		resp, err := app.Test(req)
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
@@ -155,7 +155,7 @@ func TestHandlerMe(t *testing.T) {
 
 	t.Run("401 sin autenticación", func(t *testing.T) {
 		app := newTestApp(&stubUserService{}, false, actorID, sessionID, "")
-		req := httptest.NewRequest("GET", "/api/v1/users/me", nil)
+		req := httptest.NewRequest("GET", "/api/users/me", nil)
 		resp, err := app.Test(req)
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
@@ -189,7 +189,7 @@ func TestHandlerListMySessions(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("GET", "/api/v1/users/me/sessions?limit=5&cursor=c1", nil)
+		req := httptest.NewRequest("GET", "/api/users/me/sessions?limit=5&cursor=c1", nil)
 		resp, err := app.Test(req)
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
@@ -202,9 +202,9 @@ func TestHandlerListMySessions(t *testing.T) {
 	t.Run("422 si limit está fuera de rango", func(t *testing.T) {
 		app := newTestApp(&stubUserService{}, true, actorID, sessionID, "csrf-123")
 		for _, target := range []string{
-			"/api/v1/users/me/sessions?limit=0",
-			"/api/v1/users/me/sessions?limit=101",
-			"/api/v1/users/me/sessions?limit=abc",
+			"/api/users/me/sessions?limit=0",
+			"/api/users/me/sessions?limit=101",
+			"/api/users/me/sessions?limit=abc",
 		} {
 			resp, err := app.Test(httptest.NewRequest("GET", target, nil))
 			if err != nil {
@@ -224,7 +224,7 @@ func TestHandlerRevokeMySession(t *testing.T) {
 
 	t.Run("403 sin X-CSRF-Token", func(t *testing.T) {
 		app := newTestApp(&stubUserService{}, true, actorID, currentSessionID, "csrf-123")
-		req := httptest.NewRequest("DELETE", "/api/v1/users/me/sessions/"+targetSessionID.String(), nil)
+		req := httptest.NewRequest("DELETE", "/api/users/me/sessions/"+targetSessionID.String(), nil)
 		resp, err := app.Test(req)
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
@@ -236,7 +236,7 @@ func TestHandlerRevokeMySession(t *testing.T) {
 
 	t.Run("422 con sessionId inválido", func(t *testing.T) {
 		app := newTestApp(&stubUserService{}, true, actorID, currentSessionID, "csrf-123")
-		req := httptest.NewRequest("DELETE", "/api/v1/users/me/sessions/no-es-uuid", nil)
+		req := httptest.NewRequest("DELETE", "/api/users/me/sessions/no-es-uuid", nil)
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -254,7 +254,7 @@ func TestHandlerRevokeMySession(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, currentSessionID, "csrf-123")
-		req := httptest.NewRequest("DELETE", "/api/v1/users/me/sessions/"+targetSessionID.String(), nil)
+		req := httptest.NewRequest("DELETE", "/api/users/me/sessions/"+targetSessionID.String(), nil)
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -272,7 +272,7 @@ func TestHandlerRevokeMySession(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, currentSessionID, "csrf-123")
-		req := httptest.NewRequest("DELETE", "/api/v1/users/me/sessions/"+targetSessionID.String(), nil)
+		req := httptest.NewRequest("DELETE", "/api/users/me/sessions/"+targetSessionID.String(), nil)
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -293,7 +293,7 @@ func TestHandlerRevokeMySession(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, currentSessionID, "csrf-123")
-		req := httptest.NewRequest("DELETE", "/api/v1/users/me/sessions/"+targetSessionID.String(), nil)
+		req := httptest.NewRequest("DELETE", "/api/users/me/sessions/"+targetSessionID.String(), nil)
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -315,11 +315,11 @@ func TestHandlerAdminPermissionRequired(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"GET", "/api/v1/users"},
-		{"POST", "/api/v1/users"},
-		{"PATCH", "/api/v1/users/" + targetID},
-		{"POST", "/api/v1/users/" + targetID + "/session-revocations"},
-		{"POST", "/api/v1/users/" + targetID + "/mfa-resets"},
+		{"GET", "/api/users"},
+		{"POST", "/api/users"},
+		{"PATCH", "/api/users/" + targetID},
+		{"POST", "/api/users/" + targetID + "/session-revocations"},
+		{"POST", "/api/users/" + targetID + "/mfa-resets"},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
 		req.Header.Set("X-CSRF-Token", "csrf-123")
@@ -348,7 +348,7 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		resp, err := app.Test(httptest.NewRequest("GET", "/api/v1/users?q=ana&limit=10", nil))
+		resp, err := app.Test(httptest.NewRequest("GET", "/api/users?q=ana&limit=10", nil))
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
 		}
@@ -372,7 +372,7 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBufferString(`{"usuario":"ana","nombreLaboral":"Ana","rol":"TrabajoSocial","departamentoId":"`+deptID.String()+`","password":"Password1234"}`))
+		req := httptest.NewRequest("POST", "/api/users", bytes.NewBufferString(`{"usuario":"ana","nombreLaboral":"Ana","rol":"TrabajoSocial","departamentoId":"`+deptID.String()+`","password":"Password1234"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -388,7 +388,7 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 
 	t.Run("POST /users rejects unknown JSON fields with 400", func(t *testing.T) {
 		app := newTestApp(&stubUserService{}, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBufferString(`{"extra":true}`))
+		req := httptest.NewRequest("POST", "/api/users", bytes.NewBufferString(`{"extra":true}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -416,7 +416,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
 
-		reqNoMatch := httptest.NewRequest("PATCH", "/api/v1/users/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
+		reqNoMatch := httptest.NewRequest("PATCH", "/api/users/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
 		reqNoMatch.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(reqNoMatch)
 		if err != nil {
@@ -426,7 +426,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			t.Fatalf("status = %d, esperado 428", resp.StatusCode)
 		}
 
-		req := httptest.NewRequest("PATCH", "/api/v1/users/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
+		req := httptest.NewRequest("PATCH", "/api/users/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		req.Header.Set(fiber.HeaderIfMatch, `"tag-v1"`)
 		resp, err = app.Test(req)
@@ -448,7 +448,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/v1/users/"+targetID.String()+"/session-revocations", bytes.NewBufferString(`{"motivo":"motivo válido de prueba"}`))
+		req := httptest.NewRequest("POST", "/api/users/"+targetID.String()+"/session-revocations", bytes.NewBufferString(`{"motivo":"motivo válido de prueba"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -470,7 +470,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/v1/users/"+targetID.String()+"/mfa-resets", bytes.NewBufferString(`{"motivo":"verificado en persona","verificacionPresencial":true}`))
+		req := httptest.NewRequest("POST", "/api/users/"+targetID.String()+"/mfa-resets", bytes.NewBufferString(`{"motivo":"verificado en persona","verificacionPresencial":true}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {

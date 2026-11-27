@@ -1,4 +1,4 @@
-// Package user contiene los DTO de las rutas /api/v1/users.
+// Package user contiene los DTO de las rutas /api/users.
 package user
 
 import (
