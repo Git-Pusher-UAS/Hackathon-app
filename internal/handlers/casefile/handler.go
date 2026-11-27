@@ -128,7 +128,7 @@ func mapError(err error) error {
 // DuplicateCheck verifica si ya existe un expediente asociado a un CURP.
 //
 // @Summary      Verificar duplicado por CURP
-// @Description  Consulta si ya existe una persona con ese CURP. Si existe, devuelve además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests. El CURP viaja solo en el cuerpo, nunca en la URL.
+// @Description  Consulta si ya existe una persona con ese CURP. Si existe, devuelve el área que lleva el caso y un linkToken de un solo uso (30 minutos) para pedir acceso con POST /case-access-requests sin volver a enviar la CURP. La CURP viaja solo en el cuerpo, nunca en la URL.
 // @Tags         case-files
 // @Security     BearerAuth
 // @Accept       json
@@ -150,11 +150,11 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
 	}
-	dup, err := h.service.DuplicateCheck(c.Context(), actor, req.CURP)
+	res, err := h.service.DuplicateCheck(c.Context(), actor, req.CURP)
 	if err != nil {
 		return mapError(err)
 	}
-	return c.JSON(casemodels.DuplicateCheckResponse{Duplicate: dup})
+	return c.JSON(res)
 }
 
 // Create crea un nuevo expediente de forma idempotente y devuelve su ETag de versión.
