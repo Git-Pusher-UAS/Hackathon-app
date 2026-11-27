@@ -41,7 +41,7 @@ func TargetFromEnv() Target {
 	return Target{
 		BaseURL:          env("SMOKE_BASE_URL", "http://localhost:"+env("PORT", "3000")),
 		HealthPath:       env("SMOKE_HEALTH_PATH", "/health"),
-		ProtectedRoutes:  list("SMOKE_PROTECTED_ROUTES", "/api/v1/auth/me,/api/v1/users/me"),
+		ProtectedRoutes:  list("SMOKE_PROTECTED_ROUTES", "/api/v1/auth/me,/api/v1/users/me,/api/v1/catalogs"),
 		ValidationRoutes: list("SMOKE_VALIDATION_ROUTES", "/api/v1/auth/login"),
 		PaginatedRoutes:  list("SMOKE_PAGINATED_ROUTES", "/api/v1/case-files"),
 		Token:            os.Getenv("SMOKE_TOKEN"),

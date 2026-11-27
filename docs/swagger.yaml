@@ -138,6 +138,16 @@ definitions:
     - OrigenLineaAtencion
     - OrigenPatrullaGenero
     - OrigenEmergenciaReferida
+  backend-hackathon_internal_models.TipoSector:
+    enum:
+    - sector
+    - colonia
+    - sindicatura
+    type: string
+    x-enum-varnames:
+    - SectorSector
+    - SectorColonia
+    - SectorSindicatura
   backend-hackathon_internal_models_casefile.AssignRequest:
     properties:
       departamentoId:
@@ -371,6 +381,141 @@ definitions:
         type: string
       tipoCasoId:
         type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Departamento:
+    properties:
+      codigo:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Finalidad:
+    properties:
+      id:
+        type: string
+      nombre:
+        type: string
+      obligatoria:
+        type: boolean
+    type: object
+  backend-hackathon_internal_models_catalog.Institucion:
+    properties:
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.InstitucionDestino:
+    properties:
+      id:
+        type: string
+      nombre:
+        type: string
+      telefono:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Opcion:
+    properties:
+      codigo:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Response:
+    properties:
+      departamentos:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Departamento'
+        type: array
+      finalidadesConsentimiento:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Finalidad'
+        type: array
+      institucionesDestino:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.InstitucionDestino'
+        type: array
+      institucionesOrigen:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Institucion'
+        type: array
+      motivosRevelacion:
+        items:
+          type: string
+        type: array
+      origenesContacto:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Opcion'
+        type: array
+      sectores:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Sector'
+        type: array
+      tiposCaso:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.TipoCaso'
+        type: array
+      vacantes:
+        $ref: '#/definitions/backend-hackathon_internal_models_catalog.Vacantes'
+    type: object
+  backend-hackathon_internal_models_catalog.Sector:
+    properties:
+      ageb:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+      tipo:
+        $ref: '#/definitions/backend-hackathon_internal_models.TipoSector'
+    type: object
+  backend-hackathon_internal_models_catalog.TipoCaso:
+    properties:
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Vacantes:
+    properties:
+      escolaridad:
+        items:
+          type: string
+        type: array
+      habilidades:
+        items:
+          type: string
+        type: array
+      horario:
+        items:
+          type: string
+        type: array
+      inicio:
+        items:
+          type: string
+        type: array
+      motivosNoSeleccion:
+        items:
+          type: string
+        type: array
+      sector:
+        items:
+          type: string
+        type: array
+      tiempoExperiencia:
+        items:
+          type: string
+        type: array
+      tipoEmpleo:
+        items:
+          type: string
+        type: array
+      ubicacion:
+        items:
+          type: string
+        type: array
     type: object
   backend-hackathon_internal_models_user.Actor:
     properties:
@@ -1592,6 +1737,39 @@ paths:
       summary: Verificar duplicado por CURP
       tags:
       - case-files
+  /catalogs:
+    get:
+      description: 'Una sola llamada al entrar: departamentos, sectores (sin geometría),
+        orígenes de contacto, instituciones, tipos de caso, finalidades del consentimiento,
+        motivos para revelar datos y el vocabulario de la bolsa de trabajo. Cacheable:
+        ETag y Cache-Control private, max-age=3600.'
+      parameters:
+      - description: ETag de una respuesta anterior
+        in: header
+        name: If-None-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            ETag:
+              description: Versión de los catálogos
+              type: string
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_catalog.Response'
+        "304":
+          description: Sin cambios
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Catálogos
+      tags:
+      - catalogs
   /health:
     get:
       description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera

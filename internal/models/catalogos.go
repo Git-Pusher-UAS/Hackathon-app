@@ -56,7 +56,8 @@ type Sector struct {
 	Codigo             string          `gorm:"type:varchar(40);not null;uniqueIndex"`
 	Nombre             string          `gorm:"type:varchar(150);not null"`
 	Tipo               TipoSector      `gorm:"type:varchar(20);not null"`
-	Geometria          json.RawMessage `gorm:"type:jsonb"` // GeoJSON institucional; NULL permitido
+	Ageb               *string         `gorm:"type:varchar(13)"` // clave AGEB del INEGI, para el mapa de calor
+	Geometria          json.RawMessage `gorm:"type:jsonb"`       // GeoJSON institucional; NULL permitido
 	VersionCartografia string          `gorm:"type:varchar(50);not null"`
 	Activo             bool            `gorm:"not null;default:true"`
 	CreadoEn           time.Time       `gorm:"not null;default:now();<-:create"`

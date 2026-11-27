@@ -289,6 +289,141 @@ components:
         tipoCasoId:
           type: string
       type: object
+    CatalogDepartamento:
+      properties:
+        codigo:
+          type: string
+        id:
+          type: string
+        nombre:
+          type: string
+      type: object
+    CatalogFinalidad:
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        obligatoria:
+          type: boolean
+      type: object
+    CatalogInstitucion:
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+      type: object
+    CatalogInstitucionDestino:
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        telefono:
+          type: string
+      type: object
+    CatalogOpcion:
+      properties:
+        codigo:
+          type: string
+        nombre:
+          type: string
+      type: object
+    CatalogResponse:
+      properties:
+        departamentos:
+          items:
+            $ref: '#/components/schemas/CatalogDepartamento'
+          type: array
+        finalidadesConsentimiento:
+          items:
+            $ref: '#/components/schemas/CatalogFinalidad'
+          type: array
+        institucionesDestino:
+          items:
+            $ref: '#/components/schemas/CatalogInstitucionDestino'
+          type: array
+        institucionesOrigen:
+          items:
+            $ref: '#/components/schemas/CatalogInstitucion'
+          type: array
+        motivosRevelacion:
+          items:
+            type: string
+          type: array
+        origenesContacto:
+          items:
+            $ref: '#/components/schemas/CatalogOpcion'
+          type: array
+        sectores:
+          items:
+            $ref: '#/components/schemas/CatalogSector'
+          type: array
+        tiposCaso:
+          items:
+            $ref: '#/components/schemas/CatalogTipoCaso'
+          type: array
+        vacantes:
+          $ref: '#/components/schemas/CatalogVacantes'
+      type: object
+    CatalogSector:
+      properties:
+        ageb:
+          type: string
+        id:
+          type: string
+        nombre:
+          type: string
+        tipo:
+          $ref: '#/components/schemas/TipoSector'
+      type: object
+    CatalogTipoCaso:
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+      type: object
+    CatalogVacantes:
+      properties:
+        escolaridad:
+          items:
+            type: string
+          type: array
+        habilidades:
+          items:
+            type: string
+          type: array
+        horario:
+          items:
+            type: string
+          type: array
+        inicio:
+          items:
+            type: string
+          type: array
+        motivosNoSeleccion:
+          items:
+            type: string
+          type: array
+        sector:
+          items:
+            type: string
+          type: array
+        tiempoExperiencia:
+          items:
+            type: string
+          type: array
+        tipoEmpleo:
+          items:
+            type: string
+          type: array
+        ubicacion:
+          items:
+            type: string
+          type: array
+      type: object
     DecisionConsentimiento:
       enum:
         - aceptado
@@ -425,6 +560,16 @@ components:
           example: dev
           type: string
       type: object
+    TipoSector:
+      enum:
+        - sector
+        - colonia
+        - sindicatura
+      type: string
+      x-enum-varnames:
+        - SectorSector
+        - SectorColonia
+        - SectorSindicatura
     UserActor:
       properties:
         departmentId:
@@ -1806,6 +1951,40 @@ paths:
       summary: Verificar duplicado por CURP
       tags:
         - case-files
+  /catalogs:
+    get:
+      description: 'Una sola llamada al entrar: departamentos, sectores (sin geometría), orígenes de contacto, instituciones, tipos de caso, finalidades del consentimiento, motivos para revelar datos y el vocabulario de la bolsa de trabajo. Cacheable: ETag y Cache-Control private, max-age=3600.'
+      parameters:
+        - description: ETag de una respuesta anterior
+          in: header
+          name: If-None-Match
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogResponse'
+          description: OK
+          headers:
+            ETag:
+              description: Versión de los catálogos
+              schema:
+                type: string
+        "304":
+          description: Sin cambios
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+      security:
+        - BearerAuth: []
+      summary: Catálogos
+      tags:
+        - catalogs
   /health:
     get:
       description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.

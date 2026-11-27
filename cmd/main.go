@@ -14,6 +14,7 @@ import (
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
 	casehandler "backend-hackathon/internal/handlers/casefile"
+	cataloghandler "backend-hackathon/internal/handlers/catalog"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -23,6 +24,7 @@ import (
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
 	caseservice "backend-hackathon/internal/services/casefile"
+	catalogservice "backend-hackathon/internal/services/catalog"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -99,6 +101,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	catalogHandler := cataloghandler.New(catalogservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -176,6 +179,8 @@ func main() {
 	admin.Patch("/:userId", userHandler.Update)
 	admin.Post("/:userId/session-revocations", userHandler.RevokeAllSessions)
 	admin.Post("/:userId/mfa-resets", userHandler.ResetMFA)
+
+	priv.Get("/catalogs", catalogHandler.Catalogs)
 
 	// Idempotency-Key en las creaciones (seguridad.operaciones, 24 h).
 	idem := func(required bool) fiber.Handler {
