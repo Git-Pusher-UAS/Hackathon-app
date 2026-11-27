@@ -223,6 +223,7 @@ func main() {
 
 	// Público / arranque de sesión
 	api.Post("/auth/login", authHandler.Login)
+	api.Post("/auth/activations", authHandler.Activate)
 	api.Post("/auth/mfa/verify", optionalAuth, authHandler.VerifyMFA)
 	api.Get("/auth/csrf-token", optionalAuth, authHandler.CSRFToken)
 

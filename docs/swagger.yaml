@@ -923,6 +923,13 @@ definitions:
         additionalProperties: {}
         type: object
     type: object
+  backend-hackathon_internal_models_user.Activacion:
+    properties:
+      codigo:
+        type: string
+      expiresAt:
+        type: string
+    type: object
   backend-hackathon_internal_models_user.Actor:
     properties:
       departmentId:
@@ -945,11 +952,19 @@ definitions:
       nombreLaboral:
         type: string
       password:
+        description: 'compat: ignorado si se usa activación'
         type: string
       rol:
         type: string
       usuario:
         type: string
+    type: object
+  backend-hackathon_internal_models_user.CreateResponse:
+    properties:
+      activacion:
+        $ref: '#/definitions/backend-hackathon_internal_models_user.Activacion'
+      cuenta:
+        $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
     type: object
   backend-hackathon_internal_models_user.MFAResetRequest:
     properties:
@@ -1035,6 +1050,17 @@ definitions:
       estado:
         $ref: '#/definitions/backend-hackathon_internal_models.EstadoPersonal'
       rol:
+        type: string
+    type: object
+  internal_handlers.ActivationRequest:
+    properties:
+      codigo:
+        example: K7P2-9QX4
+        type: string
+      password:
+        type: string
+      usuario:
+        example: mperez
         type: string
     type: object
   internal_handlers.ErrorResponse:
@@ -1317,6 +1343,37 @@ paths:
       summary: Listar bitácora de auditoría
       tags:
       - audit-logs
+  /auth/activations:
+    post:
+      consumes:
+      - application/json
+      description: El personal elige su contraseña con el código entregado por TI.
+        El código es de un solo uso y vence en 72 h.
+      parameters:
+      - description: Usuario, código y contraseña nueva
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.ActivationRequest'
+      responses:
+        "204":
+          description: Contraseña fijada
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Activar cuenta
+      tags:
+      - auth
   /auth/csrf-token:
     get:
       description: Devuelve un token CSRF. Si hay sesión autenticada, lo rota en servidor;
@@ -3991,7 +4048,7 @@ paths:
               description: ETag de la versión creada
               type: string
           schema:
-            $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
+            $ref: '#/definitions/backend-hackathon_internal_models_user.CreateResponse'
         "400":
           description: Bad Request
           schema:

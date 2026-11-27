@@ -55,13 +55,23 @@ type Page[T any] struct {
 	NextCursor *string `json:"nextCursor"`
 }
 
-// CreateRequest es el cuerpo de API-011.
+// CreateRequest es el cuerpo de API-011. La contraseña se define en activación.
 type CreateRequest struct {
 	Usuario        string `json:"usuario"`
 	NombreLaboral  string `json:"nombreLaboral"`
 	Rol            string `json:"rol"`
 	DepartamentoID string `json:"departamentoId"`
-	Password       string `json:"password"`
+	Password       string `json:"password,omitempty"` // compat: ignorado si se usa activación
+}
+
+type Activacion struct {
+	Codigo    string    `json:"codigo"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type CreateResponse struct {
+	Cuenta     StaffSummary `json:"cuenta"`
+	Activacion Activacion   `json:"activacion"`
 }
 
 // UpdateRequest es el cuerpo de API-012. Los punteros distinguen campo omitido

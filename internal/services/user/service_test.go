@@ -51,8 +51,10 @@ type fakeRepos struct {
 	operaciones   *fakeOperacionRepo
 	claves        *fakeClaveRegistroRepo
 	audit         *fakeAuditRepo
+	contextos     *fakeContextoAuthRepo
 }
 
+func (r *fakeRepos) ContextosAuth() repository.ContextoAuthRepository        { return r.contextos }
 func (r *fakeRepos) Actores() repository.ActorRepository                     { return r.actores }
 func (r *fakeRepos) Departamentos() repository.DepartamentoRepository        { return r.departamentos }
 func (r *fakeRepos) Personal() repository.PersonalRepository                 { return r.personal }
@@ -341,6 +343,39 @@ func (r *fakeAuditRepo) Append(_ context.Context, e *models.EventoAuditoria) err
 	return nil
 }
 
+type fakeContextoAuthRepo struct {
+	repository.ContextoAuthRepository
+	items map[uuid.UUID]*models.ContextoAuth
+}
+
+func (r *fakeContextoAuthRepo) Create(_ context.Context, c *models.ContextoAuth) error {
+	if r.items == nil {
+		r.items = map[uuid.UUID]*models.ContextoAuth{}
+	}
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
+	cp := *c
+	r.items[c.ID] = &cp
+	return nil
+}
+func (r *fakeContextoAuthRepo) GetByTokenHash(_ context.Context, tokenHash []byte) (*models.ContextoAuth, error) {
+	for _, v := range r.items {
+		if string(v.TokenHash) == string(tokenHash) {
+			cp := *v
+			return &cp, nil
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+func (r *fakeContextoAuthRepo) Consumir(_ context.Context, id uuid.UUID, at time.Time) (bool, error) {
+	v, ok := r.items[id]
+	if !ok || v.ConsumidoEn != nil {
+		return false, nil
+	}
+	v.ConsumidoEn = &at
+	return true, nil
+}
 func newTestFixture(now time.Time) (*service, *fakeRepos, uuid.UUID, uuid.UUID) {
 	actorID := uuid.New()
 	rolID := uuid.New()
@@ -402,6 +437,7 @@ func newTestFixture(now time.Time) (*service, *fakeRepos, uuid.UUID, uuid.UUID) 
 		operaciones:  &fakeOperacionRepo{},
 		claves:       &fakeClaveRegistroRepo{items: make(map[uuid.UUID]*models.ClaveRegistro)},
 		audit:        &fakeAuditRepo{},
+		contextos:    &fakeContextoAuthRepo{items: map[uuid.UUID]*models.ContextoAuth{}},
 	}
 
 	svc := New(&fakeUOW{repos: repos}, nil, "test-secret")
@@ -704,19 +740,21 @@ func TestCreateUser(t *testing.T) {
 			NombreLaboral:  "Carlos Pérez",
 			Rol:            "TrabajoSocial",
 			DepartamentoID: deptID.String(),
-			Password:       "ClaveSegura1234",
 		})
 		if err != nil {
 			t.Fatalf("Create: %v", err)
 		}
-		if res.Usuario != "carlos.perez" || res.Rol != "TrabajoSocial" || res.Estado != models.PersonalActivo {
+		if res.Cuenta.Usuario != "carlos.perez" || res.Cuenta.Rol != "TrabajoSocial" || res.Cuenta.Estado != models.PersonalActivo {
 			t.Fatalf("summary inesperado: %+v", res)
 		}
-		v, err := httpx.DecodeVersionTag(svc.secret, res.VersionTag)
+		if strings.TrimSpace(res.Activacion.Codigo) == "" || res.Activacion.ExpiresAt.IsZero() {
+			t.Fatalf("activacion faltante: %+v", res.Activacion)
+		}
+		v, err := httpx.DecodeVersionTag(svc.secret, res.Cuenta.VersionTag)
 		if err != nil || v != 1 {
 			t.Fatalf("versionTag = (%d, %v), esperado 1", v, err)
 		}
-		created := repos.personal.items[res.ID]
+		created := repos.personal.items[res.Cuenta.ID]
 		if !created.RequiereCambioPassword || !strings.HasPrefix(created.PasswordHash, "$argon2id$") {
 			t.Fatalf("personal creado inválido: %+v", created)
 		}

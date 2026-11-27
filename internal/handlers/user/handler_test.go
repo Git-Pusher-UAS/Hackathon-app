@@ -29,7 +29,7 @@ type stubUserService struct {
 	revokeOthersFn      func(ctx context.Context, actor repository.ActorContext, actorID, currentSessionID uuid.UUID) error
 	listFn              func(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
 	getFn               func(ctx context.Context, actorID, targetID uuid.UUID) (*usermodels.StaffSummary, error)
-	createFn            func(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
+	createFn            func(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error)
 	updateFn            func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	revokeAllSessionsFn func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
 	resetMFAFn          func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string, verificacionPresencial bool) (uuid.UUID, error)
@@ -59,7 +59,7 @@ func (s *stubUserService) Get(ctx context.Context, actorID, targetID uuid.UUID) 
 	return s.getFn(ctx, actorID, targetID)
 }
 
-func (s *stubUserService) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {
+func (s *stubUserService) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error) {
 	return s.createFn(ctx, actor, in)
 }
 
@@ -371,16 +371,16 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 
 	t.Run("POST /users returns 201 and ETag", func(t *testing.T) {
 		svc := &stubUserService{
-			createFn: func(_ context.Context, _ repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {
+			createFn: func(_ context.Context, _ repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error) {
 				if in.Usuario != "ana" {
 					t.Fatalf("usuario = %q", in.Usuario)
 				}
-				return &usermodels.StaffSummary{
+				return &usermodels.CreateResponse{Cuenta: usermodels.StaffSummary{
 					ID:             uuid.New(),
 					Usuario:        "ana",
 					DepartamentoID: deptID,
 					VersionTag:     "tag-v1",
-				}, nil
+				}, Activacion: usermodels.Activacion{Codigo: "ABCD-EFGH", ExpiresAt: time.Now().Add(72 * time.Hour)}}, nil
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")

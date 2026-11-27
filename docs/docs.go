@@ -336,6 +336,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/activations": {
+            "post": {
+                "description": "El personal elige su contraseña con el código entregado por TI. El código es de un solo uso y vence en 72 h.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Activar cuenta",
+                "parameters": [
+                    {
+                        "description": "Usuario, código y contraseña nueva",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.ActivationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Contraseña fijada"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/csrf-token": {
             "get": {
                 "description": "Devuelve un token CSRF. Si hay sesión autenticada, lo rota en servidor; si es anónimo, emite un token para uso previo al login.",
@@ -4389,7 +4435,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.CreateResponse"
                         },
                         "headers": {
                             "ETag": {
@@ -6296,6 +6342,17 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_user.Activacion": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_user.Actor": {
             "type": "object",
             "properties": {
@@ -6329,6 +6386,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "description": "compat: ignorado si se usa activación",
                     "type": "string"
                 },
                 "rol": {
@@ -6336,6 +6394,17 @@ const docTemplate = `{
                 },
                 "usuario": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.CreateResponse": {
+            "type": "object",
+            "properties": {
+                "activacion": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_user.Activacion"
+                },
+                "cuenta": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
                 }
             }
         },
@@ -6469,6 +6538,22 @@ const docTemplate = `{
                 },
                 "rol": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handlers.ActivationRequest": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string",
+                    "example": "K7P2-9QX4"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "usuario": {
+                    "type": "string",
+                    "example": "mperez"
                 }
             }
         },

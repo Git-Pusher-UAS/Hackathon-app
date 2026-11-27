@@ -11,10 +11,8 @@ import (
 )
 
 const (
-	minPassword = 12
-	maxPassword = 128
-	minMotivo   = 10
-	maxMotivo   = 500
+	minMotivo = 10
+	maxMotivo = 500
 )
 
 func validateCreate(in usermodels.CreateRequest) error {
@@ -29,10 +27,6 @@ func validateCreate(in usermodels.CreateRequest) error {
 	nombre := strings.TrimSpace(in.NombreLaboral)
 	if count := utf8.RuneCountInString(nombre); count < 1 || count > 150 {
 		return &ValidationError{Msg: "nombreLaboral debe tener entre 1 y 150 caracteres"}
-	}
-
-	if count := utf8.RuneCountInString(in.Password); count < minPassword || count > maxPassword {
-		return &ValidationError{Msg: "password debe tener entre 12 y 128 caracteres"}
 	}
 
 	if strings.TrimSpace(in.Rol) == "" {
