@@ -2010,6 +2010,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/notes/sync": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Hasta 20 borradores escritos sin conexión. Siempre responde 200 con un resultado por borrador, en el mismo orden: applied (se guardó o ya estaba), blocked con reason assignment_revoked o validation_failed (se descarta), conflict con reason record_closed o already_corrected (la persona decide) y retryable (error temporal; reintentar con el mismo operationId). Cada borrador lleva su propio operationId. baseVersionTag se acepta como referencia. Un 401 invalida todo el lote. Requiere casefile.write.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Sincronizar notas offline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Lote de notas",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_note.SyncRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_note.SyncResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/status": {
             "get": {
                 "description": "Comprueba la conexión con la base de datos y devuelve el estado del servicio.",
@@ -3681,6 +3751,80 @@ const docTemplate = `{
                 "telefono": {
                     "type": "string",
                     "example": "911"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_note.SyncNote": {
+            "type": "object",
+            "properties": {
+                "baseVersionTag": {
+                    "description": "BaseVersionTag es el versionTag del expediente cuando se escribió el borrador.",
+                    "type": "string"
+                },
+                "corrigeNotaId": {
+                    "type": "string"
+                },
+                "departmentId": {
+                    "type": "string"
+                },
+                "ocurridoEn": {
+                    "type": "string"
+                },
+                "operationId": {
+                    "type": "string",
+                    "example": "7d1f4c1e-5d9a-4f4f-8a43-2f3b4c5d6e7f"
+                },
+                "recordId": {
+                    "type": "string"
+                },
+                "texto": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_note.SyncRequest": {
+            "type": "object",
+            "properties": {
+                "notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_note.SyncNote"
+                    }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_note.SyncResponse": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_note.SyncResult"
+                    }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_note.SyncResult": {
+            "type": "object",
+            "properties": {
+                "noteId": {
+                    "type": "string"
+                },
+                "operationId": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "record_closed"
+                },
+                "result": {
+                    "type": "string",
+                    "enum": [
+                        "applied",
+                        "blocked",
+                        "conflict",
+                        "retryable"
+                    ]
                 }
             }
         },

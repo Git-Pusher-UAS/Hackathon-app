@@ -712,6 +712,56 @@ components:
       x-enum-varnames:
         - ModalidadPresencial
         - ModalidadDigital
+    NoteSyncNote:
+      properties:
+        baseVersionTag:
+          description: BaseVersionTag es el versionTag del expediente cuando se escribió el borrador.
+          type: string
+        corrigeNotaId:
+          type: string
+        departmentId:
+          type: string
+        ocurridoEn:
+          type: string
+        operationId:
+          example: 7d1f4c1e-5d9a-4f4f-8a43-2f3b4c5d6e7f
+          type: string
+        recordId:
+          type: string
+        texto:
+          type: string
+      type: object
+    NoteSyncRequest:
+      properties:
+        notes:
+          items:
+            $ref: '#/components/schemas/NoteSyncNote'
+          type: array
+      type: object
+    NoteSyncResponse:
+      properties:
+        results:
+          items:
+            $ref: '#/components/schemas/NoteSyncResult'
+          type: array
+      type: object
+    NoteSyncResult:
+      properties:
+        noteId:
+          type: string
+        operationId:
+          type: string
+        reason:
+          example: record_closed
+          type: string
+        result:
+          enum:
+            - applied
+            - blocked
+            - conflict
+            - retryable
+          type: string
+      type: object
     OrigenContacto:
       enum:
         - presencial
@@ -2474,6 +2524,60 @@ paths:
       summary: Directorio institucional
       tags:
         - institutional-contacts
+  /notes/sync:
+    post:
+      description: 'Hasta 20 borradores escritos sin conexión. Siempre responde 200 con un resultado por borrador, en el mismo orden: applied (se guardó o ya estaba), blocked con reason assignment_revoked o validation_failed (se descarta), conflict con reason record_closed o already_corrected (la persona decide) y retryable (error temporal; reintentar con el mismo operationId). Cada borrador lleva su propio operationId. baseVersionTag se acepta como referencia. Un 401 invalida todo el lote. Requiere casefile.write.'
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteSyncRequest'
+        description: Lote de notas
+        required: true
+        x-originalParamName: request
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteSyncResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Sincronizar notas offline
+      tags:
+        - notes
   /status:
     get:
       description: Comprueba la conexión con la base de datos y devuelve el estado del servicio.
