@@ -701,6 +701,57 @@ definitions:
         example: "911"
         type: string
     type: object
+  backend-hackathon_internal_models_note.SyncNote:
+    properties:
+      baseVersionTag:
+        description: BaseVersionTag es el versionTag del expediente cuando se escribió
+          el borrador.
+        type: string
+      corrigeNotaId:
+        type: string
+      departmentId:
+        type: string
+      ocurridoEn:
+        type: string
+      operationId:
+        example: 7d1f4c1e-5d9a-4f4f-8a43-2f3b4c5d6e7f
+        type: string
+      recordId:
+        type: string
+      texto:
+        type: string
+    type: object
+  backend-hackathon_internal_models_note.SyncRequest:
+    properties:
+      notes:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_note.SyncNote'
+        type: array
+    type: object
+  backend-hackathon_internal_models_note.SyncResponse:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_note.SyncResult'
+        type: array
+    type: object
+  backend-hackathon_internal_models_note.SyncResult:
+    properties:
+      noteId:
+        type: string
+      operationId:
+        type: string
+      reason:
+        example: record_closed
+        type: string
+      result:
+        enum:
+        - applied
+        - blocked
+        - conflict
+        - retryable
+        type: string
+    type: object
   backend-hackathon_internal_models_user.Activacion:
     properties:
       codigo:
@@ -2236,6 +2287,57 @@ paths:
       summary: Directorio institucional
       tags:
       - institutional-contacts
+  /notes/sync:
+    post:
+      consumes:
+      - application/json
+      description: 'Hasta 20 borradores escritos sin conexión. Siempre responde 200
+        con un resultado por borrador, en el mismo orden: applied (se guardó o ya
+        estaba), blocked con reason assignment_revoked o validation_failed (se descarta),
+        conflict con reason record_closed o already_corrected (la persona decide)
+        y retryable (error temporal; reintentar con el mismo operationId). Cada borrador
+        lleva su propio operationId. baseVersionTag se acepta como referencia. Un
+        401 invalida todo el lote. Requiere casefile.write.'
+      parameters:
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: Lote de notas
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_note.SyncRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_note.SyncResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Sincronizar notas offline
+      tags:
+      - notes
   /status:
     get:
       description: Comprueba la conexión con la base de datos y devuelve el estado
