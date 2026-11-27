@@ -29,8 +29,9 @@ func (f *fakeUOW) Repositories() repository.Repositories { return f.r }
 
 type fakeRepos struct {
 	repository.Repositories
-	cursos  []models.Curso
-	audited []string
+	cursos        []models.Curso
+	inscripciones []models.Inscripcion
+	audited       []string
 }
 
 type fakeCursos struct {
@@ -65,6 +66,33 @@ func (f fakeAudit) Append(_ context.Context, e *models.EventoAuditoria) error {
 	f.r.audited = append(f.r.audited, e.Accion)
 	return nil
 }
+
+type fakeInscripciones struct {
+	repository.InscripcionRepository
+	r *fakeRepos
+}
+
+func (f fakeInscripciones) ListByCurso(_ context.Context, id uuid.UUID) ([]models.Inscripcion, error) {
+	var out []models.Inscripcion
+	for _, x := range f.r.inscripciones {
+		if x.CursoID == id {
+			out = append(out, x)
+		}
+	}
+	return out, nil
+}
+
+func (f fakeInscripciones) SetPresente(_ context.Context, curso, id uuid.UUID, presente bool) error {
+	for i := range f.r.inscripciones {
+		if f.r.inscripciones[i].ID == id && f.r.inscripciones[i].CursoID == curso {
+			f.r.inscripciones[i].Presente = presente
+			return nil
+		}
+	}
+	return repository.ErrNotFound
+}
+
+func (r *fakeRepos) Inscripciones() repository.InscripcionRepository { return fakeInscripciones{r: r} }
 
 func (r *fakeRepos) Cursos() repository.CursoRepository                     { return fakeCursos{r: r} }
 func (r *fakeRepos) EventosAuditoria() repository.EventoAuditoriaRepository { return fakeAudit{r: r} }
@@ -104,5 +132,32 @@ func TestCreateValidacion(t *testing.T) {
 	}
 	if he.Fields["fecha"] != "fecha_pasada" {
 		t.Errorf("fecha pasada: %v", he.Fields["fecha"])
+	}
+}
+
+func TestAsistencia(t *testing.T) {
+	curso, otro := uuid.New(), uuid.New()
+	a, b := uuid.New(), uuid.New()
+	r := &fakeRepos{cursos: []models.Curso{{ID: curso}, {ID: otro}},
+		inscripciones: []models.Inscripcion{{ID: a, CursoID: curso, Alias: "Participante 01"}, {ID: b, CursoID: otro, Alias: "Participante 02"}}}
+	svc := &service{uow: &fakeUOW{r}, secret: "s", now: time.Now}
+	actor := repository.ActorContext{ActorID: uuid.New()}
+
+	lista, err := svc.Attendance(context.Background(), curso)
+	if err != nil || len(lista) != 1 || lista[0].Alias != "Participante 01" || lista[0].Presente {
+		t.Fatalf("lista: %+v %v", lista, err)
+	}
+	if err := svc.SetAttendance(context.Background(), actor, curso, []cmodels.MarcaAsistencia{{EnrollmentID: a, Presente: true}}); err != nil {
+		t.Fatalf("SetAttendance: %v", err)
+	}
+	if !r.inscripciones[0].Presente {
+		t.Fatal("no quedó presente")
+	}
+	var he *httpx.Error
+	if err := svc.SetAttendance(context.Background(), actor, curso, []cmodels.MarcaAsistencia{{EnrollmentID: b, Presente: true}}); !errors.As(err, &he) || he.Status != 422 {
+		t.Fatalf("inscripción de otro curso: %v", err)
+	}
+	if _, err := svc.Attendance(context.Background(), uuid.New()); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("curso inexistente: %v", err)
 	}
 }

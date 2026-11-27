@@ -33,6 +33,19 @@ type CreateRequest struct {
 	Cupo        int              `json:"cupo" example:"25"`
 }
 
+// Asistencia es una inscripción en la lista. Solo alias: nunca nombre ni teléfono.
+type Asistencia struct {
+	EnrollmentID uuid.UUID `json:"enrollmentId"`
+	Alias        string    `json:"alias" example:"Participante 01"`
+	Presente     bool      `json:"presente"`
+}
+
+// MarcaAsistencia es un elemento del cuerpo de PUT /courses/{id}/attendance.
+type MarcaAsistencia struct {
+	EnrollmentID uuid.UUID `json:"enrollmentId"`
+	Presente     bool      `json:"presente"`
+}
+
 // Page es la página de cursos.
 type Page struct {
 	Items      []Curso `json:"items"`

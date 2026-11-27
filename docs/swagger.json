@@ -2209,6 +2209,109 @@
                 }
             }
         },
+        "/courses/{id}/attendance": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Arreglo directo de inscripciones con alias y presente. Nunca nombre ni teléfono. Requiere courses.manage.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Lista de asistencia",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del curso",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_course.Asistencia"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marca presente o ausente cada inscripción, todo o nada: si una inscripción no es del curso responde 422 y no cambia ninguna. Requiere courses.manage.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Pasar lista",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del curso",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Marcas de asistencia",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_course.MarcaAsistencia"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Guardada"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.",
@@ -4439,6 +4542,21 @@
                 }
             }
         },
+        "backend-hackathon_internal_models_course.Asistencia": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string",
+                    "example": "Participante 01"
+                },
+                "enrollmentId": {
+                    "type": "string"
+                },
+                "presente": {
+                    "type": "boolean"
+                }
+            }
+        },
         "backend-hackathon_internal_models_course.CreateRequest": {
             "type": "object",
             "properties": {
@@ -4527,6 +4645,17 @@
                 "titulo": {
                     "type": "string",
                     "example": "Finanzas para tu negocio"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_course.MarcaAsistencia": {
+            "type": "object",
+            "properties": {
+                "enrollmentId": {
+                    "type": "string"
+                },
+                "presente": {
+                    "type": "boolean"
                 }
             }
         },

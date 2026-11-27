@@ -828,6 +828,16 @@ definitions:
           type: string
         type: array
     type: object
+  backend-hackathon_internal_models_course.Asistencia:
+    properties:
+      alias:
+        example: Participante 01
+        type: string
+      enrollmentId:
+        type: string
+      presente:
+        type: boolean
+    type: object
   backend-hackathon_internal_models_course.CreateRequest:
     properties:
       cupo:
@@ -889,6 +899,13 @@ definitions:
       titulo:
         example: Finanzas para tu negocio
         type: string
+    type: object
+  backend-hackathon_internal_models_course.MarcaAsistencia:
+    properties:
+      enrollmentId:
+        type: string
+      presente:
+        type: boolean
     type: object
   backend-hackathon_internal_models_course.Page:
     properties:
@@ -2714,6 +2731,74 @@ paths:
       security:
       - BearerAuth: []
       summary: Obtener curso
+      tags:
+      - courses
+  /courses/{id}/attendance:
+    get:
+      description: Arreglo directo de inscripciones con alias y presente. Nunca nombre
+        ni teléfono. Requiere courses.manage.
+      parameters:
+      - description: UUID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_course.Asistencia'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista de asistencia
+      tags:
+      - courses
+    put:
+      consumes:
+      - application/json
+      description: 'Marca presente o ausente cada inscripción, todo o nada: si una
+        inscripción no es del curso responde 422 y no cambia ninguna. Requiere courses.manage.'
+      parameters:
+      - description: UUID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: Marcas de asistencia
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/backend-hackathon_internal_models_course.MarcaAsistencia'
+          type: array
+      responses:
+        "204":
+          description: Guardada
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Pasar lista
       tags:
       - courses
   /health:
