@@ -2519,6 +2519,119 @@ const docTemplate = `{
                 }
             }
         },
+        "/outreach-visits": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Visitas de Capacitación de la fecha más próxima a la más lejana. Requiere outreach.manage.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "outreach-visits"
+                ],
+                "summary": "Listar visitas a sectores",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "planeada | realizada",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1..100 (20 por defecto)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor opaco",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_outreach.Page"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Nace en estado planeada; el responsable es el área de quien la crea. Requiere outreach.manage.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "outreach-visits"
+                ],
+                "summary": "Planear visita a un sector",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de la operación",
+                        "name": "Idempotency-Key",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Sector, fecha y tema",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_outreach.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_outreach.Visita"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/referrals": {
             "get": {
                 "security": [
@@ -3503,6 +3616,17 @@ const docTemplate = `{
                 "SolicitudPendiente",
                 "SolicitudAprobada",
                 "SolicitudRechazada"
+            ]
+        },
+        "backend-hackathon_internal_models.EstadoVisita": {
+            "type": "string",
+            "enum": [
+                "planeada",
+                "realizada"
+            ],
+            "x-enum-varnames": [
+                "VisitaPlaneada",
+                "VisitaRealizada"
             ]
         },
         "backend-hackathon_internal_models.ModalidadConsentimiento": {
@@ -4796,6 +4920,73 @@ const docTemplate = `{
                         "conflict",
                         "retryable"
                     ]
+                }
+            }
+        },
+        "backend-hackathon_internal_models_outreach.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string",
+                    "example": "2026-12-03"
+                },
+                "sectorId": {
+                    "type": "string"
+                },
+                "tema": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_outreach.Page": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_outreach.Visita"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_outreach.Visita": {
+            "type": "object",
+            "properties": {
+                "estado": {
+                    "enum": [
+                        "planeada",
+                        "realizada"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.EstadoVisita"
+                        }
+                    ]
+                },
+                "fecha": {
+                    "type": "string",
+                    "example": "2026-12-03"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "responsable": {
+                    "type": "string",
+                    "example": "Capacitación"
+                },
+                "sector": {
+                    "type": "string",
+                    "example": "Sector 12"
+                },
+                "sectorId": {
+                    "type": "string"
+                },
+                "tema": {
+                    "type": "string",
+                    "example": "Prevención de la violencia en el noviazgo"
                 }
             }
         },

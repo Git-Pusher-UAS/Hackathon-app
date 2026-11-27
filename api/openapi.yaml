@@ -865,6 +865,14 @@ components:
         - SolicitudPendiente
         - SolicitudAprobada
         - SolicitudRechazada
+    EstadoVisita:
+      enum:
+        - planeada
+        - realizada
+      type: string
+      x-enum-varnames:
+        - VisitaPlaneada
+        - VisitaRealizada
     HealthResponse:
       properties:
         status:
@@ -987,6 +995,50 @@ components:
         - OrigenLineaAtencion
         - OrigenPatrullaGenero
         - OrigenEmergenciaReferida
+    OutreachCreateRequest:
+      properties:
+        fecha:
+          example: "2026-12-03"
+          type: string
+        sectorId:
+          type: string
+        tema:
+          type: string
+      type: object
+    OutreachPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OutreachVisita'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    OutreachVisita:
+      properties:
+        estado:
+          allOf:
+            - $ref: '#/components/schemas/EstadoVisita'
+          enum:
+            - planeada
+            - realizada
+        fecha:
+          example: "2026-12-03"
+          type: string
+        id:
+          type: string
+        responsable:
+          example: Capacitación
+          type: string
+        sector:
+          example: Sector 12
+          type: string
+        sectorId:
+          type: string
+        tema:
+          example: Prevención de la violencia en el noviazgo
+          type: string
+      type: object
     ReferralDestino:
       properties:
         departamentoId:
@@ -3214,6 +3266,89 @@ paths:
       summary: Sincronizar notas offline
       tags:
         - notes
+  /outreach-visits:
+    get:
+      description: Visitas de Capacitación de la fecha más próxima a la más lejana. Requiere outreach.manage.
+      parameters:
+        - description: planeada | realizada
+          in: query
+          name: status
+          schema:
+            type: string
+        - description: 1..100 (20 por defecto)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor opaco
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutreachPage'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Listar visitas a sectores
+      tags:
+        - outreach-visits
+    post:
+      description: Nace en estado planeada; el responsable es el área de quien la crea. Requiere outreach.manage.
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+        - description: UUID de la operación
+          in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutreachCreateRequest'
+        description: Sector, fecha y tema
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutreachVisita'
+          description: Created
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Planear visita a un sector
+      tags:
+        - outreach-visits
   /referrals:
     get:
       description: 'incoming: canalizaciones a las áreas del actor; outgoing: las que emitieron sus áreas. Con recordId se usa en la pestaña Canalizaciones del expediente. Cada elemento trae versionTag para If-Match y el motivo del último rechazo o cancelación. Requiere referral.read.'
