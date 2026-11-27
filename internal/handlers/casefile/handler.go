@@ -26,7 +26,7 @@ func New(service svc.Service) *Handler { return &Handler{service: service} }
 func actorOf(c *fiber.Ctx) (repository.ActorContext, error) {
 	a, ok := middleware.ActorFrom(c)
 	if !ok {
-		return a, httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesi\u00f3n inv\u00e1lida")
+		return a, httpx.E(fiber.StatusUnauthorized, "session_expired", "sesi\u00f3n inv\u00e1lida")
 	}
 	return a, nil
 }
@@ -34,7 +34,7 @@ func actorOf(c *fiber.Ctx) (repository.ActorContext, error) {
 func uuidParam(c *fiber.Ctx, name string) (uuid.UUID, error) {
 	id, err := uuid.Parse(c.Params(name))
 	if err != nil {
-		return uuid.Nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", name+" inv\u00e1lido")
+		return uuid.Nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", name+" inv\u00e1lido")
 	}
 	return id, nil
 }
@@ -44,13 +44,13 @@ func operationID(c *fiber.Ctx, required bool) (*uuid.UUID, error) {
 	raw := strings.TrimSpace(c.Get("X-Operation-Id"))
 	if raw == "" {
 		if required {
-			return nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "X-Operation-Id requerido (UUID)")
+			return nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "X-Operation-Id requerido (UUID)")
 		}
 		return nil, nil
 	}
 	id, err := uuid.Parse(raw)
 	if err != nil {
-		return nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "X-Operation-Id inv\u00e1lido")
+		return nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "X-Operation-Id inv\u00e1lido")
 	}
 	return &id, nil
 }
@@ -60,7 +60,7 @@ func parsePage(c *fiber.Ctx) (repository.PageRequest, error) {
 	if raw := c.Query("limit"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 1 || n > 100 {
-			return repository.PageRequest{}, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "limit debe estar entre 1 y 100")
+			return repository.PageRequest{}, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "limit debe estar entre 1 y 100")
 		}
 		limit = n
 	}
@@ -74,7 +74,7 @@ func timeQuery(c *fiber.Ctx, name string) (*time.Time, error) {
 	}
 	t, err := time.Parse(time.RFC3339, raw)
 	if err != nil {
-		return nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", name+" debe ser RFC3339")
+		return nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", name+" debe ser RFC3339")
 	}
 	return &t, nil
 }
@@ -86,40 +86,40 @@ func mapError(err error) error {
 	}
 	var ve *svc.ValidationError
 	if errors.As(err, &ve) {
-		return httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", ve.Msg)
+		return httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", ve.Msg)
 	}
 	switch {
 	case errors.Is(err, svc.ErrNotFound):
-		return httpx.E(fiber.StatusNotFound, "RESOURCE_NOT_FOUND", "recurso no disponible")
+		return httpx.E(fiber.StatusNotFound, "not_found", "recurso no disponible")
 	case errors.Is(err, svc.ErrVersionMismatch):
-		return httpx.E(fiber.StatusPreconditionFailed, "PRECONDITION_FAILED", "versi\u00f3n obsoleta")
+		return httpx.E(fiber.StatusPreconditionFailed, "precondition_failed", "versi\u00f3n obsoleta")
 	case errors.Is(err, svc.ErrPreconditionRequired):
-		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
+		return httpx.E(fiber.StatusPreconditionRequired, "precondition_required", "If-Match requerido")
 	case errors.Is(err, svc.ErrCryptoUnavailable):
-		return httpx.E(fiber.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "cifrado no configurado")
+		return httpx.E(fiber.StatusServiceUnavailable, "encryption_unavailable", "cifrado no configurado")
 	case errors.Is(err, svc.ErrDuplicatePerson):
-		return httpx.E(fiber.StatusConflict, "DUPLICATE_PERSON", "la persona ya tiene expediente")
+		return httpx.E(fiber.StatusConflict, "person_exists", "la persona ya tiene expediente")
 	case errors.Is(err, svc.ErrNoPrivacyNotice):
-		return httpx.E(fiber.StatusConflict, "NO_PRIVACY_NOTICE", "no hay aviso de privacidad vigente")
+		return httpx.E(fiber.StatusConflict, "no_privacy_notice", "no hay aviso de privacidad vigente")
 	case errors.Is(err, svc.ErrInvalidTransition):
-		return httpx.E(fiber.StatusConflict, "INVALID_TRANSITION", "transici\u00f3n de estado inv\u00e1lida")
+		return httpx.E(fiber.StatusConflict, "invalid_transition", "transici\u00f3n de estado inv\u00e1lida")
 	case errors.Is(err, svc.ErrCaseClosed):
-		return httpx.E(fiber.StatusConflict, "CASE_CLOSED", "el expediente est\u00e1 cerrado")
+		return httpx.E(fiber.StatusConflict, "record_closed", "el expediente est\u00e1 cerrado")
 	case errors.Is(err, svc.ErrAlreadyAssigned):
-		return httpx.E(fiber.StatusConflict, "ALREADY_ASSIGNED", "ya existe una asignaci\u00f3n vigente")
+		return httpx.E(fiber.StatusConflict, "already_assigned", "ya existe una asignaci\u00f3n vigente")
 	case errors.Is(err, svc.ErrAlreadyRevoked):
-		return httpx.E(fiber.StatusConflict, "ALREADY_REVOKED", "ya fue revocado")
+		return httpx.E(fiber.StatusConflict, "already_revoked", "ya fue revocado")
 	case errors.Is(err, svc.ErrLastAssignment):
-		return httpx.E(fiber.StatusConflict, "LAST_ASSIGNMENT", "el expediente no puede quedar sin personal asignado")
+		return httpx.E(fiber.StatusConflict, "last_assignment", "el expediente no puede quedar sin personal asignado")
 	case errors.Is(err, svc.ErrNotRevocable):
-		return httpx.E(fiber.StatusConflict, "NOT_REVOCABLE", "la finalidad no es revocable")
+		return httpx.E(fiber.StatusConflict, "purpose_mandatory", "la finalidad no es revocable")
 	case errors.Is(err, svc.ErrReferralExists):
-		return httpx.E(fiber.StatusConflict, "REFERRAL_EXISTS", "ya hay una canalizaci\u00f3n activa equivalente")
+		return httpx.E(fiber.StatusConflict, "referral_exists", "ya hay una canalizaci\u00f3n activa equivalente")
 	case errors.Is(err, repository.ErrConflict):
-		return httpx.E(fiber.StatusConflict, "CONFLICT", "conflicto con el estado actual")
+		return httpx.E(fiber.StatusConflict, "conflict", "conflicto con el estado actual")
 	default:
 		log.Printf("casefile: %v", err)
-		return httpx.E(fiber.StatusInternalServerError, "INTERNAL_ERROR", "error interno")
+		return httpx.E(fiber.StatusInternalServerError, "internal_error", "error interno")
 	}
 }
 
@@ -286,7 +286,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 	}
 	ifMatch, ok := httpx.ParseIfMatch(c.Get(fiber.HeaderIfMatch))
 	if !ok {
-		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
+		return httpx.E(fiber.StatusPreconditionRequired, "precondition_required", "If-Match requerido")
 	}
 	var req casemodels.UpdateRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
@@ -495,7 +495,7 @@ func (h *Handler) ListNotes(c *fiber.Ctx) error {
 	if raw := c.Query("episodeId"); raw != "" {
 		parsed, perr := uuid.Parse(raw)
 		if perr != nil {
-			return httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "episodeId inv\u00e1lido")
+			return httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "episodeId inv\u00e1lido")
 		}
 		ep = &parsed
 	}

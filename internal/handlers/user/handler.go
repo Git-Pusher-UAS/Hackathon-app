@@ -45,11 +45,11 @@ type MFAResetResponse struct {
 func (h *Handler) Me(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	sessionID, ok := middleware.SessionID(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 
 	result, err := h.service.Me(c.Context(), actorID, sessionID)
@@ -76,11 +76,11 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	sessionID, ok := middleware.SessionID(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 
 	page, err := parsePage(c)
@@ -113,7 +113,7 @@ func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	sessionID, err := parseUUIDParam(c, "sessionId")
 	if err != nil {
@@ -121,7 +121,7 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 	}
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 
 	if err := h.service.RevokeMySession(c.Context(), actor, actorID, sessionID); err != nil {
@@ -149,7 +149,7 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 func (h *Handler) List(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	page, err := parsePage(c)
 	if err != nil {
@@ -185,7 +185,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 
 	var req usermodels.CreateRequest
@@ -228,7 +228,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	targetID, err := parseUUIDParam(c, "userId")
 	if err != nil {
@@ -242,7 +242,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 
 	ifMatch, ok := httpx.ParseIfMatch(c.Get(fiber.HeaderIfMatch))
 	if !ok {
-		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
+		return httpx.E(fiber.StatusPreconditionRequired, "precondition_required", "If-Match requerido")
 	}
 
 	result, err := h.service.Update(c.Context(), actor, targetID, req, ifMatch)
@@ -275,7 +275,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	targetID, err := parseUUIDParam(c, "userId")
 	if err != nil {
@@ -297,7 +297,7 @@ func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 func (h *Handler) ResetMFA(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 	targetID, err := parseUUIDParam(c, "userId")
 	if err != nil {
@@ -321,7 +321,7 @@ func parsePage(c *fiber.Ctx) (repository.PageRequest, error) {
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil || parsed < 1 || parsed > 100 {
-			return repository.PageRequest{}, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "limit debe estar entre 1 y 100")
+			return repository.PageRequest{}, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "limit debe estar entre 1 y 100")
 		}
 		limit = parsed
 	}
@@ -331,7 +331,7 @@ func parsePage(c *fiber.Ctx) (repository.PageRequest, error) {
 func parseUUIDParam(c *fiber.Ctx, name string) (uuid.UUID, error) {
 	id, err := uuid.Parse(c.Params(name))
 	if err != nil {
-		return uuid.Nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", name+" inválido")
+		return uuid.Nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", name+" inválido")
 	}
 	return id, nil
 }
@@ -344,30 +344,30 @@ func mapError(err error) error {
 
 	var validation *userservice.ValidationError
 	if errors.As(err, &validation) {
-		return httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", validation.Msg)
+		return httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", validation.Msg)
 	}
 
 	switch {
 	case errors.Is(err, userservice.ErrNotFound):
-		return httpx.E(fiber.StatusNotFound, "RESOURCE_NOT_FOUND", "recurso no disponible")
+		return httpx.E(fiber.StatusNotFound, "not_found", "recurso no disponible")
 	case errors.Is(err, userservice.ErrDuplicateUsername):
-		return httpx.E(fiber.StatusConflict, "DUPLICATE_USERNAME", "el nombre de usuario ya está registrado")
+		return httpx.E(fiber.StatusConflict, "username_taken", "el nombre de usuario ya está registrado")
 	case errors.Is(err, userservice.ErrLastAdmin):
-		return httpx.E(fiber.StatusConflict, "LAST_ACTIVE_ADMIN", "no se puede dejar el sistema sin administrador activo")
+		return httpx.E(fiber.StatusConflict, "last_active_admin", "no se puede dejar el sistema sin administrador activo")
 	case errors.Is(err, userservice.ErrSelfElevation):
-		return httpx.E(fiber.StatusForbidden, "SELF_ELEVATION_FORBIDDEN", "no puede modificar sus propios permisos")
+		return httpx.E(fiber.StatusForbidden, "self_elevation_forbidden", "no puede modificar sus propios permisos")
 	case errors.Is(err, userservice.ErrVersionMismatch):
-		return httpx.E(fiber.StatusPreconditionFailed, "PRECONDITION_FAILED", "versión obsoleta")
+		return httpx.E(fiber.StatusPreconditionFailed, "precondition_failed", "versión obsoleta")
 	case errors.Is(err, userservice.ErrPreconditionRequired):
-		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
+		return httpx.E(fiber.StatusPreconditionRequired, "precondition_required", "If-Match requerido")
 	case errors.Is(err, userservice.ErrMFAVerificationRequired):
-		return httpx.E(fiber.StatusForbidden, "MFA_VERIFICATION_REQUIRED", "verificación presencial requerida")
+		return httpx.E(fiber.StatusForbidden, "mfa_verification_required", "verificación presencial requerida")
 	case errors.Is(err, userservice.ErrUnauthenticated):
-		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	case errors.Is(err, userservice.ErrCryptoUnavailable):
-		return httpx.E(fiber.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "cifrado no configurado")
+		return httpx.E(fiber.StatusServiceUnavailable, "encryption_unavailable", "cifrado no configurado")
 	default:
 		log.Printf("usuario: %v", err)
-		return httpx.E(fiber.StatusInternalServerError, "INTERNAL_ERROR", "error interno")
+		return httpx.E(fiber.StatusInternalServerError, "internal_error", "error interno")
 	}
 }
