@@ -73,6 +73,27 @@ func (f *fakeSols) Create(_ context.Context, s *models.SolicitudVinculacion) err
 	return nil
 }
 
+func (f *fakeSols) GetByID(_ context.Context, id uuid.UUID) (*models.SolicitudVinculacion, error) {
+	for i := range f.created {
+		if f.created[i].ID == id {
+			cp := f.created[i]
+			return &cp, nil
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+
+func (f *fakeSols) Resolver(_ context.Context, id uuid.UUID, estado models.EstadoSolicitudVinculacion, por uuid.UUID, en time.Time, _ *uuid.UUID, v int64) error {
+	for i := range f.created {
+		if f.created[i].ID == id && f.created[i].Version == v {
+			f.created[i].Estado, f.created[i].ResueltaPor, f.created[i].ResueltaEn = estado, &por, &en
+			f.created[i].Version++
+			return nil
+		}
+	}
+	return repository.ErrVersionMismatch
+}
+
 func (f *fakeSols) List(_ context.Context, flt repository.SolicitudVinculacionFilter, _ repository.PageRequest) (repository.Page[models.SolicitudVinculacion], error) {
 	var out []models.SolicitudVinculacion
 	for _, s := range f.created {
@@ -206,5 +227,32 @@ func TestCreateWithoutKeyring(t *testing.T) {
 	svc.keyring = nil
 	if _, err := svc.Create(context.Background(), actor, carmodels.CreateRequest{LinkToken: "x", Motivo: motivo}); !errors.Is(err, ErrCryptoUnavailable) {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestReject(t *testing.T) {
+	svc, r, actor := setup(t)
+	token, _ := addToken(r, actor.ActorID, time.Now().Add(10*time.Minute))
+	res, err := svc.Create(context.Background(), actor, carmodels.CreateRequest{LinkToken: token, Motivo: motivo})
+	if err != nil {
+		t.Fatal(err)
+	}
+	coord := repository.ActorContext{ActorID: uuid.New(), RequestID: uuid.New()}
+
+	var he *httpx.Error
+	if err := svc.Reject(context.Background(), coord, res.RequestID, "corto"); !errors.As(err, &he) || he.Fields["motivo"] == "" {
+		t.Fatalf("motivo corto: %v", err)
+	}
+	if err := svc.Reject(context.Background(), coord, uuid.New(), "La atención la lleva otra área"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("inexistente: %v", err)
+	}
+	if err := svc.Reject(context.Background(), coord, res.RequestID, "La atención la lleva otra área"); err != nil {
+		t.Fatalf("Reject: %v", err)
+	}
+	if s := r.sols.created[0]; s.Estado != models.SolicitudRechazada || s.ResueltaPor == nil || *s.ResueltaPor != coord.ActorID {
+		t.Fatalf("solicitud: %+v", s)
+	}
+	if err := svc.Reject(context.Background(), coord, res.RequestID, "La atención la lleva otra área"); !errors.Is(err, ErrNotPending) {
+		t.Fatalf("ya resuelta: %v", err)
 	}
 }

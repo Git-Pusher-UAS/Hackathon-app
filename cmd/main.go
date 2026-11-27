@@ -203,6 +203,7 @@ func main() {
 
 	priv.Post("/case-access-requests", carmw.Require(carmw.PermRequest), idem(false), carHandler.Create)
 	priv.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)
+	priv.Post("/case-access-requests/:id/rejection", carmw.Require(carmw.PermReview), carHandler.Reject)
 
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 

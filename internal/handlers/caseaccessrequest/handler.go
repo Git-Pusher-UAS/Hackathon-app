@@ -32,6 +32,10 @@ func MapError(err error) error {
 		return httpx.E(fiber.StatusGone, "link_expired", "el enlace venció o ya se usó")
 	case errors.Is(err, svc.ErrRequestExists):
 		return httpx.E(fiber.StatusConflict, "request_exists", "ya hay una solicitud pendiente para ese expediente")
+	case errors.Is(err, svc.ErrNotFound):
+		return httpx.E(fiber.StatusNotFound, "not_found", "recurso no disponible")
+	case errors.Is(err, svc.ErrNotPending):
+		return httpx.E(fiber.StatusConflict, "request_not_pending", "la solicitud ya fue resuelta")
 	case errors.Is(err, svc.ErrCryptoUnavailable):
 		return httpx.E(fiber.StatusServiceUnavailable, "encryption_unavailable", "cifrado no configurado")
 	default:
@@ -72,6 +76,40 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		return MapError(err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(res)
+}
+
+// Reject rechaza una solicitud pendiente.
+//
+// @Summary      Rechazar solicitud de acceso
+// @Description  Rechaza una solicitud pendiente. Para aprobarla se asigna con solicitudId en POST /case-files/{recordId}/assignments. Requiere caseaccess.review.
+// @Tags         case-access-requests
+// @Accept       json
+// @Security     BearerAuth
+// @Param        id            path    string         true  "UUID de la solicitud"
+// @Param        X-CSRF-Token  header  string         true  "Token CSRF de la sesión"
+// @Param        request       body    carmodels.RejectRequest  true  "Motivo (10 a 500 caracteres)"
+// @Success      204  "Rechazada"
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse  "request_not_pending"
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Router       /case-access-requests/{id}/rejection [post]
+func (h *Handler) Reject(c *fiber.Ctx) error {
+	actor, err := hu.Actor(c)
+	if err != nil {
+		return err
+	}
+	id, err := hu.UUIDParam(c, "id")
+	if err != nil {
+		return err
+	}
+	var req carmodels.RejectRequest
+	if err := httpx.DecodeJSON(c, &req); err != nil {
+		return err
+	}
+	if err := h.service.Reject(c.Context(), actor, id, req.Motivo); err != nil {
+		return MapError(err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // List devuelve la bandeja de solicitudes de acceso.

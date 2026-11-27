@@ -462,6 +462,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/case-access-requests/{id}/rejection": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rechaza una solicitud pendiente. Para aprobarla se asigna con solicitudId en POST /case-files/{recordId}/assignments. Requiere caseaccess.review.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-access-requests"
+                ],
+                "summary": "Rechazar solicitud de acceso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID de la solicitud",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo (10 a 500 caracteres)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_caseaccessrequest.RejectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Rechazada"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "request_not_pending",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/case-files": {
             "get": {
                 "security": [
@@ -2878,6 +2943,15 @@ const docTemplate = `{
                 },
                 "nextCursor": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_caseaccessrequest.RejectRequest": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string",
+                    "example": "La atención la lleva otra área"
                 }
             }
         },
