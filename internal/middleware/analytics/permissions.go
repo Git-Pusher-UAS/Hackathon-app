@@ -10,9 +10,13 @@ import (
 // PermRead consulta los indicadores agregados.
 const PermRead = "analytics.read"
 
+// PermHeatmap consulta el mapa de calor por AGEB.
+const PermHeatmap = "analytics.heatmap"
+
 // Permisos los usa el seed.
 var Permisos = []middleware.PermisoSeed{
 	{Codigo: PermRead, Descripcion: "Consultar indicadores agregados", Roles: []string{"Dirección", "AdministraciónAnalítica"}},
+	{Codigo: PermHeatmap, Descripcion: "Consultar el mapa de calor por AGEB", Roles: []string{"Capacitación", "Dirección", "AdministraciónAnalítica"}},
 }
 
 // Require exige un permiso del token (después de AuthMiddleware).
