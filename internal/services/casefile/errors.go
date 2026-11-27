@@ -1,6 +1,9 @@
 package casefile
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
 	ErrNotFound             = errors.New("record not found")
@@ -19,3 +22,14 @@ var (
 	ErrNotRevocable         = errors.New("cannot revoke record")
 	ErrReferralExists       = errors.New("referral already exists")
 )
+
+// DuplicatePersonError es ErrDuplicatePerson con el linkToken para pedir
+// acceso al expediente existente sin volver a enviar la CURP.
+type DuplicatePersonError struct {
+	LinkToken     *string
+	LinkExpiresAt *time.Time
+	Department    *string
+}
+
+func (e *DuplicatePersonError) Error() string { return ErrDuplicatePerson.Error() }
+func (e *DuplicatePersonError) Unwrap() error { return ErrDuplicatePerson }
