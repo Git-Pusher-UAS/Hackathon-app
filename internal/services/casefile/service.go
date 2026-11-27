@@ -167,6 +167,39 @@ func (s *service) summary(e *models.Expediente, tipo *uuid.UUID) casemodels.Summ
 	}
 }
 
+// areas devuelve los códigos de los departamentos con asignación vigente.
+func areas(ctx context.Context, r repository.Repositories, expID uuid.UUID, cache map[uuid.UUID]string) ([]string, error) {
+	asigs, err := r.Asignaciones().ListByExpediente(ctx, expID, true)
+	if err != nil {
+		return nil, err
+	}
+	out := []string{}
+	seen := map[string]bool{}
+	for _, a := range asigs {
+		code, ok := cache[a.DepartamentoID]
+		if !ok {
+			d, err := r.Departamentos().GetByID(ctx, a.DepartamentoID)
+			if err != nil {
+				return nil, err
+			}
+			code = d.Codigo
+			cache[a.DepartamentoID] = code
+		}
+		if !seen[code] {
+			seen[code] = true
+			out = append(out, code)
+		}
+	}
+	return out, nil
+}
+
+func fmtTimePtr(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339Nano)
+}
+
 func (s *service) nextCursor(actorID uuid.UUID, scope, filter, repoNext string) *string {
 	if repoNext == "" {
 		return nil
@@ -461,12 +494,18 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, opI
 
 func (s *service) List(ctx context.Context, actor repository.ActorContext, q casemodels.ListQuery, page repository.PageRequest) (*casemodels.Page[casemodels.Summary], error) {
 	alias := strings.TrimSpace(q.Alias)
-	filterHash := httpx.FilterHash(string(q.Estado), alias)
+	filterHash := httpx.FilterHash(string(q.Estado), alias, fmtTimePtr(q.Desde), fmtTimePtr(q.Hasta))
 	plain, err := httpx.DecodeCursor(s.secret, page.Cursor, actor.ActorID, cursorScopeList, filterHash)
 	if err != nil {
 		return nil, vErr("cursor inv\u00e1lido")
 	}
 	f := repository.ExpedienteFilter{AsignadoA: &actor.ActorID, Alias: alias}
+	if q.Desde != nil {
+		f.Actualizado.Desde = *q.Desde
+	}
+	if q.Hasta != nil {
+		f.Actualizado.Hasta = *q.Hasta
+	}
 	if q.Estado != "" {
 		est := q.Estado
 		f.Estado = &est
@@ -479,12 +518,17 @@ func (s *service) List(ctx context.Context, actor repository.ActorContext, q cas
 			return err
 		}
 		result.Items = make([]casemodels.Summary, 0, len(rp.Items))
+		deps := map[uuid.UUID]string{}
 		for i := range rp.Items {
 			tipo, err := activeTipo(ctx, r, rp.Items[i].ID)
 			if err != nil {
 				return err
 			}
-			result.Items = append(result.Items, s.summary(&rp.Items[i], tipo))
+			sum := s.summary(&rp.Items[i], tipo)
+			if sum.Areas, err = areas(ctx, r, rp.Items[i].ID, deps); err != nil {
+				return err
+			}
+			result.Items = append(result.Items, sum)
 		}
 		result.NextCursor = s.nextCursor(actor.ActorID, cursorScopeList, filterHash, rp.NextCursor)
 		return nil

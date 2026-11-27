@@ -55,15 +55,19 @@ type Summary struct {
 	Estado         models.EstadoExpediente `json:"estado"`
 	OrigenContacto models.OrigenContacto   `json:"origenContacto"`
 	TipoCasoID     *uuid.UUID              `json:"tipoCasoId"`
-	CreatedAt      time.Time               `json:"createdAt"`
-	UpdatedAt      time.Time               `json:"updatedAt"`
-	ClosedAt       *time.Time              `json:"closedAt"`
-	VersionTag     string                  `json:"versionTag"`
+	// Areas son los códigos de los departamentos con asignación vigente.
+	Areas      []string   `json:"areas"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	ClosedAt   *time.Time `json:"closedAt"`
+	VersionTag string     `json:"versionTag"`
 }
 
 type ListQuery struct {
 	Estado models.EstadoExpediente
 	Alias  string
+	// Desde y Hasta filtran por updatedAt ([Desde, Hasta)).
+	Desde, Hasta *time.Time
 }
 
 // API-022
