@@ -23,10 +23,12 @@ import (
 	coursehandler "backend-hackathon/internal/handlers/course"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
+	jobhandler "backend-hackathon/internal/handlers/job"
 	notehandler "backend-hackathon/internal/handlers/note"
 	outreachhandler "backend-hackathon/internal/handlers/outreach"
 	portalhandler "backend-hackathon/internal/handlers/portal"
 	referralhandler "backend-hackathon/internal/handlers/referral"
+	surveyhandler "backend-hackathon/internal/handlers/survey"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -37,6 +39,7 @@ import (
 	coursemw "backend-hackathon/internal/middleware/course"
 	outreachmw "backend-hackathon/internal/middleware/outreach"
 	refmw "backend-hackathon/internal/middleware/referral"
+	surveymw "backend-hackathon/internal/middleware/survey"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
@@ -49,10 +52,12 @@ import (
 	courseservice "backend-hackathon/internal/services/course"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
+	jobservice "backend-hackathon/internal/services/job"
 	noteservice "backend-hackathon/internal/services/note"
 	outreachservice "backend-hackathon/internal/services/outreach"
 	portalservice "backend-hackathon/internal/services/portal"
 	referralservice "backend-hackathon/internal/services/referral"
+	surveyservice "backend-hackathon/internal/services/survey"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -141,6 +146,8 @@ func main() {
 	portalHandler := portalhandler.New(portalservice.New(uow))
 	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
 	outreachHandler := outreachhandler.New(outreachservice.New(uow))
+	jobHandler := jobhandler.New(jobservice.New(uow))
+	surveyHandler := surveyhandler.New(surveyservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -196,6 +203,12 @@ func main() {
 	helpAlerts.Post("/:id/trusted-contacts", portalHandler.NotifyTrustedContacts)
 	helpAlerts.Post("/:id/cancellation", portalHandler.CancelAlert)
 	api.Post("/courses/:id/enrollments", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), courseHandler.Enroll)
+	api.Get("/surveys/pending", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), surveyHandler.Pending)
+	api.Get("/surveys/:id", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), surveyHandler.Get)
+	api.Post("/surveys/:id/responses", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), surveyHandler.Submit)
+	api.Get("/jobs", middleware.OptionalPortalAuthMiddleware(uow), jobHandler.List)
+	api.Get("/jobs/:id", middleware.OptionalPortalAuthMiddleware(uow), jobHandler.Get)
+	api.Post("/jobs/:id/applications", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), jobHandler.Apply)
 
 	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
 
@@ -246,6 +259,8 @@ func main() {
 	apiContract.Get("/audit-alerts", auditlogmw.Require(), auditAlertHandler.List)
 	apiContract.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
 	apiContract.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
+	apiContract.Get("/surveys/results", surveymw.Require(surveymw.PermResults), surveyHandler.Results)
+	apiContract.Post("/jobs", csrf, middleware.RequirePermiso("admin"), jobHandler.Create)
 
 	courses := apiContract.Group("/courses", coursemw.Require(coursemw.PermManage))
 	courses.Get("", courseHandler.List)

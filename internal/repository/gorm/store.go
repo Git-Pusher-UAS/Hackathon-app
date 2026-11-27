@@ -174,3 +174,12 @@ func (s *store) PortalAlertas() repository.PortalAlertaRepository { return &port
 func (s *store) Cursos() repository.CursoRepository              { return &cursoRepo{db: s.db} }
 func (s *store) Inscripciones() repository.InscripcionRepository { return &inscripcionRepo{db: s.db} }
 func (s *store) Visitas() repository.VisitaRepository            { return &visitaRepo{db: s.db} }
+
+// ---- encuestas ----
+
+func (s *store) Encuestas() repository.EncuestaRepository { return &encuestaRepo{db: s.db} }
+
+// ---- bolsa ----
+
+func (s *store) Vacantes() repository.VacanteRepository          { return &vacanteRepo{db: s.db} }
+func (s *store) Postulaciones() repository.PostulacionRepository { return &postulacionRepo{db: s.db} }
