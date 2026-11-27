@@ -353,7 +353,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.",
+                "description": "Crea un expediente nuevo con Idempotency-Key (X-Operation-Id como alias). Repetir la clave en 24 h devuelve la misma respuesta; con otro cuerpo responde 409 idempotency_mismatch.",
                 "consumes": [
                     "application/json"
                 ],
@@ -368,7 +368,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "UUID de operación idempotente",
-                        "name": "X-Operation-Id",
+                        "name": "Idempotency-Key",
                         "in": "header",
                         "required": true
                     },
@@ -919,7 +919,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Guarda un consentimiento con cabecera X-Operation-Id opcional.",
+                "description": "Guarda un consentimiento con Idempotency-Key opcional.",
                 "consumes": [
                     "application/json"
                 ],
@@ -941,7 +941,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "UUID de operación idempotente (opcional)",
-                        "name": "X-Operation-Id",
+                        "name": "Idempotency-Key",
                         "in": "header"
                     },
                     {
@@ -1207,7 +1207,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra una nota en un expediente y departamento usando X-Operation-Id.",
+                "description": "Registra una nota en un expediente y departamento con Idempotency-Key.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1236,7 +1236,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "UUID de operación idempotente",
-                        "name": "X-Operation-Id",
+                        "name": "Idempotency-Key",
                         "in": "header",
                         "required": true
                     },
@@ -1405,7 +1405,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra una canalización para el expediente requiriendo X-Operation-Id y devuelve ETag.",
+                "description": "Registra una canalización para el expediente con Idempotency-Key y devuelve ETag.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1427,7 +1427,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "UUID de operación idempotente",
-                        "name": "X-Operation-Id",
+                        "name": "Idempotency-Key",
                         "in": "header",
                         "required": true
                     },

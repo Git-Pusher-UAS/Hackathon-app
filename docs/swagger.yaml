@@ -776,11 +776,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.
+      description: Crea un expediente nuevo con Idempotency-Key (X-Operation-Id como
+        alias). Repetir la clave en 24 h devuelve la misma respuesta; con otro cuerpo
+        responde 409 idempotency_mismatch.
       parameters:
       - description: UUID de operación idempotente
         in: header
-        name: X-Operation-Id
+        name: Idempotency-Key
         required: true
         type: string
       - description: Datos del expediente
@@ -1102,7 +1104,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Guarda un consentimiento con cabecera X-Operation-Id opcional.
+      description: Guarda un consentimiento con Idempotency-Key opcional.
       parameters:
       - description: UUID del expediente
         in: path
@@ -1111,7 +1113,7 @@ paths:
         type: string
       - description: UUID de operación idempotente (opcional)
         in: header
-        name: X-Operation-Id
+        name: Idempotency-Key
         type: string
       - description: Datos del consentimiento
         in: body
@@ -1291,7 +1293,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Registra una nota en un expediente y departamento usando X-Operation-Id.
+      description: Registra una nota en un expediente y departamento con Idempotency-Key.
       parameters:
       - description: UUID del expediente
         in: path
@@ -1305,7 +1307,7 @@ paths:
         type: string
       - description: UUID de operación idempotente
         in: header
-        name: X-Operation-Id
+        name: Idempotency-Key
         required: true
         type: string
       - description: Contenido de la nota
@@ -1421,7 +1423,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Registra una canalización para el expediente requiriendo X-Operation-Id
+      description: Registra una canalización para el expediente con Idempotency-Key
         y devuelve ETag.
       parameters:
       - description: UUID del expediente
@@ -1431,7 +1433,7 @@ paths:
         type: string
       - description: UUID de operación idempotente
         in: header
-        name: X-Operation-Id
+        name: Idempotency-Key
         required: true
         type: string
       - description: Datos de la canalización
