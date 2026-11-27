@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +36,7 @@ type Service interface {
 	Me(ctx context.Context, actorID, sessionID uuid.UUID) (*usermodels.MeResponse, error)
 	ListMySessions(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)
 	RevokeMySession(ctx context.Context, actor repository.ActorContext, actorID, sessionID uuid.UUID) error
-	List(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
+	List(ctx context.Context, actorID uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
 	Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
 	Update(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	RevokeAllSessions(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
@@ -165,16 +166,51 @@ func (s *service) RevokeMySession(ctx context.Context, actor repository.ActorCon
 	return err
 }
 
-func (s *service) List(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
-	q = strings.TrimSpace(q)
-	filterHash := httpx.FilterHash(q)
+func (s *service) List(ctx context.Context, actorID uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
+	q.Q, q.Role, q.Status = strings.TrimSpace(q.Q), strings.TrimSpace(q.Role), strings.TrimSpace(q.Status)
+	filterHash := httpx.FilterHash(q.Q, q.Role, q.Status, strconv.FormatBool(q.SoloAtencion))
 	plainCursor, err := httpx.DecodeCursor(s.secret, page.Cursor, actorID, cursorScopeUsers, filterHash)
 	if err != nil {
 		return nil, &ValidationError{Msg: "cursor inválido"}
 	}
 
 	repos := s.uow.Repositories()
-	repoPage, err := repos.Personal().List(ctx, repository.PersonalFilter{Busqueda: q}, repository.PageRequest{
+	filter := repository.PersonalFilter{Busqueda: q.Q}
+	switch q.Status {
+	case "":
+	case string(models.PersonalActivo), string(models.PersonalSuspendido):
+		estado := models.EstadoPersonal(q.Status)
+		filter.Estado = &estado
+	default:
+		return nil, &ValidationError{Msg: "status debe ser activo o suspendido"}
+	}
+	if q.Role != "" {
+		rol, err := repos.Roles().GetByCodigo(ctx, q.Role)
+		if errors.Is(err, repository.ErrNotFound) {
+			return &usermodels.Page[usermodels.StaffSummary]{Items: []usermodels.StaffSummary{}}, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		filter.RolID = &rol.ID
+	}
+	if q.SoloAtencion {
+		activo := models.PersonalActivo
+		filter.Estado = &activo
+		deps, err := repos.Departamentos().List(ctx, true)
+		if err != nil {
+			return nil, err
+		}
+		for _, d := range deps {
+			if d.Asistencial {
+				filter.DepartamentoIDs = append(filter.DepartamentoIDs, d.ID)
+			}
+		}
+		if len(filter.DepartamentoIDs) == 0 {
+			return &usermodels.Page[usermodels.StaffSummary]{Items: []usermodels.StaffSummary{}}, nil
+		}
+	}
+	repoPage, err := repos.Personal().List(ctx, filter, repository.PageRequest{
 		Limit:  page.Limit,
 		Cursor: plainCursor,
 	})
@@ -191,10 +227,19 @@ func (s *service) List(ctx context.Context, actorID uuid.UUID, q string, page re
 		roleCodes[rol.ID] = rol.Codigo
 	}
 
+	ids := make([]uuid.UUID, 0, len(repoPage.Items))
+	for _, p := range repoPage.Items {
+		ids = append(ids, p.ID)
+	}
+	ultimos, err := repos.Sesiones().UltimoAcceso(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
 	items := make([]usermodels.StaffSummary, 0, len(repoPage.Items))
 	for i := range repoPage.Items {
 		p := &repoPage.Items[i]
-		items = append(items, usermodels.StaffSummary{
+		item := usermodels.StaffSummary{
 			ID:             p.ID,
 			Usuario:        p.Usuario,
 			NombreLaboral:  p.NombreLaboral,
@@ -202,7 +247,11 @@ func (s *service) List(ctx context.Context, actorID uuid.UUID, q string, page re
 			DepartamentoID: p.DepartamentoID,
 			Estado:         p.Estado,
 			VersionTag:     httpx.EncodeVersionTag(s.secret, p.Version),
-		})
+		}
+		if t, ok := ultimos[p.ID]; ok {
+			item.UltimoAcceso = &t
+		}
+		items = append(items, item)
 	}
 
 	var next *string

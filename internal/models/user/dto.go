@@ -33,7 +33,18 @@ type StaffSummary struct {
 	Rol            string                `json:"rol"`
 	DepartamentoID uuid.UUID             `json:"departamentoId"`
 	Estado         models.EstadoPersonal `json:"estado"`
+	UltimoAcceso   *time.Time            `json:"ultimoAcceso"`
 	VersionTag     string                `json:"versionTag"`
+}
+
+// ListQuery son los filtros de GET /users.
+type ListQuery struct {
+	Q      string // usuario o nombre, sin distinguir acentos
+	Role   string // código de rol
+	Status string // activo | suspendido
+	// SoloAtencion limita a personal activo de áreas de atención (asistenciales).
+	// Se fuerza para quien lista con users.read_attention y sin admin.
+	SoloAtencion bool
 }
 
 // SessionSummary es la representación pública de una sesión.
