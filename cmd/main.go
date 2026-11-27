@@ -24,6 +24,7 @@ import (
 	notehandler "backend-hackathon/internal/handlers/note"
 	outreachhandler "backend-hackathon/internal/handlers/outreach"
 	referralhandler "backend-hackathon/internal/handlers/referral"
+	surveyhandler "backend-hackathon/internal/handlers/survey"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -34,6 +35,7 @@ import (
 	coursemw "backend-hackathon/internal/middleware/course"
 	"backend-hackathon/internal/middleware/idempotency"
 	refmw "backend-hackathon/internal/middleware/referral"
+	surveymw "backend-hackathon/internal/middleware/survey"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
@@ -48,6 +50,7 @@ import (
 	noteservice "backend-hackathon/internal/services/note"
 	outreachservice "backend-hackathon/internal/services/outreach"
 	referralservice "backend-hackathon/internal/services/referral"
+	surveyservice "backend-hackathon/internal/services/survey"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -124,6 +127,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	surveyHandler := surveyhandler.New(surveyservice.New(uow))
 	outreachHandler := outreachhandler.New(outreachservice.New(uow, cfg.JWT.Secret))
 	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
@@ -240,6 +244,7 @@ func main() {
 	priv.Post("/courses", coursemw.Require(coursemw.PermManage), idem(false), courseHandler.Create)
 	priv.Get("/outreach-visits", coursemw.Require(coursemw.PermOutreach), outreachHandler.List)
 	priv.Post("/outreach-visits", coursemw.Require(coursemw.PermOutreach), idem(false), outreachHandler.Create)
+	priv.Get("/surveys/results", surveymw.Require(), surveyHandler.Results)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")
