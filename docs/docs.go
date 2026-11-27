@@ -778,7 +778,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve los datos de un expediente por recordId y su cabecera ETag.",
+                "description": "Encabezado y resumen del expediente con sector, edad (nunca la fecha de nacimiento), áreas y los datos sensibles ya enmascarados en ocultos. 404 si no existe o no está asignado al actor. Devuelve ETag.",
                 "produces": [
                     "application/json"
                 ],
@@ -799,7 +799,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Detail"
                         },
                         "headers": {
                             "ETag": {
@@ -840,7 +840,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Actualiza un expediente requiriendo la cabecera If-Match con la versión esperada.",
+                "description": "Cambia estado, alias o tipo de caso con If-Match. Reabrir un expediente cerrado exige motivo (10 a 500 caracteres). Responde el mismo objeto que GET con su nuevo ETag.",
                 "consumes": [
                     "application/json"
                 ],
@@ -887,7 +887,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Detail"
                         },
                         "headers": {
                             "ETag": {
@@ -3101,6 +3101,56 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_casefile.Detail": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "areas": {
+                    "description": "Areas son los códigos de los departamentos con asignación vigente.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "closedAt": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "edad": {
+                    "type": "integer",
+                    "example": 36
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoExpediente"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ocultos": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Ocultos"
+                },
+                "origenContacto": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.OrigenContacto"
+                },
+                "sector": {
+                    "type": "string",
+                    "example": "Sector 12"
+                },
+                "tipoCasoId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "versionTag": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_casefile.DisclosureRequest": {
             "type": "object",
             "properties": {
@@ -3186,6 +3236,27 @@ const docTemplate = `{
                 },
                 "texto": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.Ocultos": {
+            "type": "object",
+            "properties": {
+                "curp": {
+                    "type": "string",
+                    "example": "••••••••••••••••07"
+                },
+                "domicilio": {
+                    "type": "string",
+                    "example": "Col. •••••"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "N•••• A•••••"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "•• •••• 81"
                 }
             }
         },

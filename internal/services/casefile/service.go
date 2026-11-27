@@ -36,8 +36,8 @@ type Service interface {
 	DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (*casemodels.DuplicateCheckResponse, error)
 	Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Summary, error)
 	List(ctx context.Context, actor repository.ActorContext, q casemodels.ListQuery, page repository.PageRequest) (*casemodels.Page[casemodels.Summary], error)
-	Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Summary, error)
-	Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Summary, error)
+	Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Detail, error)
+	Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Detail, error)
 	Timeline(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, q casemodels.TimelineQuery, page repository.PageRequest) (*casemodels.Page[casemodels.TimelineItem], error)
 	Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, campo string) (*casemodels.DisclosureResponse, error)
 	Assign(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.AssignRequest) (*casemodels.AssignmentView, error)
@@ -539,8 +539,11 @@ func (s *service) List(ctx context.Context, actor repository.ActorContext, q cas
 	return &result, nil
 }
 
-func (s *service) Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Summary, error) {
-	var out casemodels.Summary
+func (s *service) Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Detail, error) {
+	if s.keyring == nil {
+		return nil, ErrCryptoUnavailable
+	}
+	var out *casemodels.Detail
 	err := s.do(ctx, actor, "casefile.get", &recordID, func(ctx context.Context, r repository.Repositories) error {
 		e, err := loadExp(ctx, r, recordID, false)
 		if err != nil {
@@ -549,22 +552,18 @@ func (s *service) Get(ctx context.Context, actor repository.ActorContext, record
 		if err := access(ctx, r, actor.ActorID, e.ID, nil); err != nil {
 			return err
 		}
-		tipo, err := activeTipo(ctx, r, e.ID)
-		if err != nil {
-			return err
-		}
-		out = s.summary(e, tipo)
-		return nil
+		out, err = s.detail(ctx, r, e)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &out, nil
+	return out, nil
 }
 
 // ---------------- API-022 ----------------
 
-func (s *service) Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Summary, error) {
+func (s *service) Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Detail, error) {
 	if err := validateUpdate(in); err != nil {
 		return nil, err
 	}
@@ -576,7 +575,7 @@ func (s *service) Update(ctx context.Context, actor repository.ActorContext, rec
 		return nil, ErrVersionMismatch
 	}
 
-	var out casemodels.Summary
+	var out *casemodels.Detail
 	err = s.do(ctx, actor, "casefile.update", &recordID, func(ctx context.Context, r repository.Repositories) error {
 		e, err := loadExp(ctx, r, recordID, true)
 		if err != nil {
@@ -613,8 +612,8 @@ func (s *service) Update(ctx context.Context, actor repository.ActorContext, rec
 			if !transitionAllowed(prev, *in.Estado) {
 				return ErrInvalidTransition
 			}
-			if prev == models.ExpedienteCerrado && (in.Motivo == nil || strings.TrimSpace(*in.Motivo) == "") {
-				return vErr("motivo es obligatorio al reabrir")
+			if prev == models.ExpedienteCerrado && (in.Motivo == nil || !between(*in.Motivo, 10, 500)) {
+				return httpx.Invalid("reabrir exige motivo de 10 a 500 caracteres", map[string]string{"motivo": "motivo_required"})
 			}
 			e.Estado = *in.Estado
 			switch {
@@ -693,15 +692,11 @@ func (s *service) Update(ctx context.Context, actor repository.ActorContext, rec
 		if err := s.audit(ctx, r, actor, "casefile.update", "expediente", &e.ID); err != nil {
 			return err
 		}
-		tipo, err := activeTipo(ctx, r, e.ID)
-		if err != nil {
-			return err
-		}
-		out = s.summary(e, tipo)
-		return nil
+		out, err = s.detail(ctx, r, e)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &out, nil
+	return out, nil
 }
