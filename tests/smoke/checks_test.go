@@ -43,8 +43,8 @@ func goodServer() http.Handler {
 	}))
 	mux.HandleFunc("GET /items", auth(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"data":       []int{1, 2},
-			"pagination": map[string]int{"page": 1, "limit": 2, "total": 10},
+			"items":      []int{1, 2},
+			"nextCursor": "c2",
 		})
 	}))
 	mux.HandleFunc("POST /register", func(w http.ResponseWriter, r *http.Request) {
@@ -212,10 +212,17 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			}),
 		},
 		{
+			name:  "paginación sin nextCursor",
+			check: CheckPagination,
+			handler: override("GET /items", func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte(`{"items":[1]}`))
+			}),
+		},
+		{
 			name:  "paginación ignora limit",
 			check: CheckPagination,
 			handler: override("GET /items", func(w http.ResponseWriter, r *http.Request) {
-				_, _ = w.Write([]byte(`{"data":[1,2,3,4],"pagination":{"page":1,"limit":2,"total":4}}`))
+				_, _ = w.Write([]byte(`{"items":[1,2,3,4],"nextCursor":null}`))
 			}),
 		},
 	}
