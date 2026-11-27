@@ -1329,8 +1329,11 @@ paths:
             ETag:
               description: Versión actual del recurso
               type: string
+            Location:
+              description: /api/v1/case-files/{id}
+              type: string
           schema:
-            $ref: '#/definitions/backend-hackathon_internal_models_casefile.Summary'
+            $ref: '#/definitions/backend-hackathon_internal_models_casefile.Detail'
         "400":
           description: Bad Request
           schema:
@@ -1340,7 +1343,8 @@ paths:
           schema:
             $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
         "409":
-          description: Conflict
+          description: person_exists, con linkToken, linkExpiresAt y department junto
+            a error
           schema:
             $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
         "422":
