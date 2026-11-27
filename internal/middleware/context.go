@@ -17,6 +17,10 @@ const (
 	localPermisos   = "permisos"
 	localActor      = "actor"
 	localCSRFHash   = "csrfHash"
+
+	localPortalCuentaID  = "portalCuentaID"
+	localPortalSessionID = "portalSessionID"
+	localPortalCSRFHash  = "portalCSRFHash"
 )
 
 // RequestID devuelve el id de correlación de Fiber como UUID.
@@ -61,5 +65,20 @@ func ActorFrom(c *fiber.Ctx) (repository.ActorContext, bool) {
 // CSRFHash devuelve el hash del token CSRF ligado a la sesión autenticada.
 func CSRFHash(c *fiber.Ctx) ([]byte, bool) {
 	hash, ok := c.Locals(localCSRFHash).([]byte)
+	return hash, ok
+}
+
+func PortalCuentaID(c *fiber.Ctx) (uuid.UUID, bool) {
+	id, ok := c.Locals(localPortalCuentaID).(uuid.UUID)
+	return id, ok
+}
+
+func PortalSessionID(c *fiber.Ctx) (uuid.UUID, bool) {
+	id, ok := c.Locals(localPortalSessionID).(uuid.UUID)
+	return id, ok
+}
+
+func PortalCSRFHash(c *fiber.Ctx) ([]byte, bool) {
+	hash, ok := c.Locals(localPortalCSRFHash).([]byte)
 	return hash, ok
 }

@@ -124,4 +124,11 @@ type Repositories interface {
 	Resumen() ResumenRepository
 	Mapa() MapaRepository
 	Indicadores() IndicadoresRepository
+
+	// portal
+	PortalCuentas() PortalCuentaRepository
+	PortalContactos() PortalContactoRepository
+	PortalDesafios() PortalDesafioRepository
+	PortalSesiones() PortalSesionRepository
+	PortalAlertas() PortalAlertaRepository
 }

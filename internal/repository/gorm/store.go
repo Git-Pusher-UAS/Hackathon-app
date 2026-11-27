@@ -154,3 +154,17 @@ func (s *store) EventosAyuda() repository.EventoLocalAyudaRepository {
 func (s *store) Resumen() repository.ResumenRepository         { return &resumenRepo{db: s.db} }
 func (s *store) Mapa() repository.MapaRepository               { return &mapaRepo{db: s.db} }
 func (s *store) Indicadores() repository.IndicadoresRepository { return &indicadoresRepo{db: s.db} }
+
+// ---- portal ----
+
+func (s *store) PortalCuentas() repository.PortalCuentaRepository { return &portalCuentaRepo{db: s.db} }
+func (s *store) PortalContactos() repository.PortalContactoRepository {
+	return &portalContactoRepo{db: s.db}
+}
+func (s *store) PortalDesafios() repository.PortalDesafioRepository {
+	return &portalDesafioRepo{db: s.db}
+}
+func (s *store) PortalSesiones() repository.PortalSesionRepository {
+	return &portalSesionRepo{db: s.db}
+}
+func (s *store) PortalAlertas() repository.PortalAlertaRepository { return &portalAlertaRepo{db: s.db} }
