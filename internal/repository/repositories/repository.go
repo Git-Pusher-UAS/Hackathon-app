@@ -136,4 +136,11 @@ type Repositories interface {
 	Cursos() CursoRepository
 	Inscripciones() InscripcionRepository
 	Visitas() VisitaRepository
+
+	// encuestas
+	Encuestas() EncuestaRepository
+
+	// bolsa
+	Vacantes() VacanteRepository
+	Postulaciones() PostulacionRepository
 }

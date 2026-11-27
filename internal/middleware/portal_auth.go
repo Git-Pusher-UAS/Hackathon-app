@@ -73,3 +73,36 @@ func PortalCSRF() fiber.Handler {
 		return c.Next()
 	}
 }
+
+func OptionalPortalAuthMiddleware(uow repository.UnitOfWork) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		raw := strings.TrimSpace(c.Cookies(PortalCookieName))
+		if raw == "" {
+			return c.Next()
+		}
+		parts := strings.SplitN(raw, ".", 2)
+		if len(parts) != 2 {
+			return c.Next()
+		}
+		sid, err := uuid.Parse(parts[0])
+		if err != nil {
+			return c.Next()
+		}
+		token := parts[1]
+		ctx := c.Context()
+		repos := uow.Repositories()
+		now := time.Now()
+		ses, err := repos.PortalSesiones().GetByID(ctx, sid)
+		if err != nil || ses.RevocadoEn != nil || !ses.VenceAbsoluto.After(now) || !ses.UltimaActividad.Add(PortalIdleTimeout).After(now) {
+			return c.Next()
+		}
+		hash := sha256.Sum256([]byte(token))
+		if subtle.ConstantTimeCompare(hash[:], ses.TokenHash) != 1 {
+			return c.Next()
+		}
+		c.Locals(localPortalCuentaID, ses.CuentaID)
+		c.Locals(localPortalSessionID, ses.ID)
+		c.Locals(localPortalCSRFHash, ses.CSRFHash)
+		return c.Next()
+	}
+}
