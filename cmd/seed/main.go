@@ -9,6 +9,7 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/middleware"
+	analyticsmw "backend-hackathon/internal/middleware/analytics"
 	auditmw "backend-hackathon/internal/middleware/auditlog"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
@@ -141,7 +142,7 @@ func main() {
 	}
 
 	// Permisos por módulo con los roles que los reciben (§17). El admin los recibe todos.
-	porModulo := append(append(append([]middleware.PermisoSeed{}, carmw.Permisos...), refmw.Permisos...), auditmw.Permisos...)
+	porModulo := append(append(append(append([]middleware.PermisoSeed{}, carmw.Permisos...), refmw.Permisos...), auditmw.Permisos...), analyticsmw.Permisos...)
 	for _, p := range porModulo {
 		perm, err := ensurePermiso(db, p.Codigo, p.Descripcion)
 		if err != nil {
