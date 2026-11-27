@@ -35,8 +35,8 @@ var (
 )
 
 type Service interface {
-	List(ctx context.Context, actor repository.ActorContext, tipo *models.TipoCurso, page repository.PageRequest) ([]cmodels.Curso, error)
-	Get(ctx context.Context, id uuid.UUID) (*cmodels.Curso, error)
+	List(ctx context.Context, actor repository.ActorContext, tipo *models.TipoCurso, page repository.PageRequest, portalUsuariaID *uuid.UUID) ([]cmodels.Curso, error)
+	Get(ctx context.Context, id uuid.UUID, portalUsuariaID *uuid.UUID) (*cmodels.Curso, error)
 	Create(ctx context.Context, actor repository.ActorContext, in cmodels.CreateRequest) (*cmodels.Curso, error)
 	Enroll(ctx context.Context, cuentaID, courseID uuid.UUID) error
 	Attendance(ctx context.Context, id uuid.UUID) ([]cmodels.Asistencia, error)
@@ -62,11 +62,11 @@ func ValidTipo(t models.TipoCurso) bool {
 	return t == models.CursoCurso || t == models.CursoCharla || t == models.CursoConferencia
 }
 
-func view(c *models.Curso, inscritas int) cmodels.Curso {
-	return cmodels.Curso{ID: c.ID, Tipo: c.Tipo, Titulo: c.Titulo, Descripcion: c.Descripcion, Fecha: c.Fecha.Format(fechaFmt), Hora: c.Hora, Lugar: c.Lugar, Cupo: c.Cupo, Inscritas: inscritas}
+func view(c *models.Curso, inscritas int, inscrita *bool) cmodels.Curso {
+	return cmodels.Curso{ID: c.ID, Tipo: c.Tipo, Titulo: c.Titulo, Descripcion: c.Descripcion, Fecha: c.Fecha.Format(fechaFmt), Hora: c.Hora, Lugar: c.Lugar, Cupo: c.Cupo, Inscritas: inscritas, Inscrita: inscrita}
 }
 
-func (s *service) List(ctx context.Context, actor repository.ActorContext, tipo *models.TipoCurso, page repository.PageRequest) ([]cmodels.Curso, error) {
+func (s *service) List(ctx context.Context, actor repository.ActorContext, tipo *models.TipoCurso, page repository.PageRequest, portalUsuariaID *uuid.UUID) ([]cmodels.Curso, error) {
 	tipoStr := ""
 	if tipo != nil {
 		tipoStr = string(*tipo)
@@ -89,14 +89,26 @@ func (s *service) List(ctx context.Context, actor repository.ActorContext, tipo 
 	if err != nil {
 		return nil, err
 	}
+	var enrolled map[uuid.UUID]bool
+	if portalUsuariaID != nil {
+		enrolled, err = r.Inscripciones().ExistsMany(ctx, ids, *portalUsuariaID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	out := make([]cmodels.Curso, 0, len(rp.Items))
 	for i := range rp.Items {
-		out = append(out, view(&rp.Items[i], counts[rp.Items[i].ID]))
+		var inscrita *bool
+		if portalUsuariaID != nil {
+			v := enrolled[rp.Items[i].ID]
+			inscrita = &v
+		}
+		out = append(out, view(&rp.Items[i], counts[rp.Items[i].ID], inscrita))
 	}
 	return out, nil
 }
 
-func (s *service) Get(ctx context.Context, id uuid.UUID) (*cmodels.Curso, error) {
+func (s *service) Get(ctx context.Context, id uuid.UUID, portalUsuariaID *uuid.UUID) (*cmodels.Curso, error) {
 	r := s.uow.Repositories()
 	c, err := r.Cursos().GetByID(ctx, id)
 	if errors.Is(err, repository.ErrNotFound) {
@@ -109,7 +121,20 @@ func (s *service) Get(ctx context.Context, id uuid.UUID) (*cmodels.Curso, error)
 	if err != nil {
 		return nil, err
 	}
-	v := view(c, counts[id])
+	var inscrita *bool
+	if portalUsuariaID != nil {
+		_, err := r.Inscripciones().GetByCursoAndUsuaria(ctx, id, *portalUsuariaID)
+		if err == nil {
+			v := true
+			inscrita = &v
+		} else if errors.Is(err, repository.ErrNotFound) {
+			v := false
+			inscrita = &v
+		} else {
+			return nil, err
+		}
+	}
+	v := view(c, counts[id], inscrita)
 	return &v, nil
 }
 
@@ -158,7 +183,7 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 	if err != nil {
 		return nil, err
 	}
-	v := view(c, 0)
+	v := view(c, 0, nil)
 	return &v, nil
 }
 

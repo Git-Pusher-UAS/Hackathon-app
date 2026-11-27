@@ -24,6 +24,7 @@ type CursoRepository interface {
 type InscripcionRepository interface {
 	Create(ctx context.Context, i *models.Inscripcion) error
 	GetByCursoAndUsuaria(ctx context.Context, cursoID, usuariaID uuid.UUID) (*models.Inscripcion, error)
+	ExistsMany(ctx context.Context, cursoIDs []uuid.UUID, usuariaID uuid.UUID) (map[uuid.UUID]bool, error)
 	ListByCurso(ctx context.Context, cursoID uuid.UUID) ([]models.Inscripcion, error)
 	SetPresente(ctx context.Context, cursoID, inscripcionID uuid.UUID, presente bool) error
 }
