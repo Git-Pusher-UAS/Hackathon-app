@@ -3,7 +3,7 @@
 <div align="center">
 
 **Universidad Autónoma de Sinaloa**  
-**Facultad de Informática Mazatlán (FIM UAS)**  
+**Facultad de Ingenieria Mochis" (FIM UAS)**  
 **Hackathon 2 FIM UAS**
 
 ### Equipo: Git Pushers
