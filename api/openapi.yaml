@@ -12,6 +12,25 @@ components:
           example: mperez
           type: string
       type: object
+    AnalyticsCelda:
+      properties:
+        ageb:
+          example: "2501000010123"
+          type: string
+        nivel:
+          description: 1..5 o "suprimido"
+          example: "3"
+          type: string
+      type: object
+    AnalyticsHeatmap:
+      properties:
+        corte:
+          type: string
+        sectores:
+          items:
+            $ref: '#/components/schemas/AnalyticsCelda'
+          type: array
+      type: object
     AnalyticsIndicador:
       properties:
         clave:
@@ -1146,6 +1165,39 @@ info:
   version: "1.0"
 openapi: 3.0.3
 paths:
+  /analytics/heatmap:
+    get:
+      description: Nivel de 1 a 5 por quintiles entre los AGEB con 5 o más expedientes abiertos en el periodo, o "suprimido" si tienen menos. Nunca el conteo exacto ni puntos domiciliarios. Requiere analytics.heatmap.
+      parameters:
+        - description: 30d (por defecto) | 6m | 12m
+          in: query
+          name: period
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsHeatmap'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Mapa de calor por AGEB
+      tags:
+        - analytics
   /analytics/summary:
     get:
       description: Expedientes abiertos y canalizaciones del periodo (con su cambio frente al periodo anterior), por mes, por origen de contacto y por área. El corte es la medianoche de hoy en Los Mochis. Las cifras menores a 5 llegan en null con suprimido=true. Requiere analytics.read.
