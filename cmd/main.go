@@ -18,6 +18,7 @@ import (
 	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
+	coursehandler "backend-hackathon/internal/handlers/course"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	notehandler "backend-hackathon/internal/handlers/note"
@@ -29,6 +30,7 @@ import (
 	auditmw "backend-hackathon/internal/middleware/auditlog"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
+	coursemw "backend-hackathon/internal/middleware/course"
 	"backend-hackathon/internal/middleware/idempotency"
 	refmw "backend-hackathon/internal/middleware/referral"
 	usermiddleware "backend-hackathon/internal/middleware/user"
@@ -39,6 +41,7 @@ import (
 	carservice "backend-hackathon/internal/services/caseaccessrequest"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
+	courseservice "backend-hackathon/internal/services/course"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	noteservice "backend-hackathon/internal/services/note"
@@ -119,6 +122,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
 	auditlogHandler := auditloghandler.New(auditlogservice.New(uow, cfg.JWT.Secret))
 	referralHandler := referralhandler.New(referralservice.New(uow, keyring, cfg.JWT.Secret))
@@ -226,6 +230,9 @@ func main() {
 	priv.Get("/audit-logs", auditmw.Require(), auditlogHandler.Logs)
 	priv.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
 	priv.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
+	priv.Get("/courses", coursemw.Require(coursemw.PermManage), courseHandler.List)
+	priv.Get("/courses/:id", coursemw.Require(coursemw.PermManage), courseHandler.Get)
+	priv.Post("/courses", coursemw.Require(coursemw.PermManage), idem(false), courseHandler.Create)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")

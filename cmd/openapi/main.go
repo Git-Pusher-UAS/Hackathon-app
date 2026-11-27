@@ -44,6 +44,9 @@ var pkgNames = map[string]string{
 	"models_helpevent":            "HelpEvent",
 	"models_institutionalcontact": "InstitutionalContact",
 	"models_note":                 "Note",
+	"models_course":               "Course",
+	"models_outreach":             "Outreach",
+	"models_survey":               "Survey",
 	"models_referral":             "Referral",
 	"models_user":                 "User",
 }
