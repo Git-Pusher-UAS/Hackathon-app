@@ -22,7 +22,7 @@ var _ nmodels.SyncRequest
 // Sync sincroniza borradores de notas guardados sin conexión.
 //
 // @Summary      Sincronizar notas offline
-// @Description  Lote de 1 a 20 notas. Cada nota lleva su propio operationId y se guarda en su propia transacción con las reglas de API-027. Devuelve un resultado por nota, en el mismo orden: applied, blocked (no reintentar), conflict o retryable (reintentar con el mismo operationId). Un 401 invalida el lote completo. Requiere casefile.write. API-041.
+// @Description  Hasta 20 borradores escritos sin conexión. Siempre responde 200 con un resultado por borrador, en el mismo orden: applied (se guardó o ya estaba), blocked con reason assignment_revoked o validation_failed (se descarta), conflict con reason record_closed o already_corrected (la persona decide) y retryable (error temporal; reintentar con el mismo operationId). Cada borrador lleva su propio operationId. baseVersionTag se acepta como referencia. Un 401 invalida todo el lote. Requiere casefile.write.
 // @Tags         notes
 // @Accept       json
 // @Produce      json

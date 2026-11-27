@@ -18,6 +18,7 @@ import (
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
+	notehandler "backend-hackathon/internal/handlers/note"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -32,6 +33,7 @@ import (
 	catalogservice "backend-hackathon/internal/services/catalog"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
+	noteservice "backend-hackathon/internal/services/note"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -108,6 +110,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	noteHandler := notehandler.New(noteservice.New(caseService))
 	carHandler := carhandler.New(carservice.New(uow, keyring, cfg.JWT.Secret))
 	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
 	icHandler := ichandler.New(icservice.New(uow))
@@ -205,6 +208,7 @@ func main() {
 	priv.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)
 	priv.Post("/case-access-requests/:id/rejection", carmw.Require(carmw.PermReview), carHandler.Reject)
 
+	priv.Post("/notes/sync", casemw.Require(casemw.PermWrite), noteHandler.Sync)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")
