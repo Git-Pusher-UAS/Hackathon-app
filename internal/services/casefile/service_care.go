@@ -530,7 +530,11 @@ func (s *service) CreateReferral(ctx context.Context, actor repository.ActorCont
 		return nil, vErr("resumen debe tener entre 1 y 2000 caracteres")
 	}
 	view := func(c *models.CanalizacionInterna) casemodels.ReferralView {
-		return casemodels.ReferralView{ID: c.ID, ExpedienteID: c.ExpedienteID, OrigenID: c.OrigenID, DestinoID: c.DestinoID,
+		var dest uuid.UUID
+		if c.DestinoID != nil {
+			dest = *c.DestinoID
+		}
+		return casemodels.ReferralView{ID: c.ID, ExpedienteID: c.ExpedienteID, OrigenID: c.OrigenID, DestinoID: dest,
 			Estado: c.Estado, VersionTag: httpx.EncodeVersionTag(s.secret, c.Version), CreatedAt: c.CreadoEn.UTC()}
 	}
 	var out casemodels.ReferralView
@@ -582,7 +586,8 @@ func (s *service) CreateReferral(ctx context.Context, actor repository.ActorCont
 			return err
 		}
 		now := s.now()
-		c := &models.CanalizacionInterna{ID: id, ExpedienteID: e.ID, OrigenID: origen, DestinoID: destino,
+		destID := destino
+		c := &models.CanalizacionInterna{ID: id, ExpedienteID: e.ID, OrigenID: origen, Tipo: models.CanalizacionInternaTipo, DestinoID: &destID,
 			EmitidaPor: actor.ActorID, ResumenCifrado: payload, Estado: models.CanalizacionPendiente,
 			OperacionID: opID, ClaveID: clave, Version: 1, CreadoEn: now, ActualizadoEn: now}
 		if err := r.Canalizaciones().Create(ctx, c); err != nil {
