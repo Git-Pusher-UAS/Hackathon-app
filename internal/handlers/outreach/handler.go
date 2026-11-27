@@ -28,6 +28,22 @@ func mapError(err error) error {
 	return httpx.E(fiber.StatusInternalServerError, "INTERNAL_ERROR", "error interno")
 }
 
+// List lista visitas de vinculación.
+//
+// @Summary      Listar visitas de vinculación
+// @Description  Devuelve visitas de vinculación comunitaria.
+// @Tags         outreach-visits
+// @Produce      json
+// @Security     BearerAuth
+// @Param        status  query  string  false  "planeada | realizada"
+// @Param        limit   query  int     false  "1..100"
+// @Param        cursor  query  string  false  "Cursor opaco"
+// @Success      200  {array}   omodels.Visita
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /outreach-visits [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -56,6 +72,23 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Create registra una visita de vinculación.
+//
+// @Summary      Crear visita de vinculación
+// @Description  Registra una visita con sector, fecha y tema.
+// @Tags         outreach-visits
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        X-CSRF-Token  header  string                  true  "Token CSRF"
+// @Param        request       body    omodels.CreateRequest   true  "Datos de la visita"
+// @Success      201  {object}  omodels.Visita
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /outreach-visits [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {

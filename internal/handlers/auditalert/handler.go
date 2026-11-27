@@ -21,6 +21,22 @@ func New(service svc.Service) *Handler { return &Handler{service: service} }
 
 var _ aamodels.Item
 
+// List consulta alertas de auditoría.
+//
+// @Summary      Listar alertas de auditoría
+// @Description  Devuelve alertas de auditoría filtradas por estado.
+// @Tags         audit-alerts
+// @Produce      json
+// @Security     BearerAuth
+// @Param        status  query  string  false  "abierta | revisada"
+// @Param        limit   query  int     false  "1..200"
+// @Param        cursor  query  string  false  "Cursor opaco"
+// @Success      200  {array}   aamodels.Item
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /audit-alerts [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {

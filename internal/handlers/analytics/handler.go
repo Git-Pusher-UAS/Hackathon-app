@@ -18,6 +18,24 @@ func New(service svc.Service) *Handler { return &Handler{service: service} }
 
 var _ anmodels.Summary
 
+// Summary devuelve indicadores agregados con supresión.
+//
+// @Summary      Resumen analítico
+// @Description  Devuelve indicadores agregados con supresión k<5.
+// @Tags         analytics
+// @Produce      json
+// @Security     BearerAuth
+// @Param        period  query  string  false  "30d | 6m | 12m"
+// @Param        from    query  string  false  "Fecha/hora inicial"
+// @Param        to      query  string  false  "Fecha/hora final"
+// @Param        type    query  string  false  "Tipo de caso (UUID)"
+// @Param        status  query  string  false  "Estado del expediente"
+// @Success      200  {object}  anmodels.Summary
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /analytics/summary [get]
 func (h *Handler) Summary(c *fiber.Ctx) error {
 	q := svc.SummaryQuery{Period: c.Query("period"), Type: c.Query("type"), Status: c.Query("status")}
 	if raw := c.Query("from"); raw != "" {
@@ -46,6 +64,22 @@ func (h *Handler) Summary(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Heatmap devuelve el mapa de calor agregado.
+//
+// @Summary      Mapa de calor analítico
+// @Description  Devuelve celdas por sector con supresión k<5.
+// @Tags         analytics
+// @Produce      json
+// @Security     BearerAuth
+// @Param        from  query  string  false  "Fecha/hora inicial"
+// @Param        to    query  string  false  "Fecha/hora final"
+// @Param        type  query  string  false  "Tipo de caso (UUID)"
+// @Success      200  {array}   anmodels.HeatmapCell
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /analytics/heatmap [get]
 func (h *Handler) Heatmap(c *fiber.Ctx) error {
 	q := svc.HeatmapQuery{Type: c.Query("type")}
 	if raw := c.Query("from"); raw != "" {

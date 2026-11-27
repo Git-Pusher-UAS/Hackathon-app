@@ -18,6 +18,23 @@ func New(service svc.Service) *Handler { return &Handler{service: service} }
 
 var _ nmodels.SyncResult
 
+// Sync sincroniza borradores de notas offline.
+//
+// @Summary      Sincronizar notas offline
+// @Description  Procesa un lote idempotente de notas (1..20) y devuelve resultado por nota.
+// @Tags         notes
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        X-CSRF-Token  header  string               true  "Token CSRF"
+// @Param        request       body    nmodels.SyncRequest  true  "Lote de notas"
+// @Success      200  {array}   nmodels.SyncResult
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /notes/sync [post]
 func (h *Handler) Sync(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
