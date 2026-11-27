@@ -225,6 +225,7 @@ func main() {
 	priv.Post("/referrals/:referralId/transitions", refmw.Require(refmw.PermTransition), referralHandler.Transition)
 	priv.Get("/audit-logs", auditmw.Require(), auditlogHandler.Logs)
 	priv.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
+	priv.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")

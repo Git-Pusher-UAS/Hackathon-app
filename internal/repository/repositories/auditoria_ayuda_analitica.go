@@ -104,4 +104,6 @@ type IndicadoresRepository interface {
 	PorMes(ctx context.Context, r TimeRange) ([]Conteo, error)    // etiqueta AAAA-MM
 	PorOrigen(ctx context.Context, r TimeRange) ([]Conteo, error) // origen_contacto
 	PorArea(ctx context.Context, r TimeRange) ([]Conteo, error)   // código de departamento
+	// PorSector cuenta expedientes por AGEB, incluidos los sectores sin casos.
+	PorSector(ctx context.Context, r TimeRange) ([]Conteo, error)
 }

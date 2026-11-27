@@ -15,6 +15,51 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/analytics/heatmap": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Nivel de 1 a 5 por quintiles entre los AGEB con 5 o más expedientes abiertos en el periodo, o \"suprimido\" si tienen menos. Nunca el conteo exacto ni puntos domiciliarios. Requiere analytics.heatmap.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Mapa de calor por AGEB",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "30d (por defecto) | 6m | 12m",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Heatmap"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/analytics/summary": {
             "get": {
                 "security": [
@@ -3266,6 +3311,34 @@ const docTemplate = `{
                 "SectorColonia",
                 "SectorSindicatura"
             ]
+        },
+        "backend-hackathon_internal_models_analytics.Celda": {
+            "type": "object",
+            "properties": {
+                "ageb": {
+                    "type": "string",
+                    "example": "2501000010123"
+                },
+                "nivel": {
+                    "description": "1..5 o \"suprimido\"",
+                    "type": "string",
+                    "example": "3"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_analytics.Heatmap": {
+            "type": "object",
+            "properties": {
+                "corte": {
+                    "type": "string"
+                },
+                "sectores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_analytics.Celda"
+                    }
+                }
+            }
         },
         "backend-hackathon_internal_models_analytics.Indicador": {
             "type": "object",

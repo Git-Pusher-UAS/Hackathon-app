@@ -184,6 +184,25 @@ definitions:
     - SectorSector
     - SectorColonia
     - SectorSindicatura
+  backend-hackathon_internal_models_analytics.Celda:
+    properties:
+      ageb:
+        example: "2501000010123"
+        type: string
+      nivel:
+        description: 1..5 o "suprimido"
+        example: "3"
+        type: string
+    type: object
+  backend-hackathon_internal_models_analytics.Heatmap:
+    properties:
+      corte:
+        type: string
+      sectores:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_analytics.Celda'
+        type: array
+    type: object
   backend-hackathon_internal_models_analytics.Indicador:
     properties:
       clave:
@@ -1140,6 +1159,36 @@ info:
   title: SAI API
   version: "1.0"
 paths:
+  /analytics/heatmap:
+    get:
+      description: Nivel de 1 a 5 por quintiles entre los AGEB con 5 o más expedientes
+        abiertos en el periodo, o "suprimido" si tienen menos. Nunca el conteo exacto
+        ni puntos domiciliarios. Requiere analytics.heatmap.
+      parameters:
+      - description: 30d (por defecto) | 6m | 12m
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_analytics.Heatmap'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mapa de calor por AGEB
+      tags:
+      - analytics
   /analytics/summary:
     get:
       description: Expedientes abiertos y canalizaciones del periodo (con su cambio

@@ -16,6 +16,7 @@ const metodologia = "Expedientes abiertos en el periodo. Cifras menores a 5 se s
 
 type Service interface {
 	Summary(ctx context.Context, period string) (*anmodels.Summary, error)
+	Heatmap(ctx context.Context, period string) (*anmodels.Heatmap, error)
 }
 
 type service struct {
@@ -133,4 +134,43 @@ func (s *service) Summary(ctx context.Context, period string) (*anmodels.Summary
 		PorOrigen: serie(origen),
 		PorArea:   serie(area),
 	}, nil
+}
+
+// Niveles asigna 1 a 5 por quintiles entre los AGEB publicables (5 o más
+// casos); los demás quedan suprimidos. Empates reciben el mismo nivel.
+func Niveles(cs []repository.Conteo) []anmodels.Celda {
+	var publicables []int
+	for _, c := range cs {
+		if c.Valor >= anmodels.SupresionK {
+			publicables = append(publicables, c.Valor)
+		}
+	}
+	out := make([]anmodels.Celda, 0, len(cs))
+	for _, c := range cs {
+		celda := anmodels.Celda{Ageb: c.Etiqueta, Nivel: anmodels.NivelSuprimido}
+		if c.Valor >= anmodels.SupresionK {
+			menores := 0
+			for _, v := range publicables {
+				if v < c.Valor {
+					menores++
+				}
+			}
+			celda.Nivel = 1 + menores*5/len(publicables)
+		}
+		out = append(out, celda)
+	}
+	return out
+}
+
+func (s *service) Heatmap(ctx context.Context, period string) (*anmodels.Heatmap, error) {
+	corte := Corte(s.now())
+	actual, _, err := Rango(period, corte)
+	if err != nil {
+		return nil, err
+	}
+	cs, err := s.uow.Repositories().Indicadores().PorSector(ctx, actual)
+	if err != nil {
+		return nil, err
+	}
+	return &anmodels.Heatmap{Corte: corte, Sectores: Niveles(cs)}, nil
 }

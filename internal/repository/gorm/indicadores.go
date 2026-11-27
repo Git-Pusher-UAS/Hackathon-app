@@ -55,3 +55,13 @@ func (r *indicadoresRepo) PorArea(ctx context.Context, rg repository.TimeRange) 
 		WHERE e.creado_en >= ? AND e.creado_en < ?
 		GROUP BY 1 ORDER BY 2 DESC, 1`, rg)
 }
+
+func (r *indicadoresRepo) PorSector(ctx context.Context, rg repository.TimeRange) ([]repository.Conteo, error) {
+	return r.conteos(ctx, `
+		SELECT s.ageb AS etiqueta, count(e.id)::int AS valor
+		FROM catalogos.sectores s
+		LEFT JOIN expedientes.personas p ON p.sector_id = s.id
+		LEFT JOIN expedientes.expedientes e ON e.persona_id = p.id AND e.creado_en >= ? AND e.creado_en < ?
+		WHERE s.ageb IS NOT NULL AND s.activo
+		GROUP BY s.ageb ORDER BY s.ageb`, rg)
+}

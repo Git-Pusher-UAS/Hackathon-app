@@ -46,3 +46,23 @@ func (h *Handler) Summary(c *fiber.Ctx) error {
 	}
 	return c.JSON(res)
 }
+
+// Heatmap devuelve el nivel por AGEB.
+//
+// @Summary      Mapa de calor por AGEB
+// @Description  Nivel de 1 a 5 por quintiles entre los AGEB con 5 o más expedientes abiertos en el periodo, o "suprimido" si tienen menos. Nunca el conteo exacto ni puntos domiciliarios. Requiere analytics.heatmap.
+// @Tags         analytics
+// @Produce      json
+// @Security     BearerAuth
+// @Param        period  query  string  false  "30d (por defecto) | 6m | 12m"
+// @Success      200  {object}  anmodels.Heatmap
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Router       /analytics/heatmap [get]
+func (h *Handler) Heatmap(c *fiber.Ctx) error {
+	res, err := h.service.Heatmap(c.Context(), c.Query("period"))
+	if err != nil {
+		return mapError(err)
+	}
+	return c.JSON(res)
+}
