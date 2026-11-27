@@ -126,17 +126,39 @@ func (s *service) Assign(ctx context.Context, actor repository.ActorContext, rec
 	if !between(in.Motivo, 10, 500) {
 		return nil, vErr("motivo debe tener entre 10 y 500 caracteres")
 	}
+	var solicitudID *uuid.UUID
+	if in.SolicitudID != nil {
+		id, err := parseUUID(*in.SolicitudID, "solicitudId")
+		if err != nil {
+			return nil, err
+		}
+		solicitudID = &id
+	}
 	var out casemodels.AssignmentView
 	err = s.do(ctx, actor, "casefile.assign", &recordID, func(ctx context.Context, r repository.Repositories) error {
+		// Quien asigna (Coordinación) no necesita ni obtiene acceso al contenido.
 		e, err := loadExp(ctx, r, recordID, false)
 		if err != nil {
 			return err
 		}
-		if err := access(ctx, r, actor.ActorID, e.ID, nil); err != nil {
-			return err
-		}
 		if e.Estado == models.ExpedienteCerrado {
 			return ErrCaseClosed
+		}
+		var sol *models.SolicitudVinculacion
+		if solicitudID != nil {
+			sol, err = r.SolicitudesVinculacion().GetByID(ctx, *solicitudID)
+			if errors.Is(err, repository.ErrNotFound) {
+				return vErr("solicitudId inexistente")
+			}
+			if err != nil {
+				return err
+			}
+			if sol.ExpedienteID != e.ID {
+				return vErr("la solicitud no corresponde a este expediente")
+			}
+			if sol.Estado != models.SolicitudPendiente {
+				return ErrRequestNotPending
+			}
 		}
 		target, err := r.Personal().GetByID(ctx, personalID)
 		if err != nil {
@@ -154,6 +176,17 @@ func (s *service) Assign(ctx context.Context, actor repository.ActorContext, rec
 		a, err := s.assignTx(ctx, r, e.ID, personalID, depID, actor.ActorID, strings.TrimSpace(in.Motivo), s.now())
 		if err != nil {
 			return err
+		}
+		if sol != nil {
+			if err := r.SolicitudesVinculacion().Resolver(ctx, sol.ID, models.SolicitudAprobada, actor.ActorID, s.now(), &a.ID, sol.Version); err != nil {
+				if errors.Is(err, repository.ErrVersionMismatch) {
+					return ErrRequestNotPending
+				}
+				return err
+			}
+			if err := s.audit(ctx, r, actor, "case_access_request.approve", "solicitud_vinculacion", &sol.ID); err != nil {
+				return err
+			}
 		}
 		out = casemodels.AssignmentView{ID: a.ID, PersonalID: a.PersonalID, DepartamentoID: a.DepartamentoID, Inicio: a.Inicio.UTC()}
 		return s.audit(ctx, r, actor, "casefile.assign", "expediente", &e.ID)

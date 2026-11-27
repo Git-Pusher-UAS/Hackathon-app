@@ -107,6 +107,8 @@ func mapError(err error) error {
 		return httpx.E(fiber.StatusConflict, "invalid_transition", "transici\u00f3n de estado inv\u00e1lida")
 	case errors.Is(err, svc.ErrCaseClosed):
 		return httpx.E(fiber.StatusConflict, "record_closed", "el expediente est\u00e1 cerrado")
+	case errors.Is(err, svc.ErrRequestNotPending):
+		return httpx.E(fiber.StatusConflict, "request_not_pending", "la solicitud ya fue resuelta")
 	case errors.Is(err, svc.ErrAlreadyAssigned):
 		return httpx.E(fiber.StatusConflict, "already_assigned", "ya existe una asignaci\u00f3n vigente")
 	case errors.Is(err, svc.ErrAlreadyRevoked):
@@ -402,7 +404,7 @@ func (h *Handler) Disclose(c *fiber.Ctx) error {
 // Assign asigna personal o un responsable al expediente.
 //
 // @Summary      Asignar personal al expediente
-// @Description  Crea una asignación activa sobre el expediente indicado.
+// @Description  Asigna personal de un departamento al expediente. Con solicitudId aprueba esa solicitud de acceso en la misma transacción. Quien asigna no necesita ni obtiene acceso al contenido del expediente. Requiere casefile.assign.
 // @Tags         case-files-assignments
 // @Security     BearerAuth
 // @Accept       json

@@ -936,7 +936,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una asignación activa sobre el expediente indicado.",
+                "description": "Asigna personal de un departamento al expediente. Con solicitudId aprueba esa solicitud de acceso en la misma transacción. Quien asigna no necesita ni obtiene acceso al contenido del expediente. Requiere casefile.assign.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2976,6 +2976,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "personalId": {
+                    "type": "string"
+                },
+                "solicitudId": {
+                    "description": "SolicitudID aprueba esa solicitud de acceso en la misma transacción.",
                     "type": "string"
                 }
             }
