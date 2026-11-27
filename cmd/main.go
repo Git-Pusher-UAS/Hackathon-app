@@ -15,6 +15,7 @@ import (
 	"backend-hackathon/internal/handlers"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
+	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -25,6 +26,7 @@ import (
 	"backend-hackathon/internal/security"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
+	icservice "backend-hackathon/internal/services/institutionalcontact"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -101,6 +103,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	icHandler := ichandler.New(icservice.New(uow))
 	catalogHandler := cataloghandler.New(catalogservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
@@ -146,6 +149,8 @@ func main() {
 		g.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
 		g.Post("/auth/mfa/verify", authHandler.VerifyMFA)
 	}
+
+	v1.Get("/institutional-contacts", icHandler.List) // público, sin sesión
 
 	// Protegido: JWT (cookie sai_staff o Bearer) + sesión revocable, sin caché
 	// y X-CSRF-Token en toda escritura.
