@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strings"
@@ -43,6 +44,7 @@ import (
 	refmw "backend-hackathon/internal/middleware/referral"
 	surveymw "backend-hackathon/internal/middleware/survey"
 	usermiddleware "backend-hackathon/internal/middleware/user"
+	"backend-hackathon/internal/observability"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
 	analyticsservice "backend-hackathon/internal/services/analytics"
@@ -62,12 +64,14 @@ import (
 	referralservice "backend-hackathon/internal/services/referral"
 	surveyservice "backend-hackathon/internal/services/survey"
 	userservice "backend-hackathon/internal/services/user"
+	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/swagger"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // version se puede sobrescribir en el build:
@@ -88,6 +92,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	shutdownTracing, err := observability.InitTracing(context.Background(), handlers.ServiceName)
+	if err != nil {
+		log.Fatalf("tracing: %v", err)
+	}
+	defer func() { _ = shutdownTracing(context.Background()) }()
 
 	db, err := gormrepo.Open(&cfg.DB)
 	if err != nil {
@@ -173,8 +183,10 @@ func main() {
 	// Orden: recover -> requestid -> logger -> cors.
 	app.Use(recover.New())
 	app.Use(requestid.New())
+	app.Use(observability.TracingMiddleware(handlers.ServiceName))
+	app.Use(observability.MetricsMiddleware())
 	app.Use(logger.New(logger.Config{
-		Format: "[${time}] ${status} - ${latency} ${method} ${path} (${ip}) rid=${locals:requestid}\n",
+		Format: `{"time":"${time}","status":${status},"latency":"${latency}","method":"${method}","path":"${path}","ip":"${ip}","request_id":"${locals:requestid}"}` + "\n",
 	}))
 	allowCredentials := cfg.Server.CORSOrigin != "*"
 	app.Use(cors.New(cors.Config{
@@ -191,6 +203,7 @@ func main() {
 
 	// Público
 	app.Get("/health", handlers.Healthcheck)
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	api := app.Group("/api")
 	api.Get("/status", statusHandler.Status)
