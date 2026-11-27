@@ -15,6 +15,259 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/applications/{id}/contact-release": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Liberar contacto de postulación",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo y campos",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.Postulacion"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/employers": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Listar empleadores (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models.Empleador"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/employers/{id}/review": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Revisar empleador (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employer ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Decisión",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.Empleador"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/hires": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Listar contrataciones",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models.Postulacion"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jobs": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Listar vacantes (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models.Vacante"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Crear vacante (admin)",
+                "parameters": [
+                    {
+                        "description": "Vacante",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.Vacante"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jobs/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Obtener vacante (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.Vacante"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/jobs/{id}/review": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-jobs"
+                ],
+                "summary": "Revisar vacante (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Decisión",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.Vacante"
+                        }
+                    }
+                }
+            }
+        },
         "/analytics/heatmap": {
             "get": {
                 "security": [
@@ -2486,6 +2739,437 @@ const docTemplate = `{
                 }
             }
         },
+        "/employer/applications/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Ver postulación (empleador)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.ApplicationView"
+                        }
+                    }
+                }
+            }
+        },
+        "/employer/applications/{id}/decision": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Decidir postulación",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Decisión",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.DecisionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.ApplicationView"
+                        }
+                    }
+                }
+            }
+        },
+        "/employer/applications/{id}/interview": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Agendar/registrar entrevista",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Entrevista",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.InterviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.ApplicationView"
+                        }
+                    }
+                }
+            }
+        },
+        "/employer/jobs": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Listar vacantes del empleador",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_employer.JobView"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Crear vacante empleador",
+                "parameters": [
+                    {
+                        "description": "Vacante",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.JobRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.JobView"
+                        }
+                    }
+                }
+            }
+        },
+        "/employer/jobs/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Obtener vacante empleador",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.JobView"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Actualizar vacante empleador",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Vacante",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.JobRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.JobView"
+                        }
+                    }
+                }
+            }
+        },
+        "/employer/jobs/{id}/applications": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employer-jobs"
+                ],
+                "summary": "Listar postulaciones de vacante",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_employer.ApplicationView"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/auth/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Login empleador (OTP)",
+                "parameters": [
+                    {
+                        "description": "Correo",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.ChallengeResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/auth/verify": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Verificar OTP empleador",
+                "parameters": [
+                    {
+                        "description": "Desafío",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.VerifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.VerifyResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/me/registration": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Ver registro empleador",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.EmployerMe"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Actualizar registro empleador",
+                "parameters": [
+                    {
+                        "description": "Datos",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.UpdateRegistrationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.EmployerMe"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/registrations": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Registrar empleador",
+                "parameters": [
+                    {
+                        "description": "Registro",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.RegistrationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_employer.RegistrationResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.",
@@ -3639,6 +4323,192 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/portal/me/applications": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal-applications"
+                ],
+                "summary": "Mis postulaciones",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/portal/me/applications/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal-applications"
+                ],
+                "summary": "Detalle de mi postulación",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/portal/me/applications/{id}/interview-response": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal-applications"
+                ],
+                "summary": "Responder entrevista",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Respuesta",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/portal/me/applications/{id}/withdrawal": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal-applications"
+                ],
+                "summary": "Retirar postulación",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/portal/me/cv": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal-cv"
+                ],
+                "summary": "Obtener mi CV",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.cvPayload"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal-cv"
+                ],
+                "summary": "Reemplazar mi CV",
+                "parameters": [
+                    {
+                        "description": "CV",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.cvPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.cvPayload"
                         }
                     }
                 }
@@ -5077,6 +5947,38 @@ const docTemplate = `{
                 "DecisionRechazado"
             ]
         },
+        "backend-hackathon_internal_models.Empleador": {
+            "type": "object",
+            "properties": {
+                "actualizadoEn": {
+                    "type": "string"
+                },
+                "correo": {
+                    "type": "string"
+                },
+                "creadoEn": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoRegistroEmpleador"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "motivoRevision": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models.EstadoAlerta": {
             "type": "string",
             "enum": [
@@ -5129,6 +6031,42 @@ const docTemplate = `{
                 "PersonalSuspendido"
             ]
         },
+        "backend-hackathon_internal_models.EstadoPostulacion": {
+            "type": "string",
+            "enum": [
+                "submitted",
+                "interview_invited",
+                "interview_accepted",
+                "interview_declined",
+                "withdrawn",
+                "accepted",
+                "rejected",
+                "hired"
+            ],
+            "x-enum-varnames": [
+                "PostulacionEnviada",
+                "PostulacionEntrevistaInvitada",
+                "PostulacionEntrevistaAceptada",
+                "PostulacionEntrevistaRechazada",
+                "PostulacionRetirada",
+                "PostulacionAceptada",
+                "PostulacionRechazada",
+                "PostulacionContratada"
+            ]
+        },
+        "backend-hackathon_internal_models.EstadoRegistroEmpleador": {
+            "type": "string",
+            "enum": [
+                "pending_review",
+                "approved",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "EmpleadorPendiente",
+                "EmpleadorAprobado",
+                "EmpleadorRechazado"
+            ]
+        },
         "backend-hackathon_internal_models.EstadoSolicitudVinculacion": {
             "type": "string",
             "enum": [
@@ -5140,6 +6078,23 @@ const docTemplate = `{
                 "SolicitudPendiente",
                 "SolicitudAprobada",
                 "SolicitudRechazada"
+            ]
+        },
+        "backend-hackathon_internal_models.EstadoVacante": {
+            "type": "string",
+            "enum": [
+                "pending_review",
+                "approved",
+                "rejected",
+                "published",
+                "closed"
+            ],
+            "x-enum-varnames": [
+                "VacantePendiente",
+                "VacanteAprobada",
+                "VacanteRechazada",
+                "VacantePublicada",
+                "VacanteCerrada"
             ]
         },
         "backend-hackathon_internal_models.EstadoVisita": {
@@ -5181,6 +6136,50 @@ const docTemplate = `{
                 "OrigenEmergenciaReferida"
             ]
         },
+        "backend-hackathon_internal_models.Postulacion": {
+            "type": "object",
+            "properties": {
+                "actualizadoEn": {
+                    "type": "string"
+                },
+                "contactoLiberado": {
+                    "type": "boolean"
+                },
+                "contactoLiberadoEn": {
+                    "type": "string"
+                },
+                "contactoLiberadoPor": {
+                    "type": "string"
+                },
+                "creadoEn": {
+                    "type": "string"
+                },
+                "decisionMotivo": {
+                    "type": "string"
+                },
+                "entrevistaEn": {
+                    "type": "string"
+                },
+                "entrevistaLugar": {
+                    "type": "string"
+                },
+                "entrevistaNotas": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoPostulacion"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "usuariaID": {
+                    "type": "string"
+                },
+                "vacanteID": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models.TipoCanalizacion": {
             "type": "string",
             "enum": [
@@ -5217,6 +6216,56 @@ const docTemplate = `{
                 "PreguntaOpcion",
                 "PreguntaAbierta"
             ]
+        },
+        "backend-hackathon_internal_models.Vacante": {
+            "type": "object",
+            "properties": {
+                "actualizadaEn": {
+                    "type": "string"
+                },
+                "creadoEn": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "empleadorID": {
+                    "type": "string"
+                },
+                "empresa": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoVacante"
+                },
+                "horario": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "motivoRevision": {
+                    "type": "string"
+                },
+                "publicadaEn": {
+                    "type": "string"
+                },
+                "puesto": {
+                    "type": "string"
+                },
+                "requisitos": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                },
+                "tipoEmpleo": {
+                    "type": "string"
+                },
+                "ubicacion": {
+                    "type": "string"
+                }
+            }
         },
         "backend-hackathon_internal_models_analytics.HeatmapCell": {
             "type": "object",
@@ -5568,9 +6617,18 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "destinoId": {
+                    "description": "departamento (interna), compat",
+                    "type": "string"
+                },
+                "institucionId": {
+                    "description": "institución (externa)",
                     "type": "string"
                 },
                 "resumen": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "description": "interna|externa, default interna",
                     "type": "string"
                 }
             }
@@ -5807,6 +6865,233 @@ const docTemplate = `{
                 },
                 "presente": {
                     "type": "boolean"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.ApplicationView": {
+            "type": "object",
+            "properties": {
+                "contacto": {
+                    "type": "string"
+                },
+                "contactoLiberado": {
+                    "type": "boolean"
+                },
+                "creadoEn": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoPostulacion"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "vacanteId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.ChallengeResponse": {
+            "type": "object",
+            "properties": {
+                "challengeId": {
+                    "type": "string"
+                },
+                "telefonoMascara": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.DecisionRequest": {
+            "type": "object",
+            "properties": {
+                "decision": {
+                    "type": "string"
+                },
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.EmployerMe": {
+            "type": "object",
+            "properties": {
+                "correo": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoRegistroEmpleador"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "motivoRevision": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.InterviewRequest": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "lugar": {
+                    "type": "string"
+                },
+                "notas": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.JobRequest": {
+            "type": "object",
+            "properties": {
+                "descripcion": {
+                    "type": "string"
+                },
+                "horario": {
+                    "type": "string"
+                },
+                "puesto": {
+                    "type": "string"
+                },
+                "requisitos": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                },
+                "tipoEmpleo": {
+                    "type": "string"
+                },
+                "ubicacion": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.JobView": {
+            "type": "object",
+            "properties": {
+                "actualizada": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "empresa": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoVacante"
+                },
+                "horario": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "postulaciones": {
+                    "type": "integer"
+                },
+                "publicadaEn": {
+                    "type": "string"
+                },
+                "puesto": {
+                    "type": "string"
+                },
+                "requisitos": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                },
+                "tipoEmpleo": {
+                    "type": "string"
+                },
+                "ubicacion": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "correo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.RegistrationRequest": {
+            "type": "object",
+            "properties": {
+                "correo": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.RegistrationResponse": {
+            "type": "object",
+            "properties": {
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoRegistroEmpleador"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.UpdateRegistrationRequest": {
+            "type": "object",
+            "properties": {
+                "descripcion": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.VerifyRequest": {
+            "type": "object",
+            "properties": {
+                "challengeId": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_employer.VerifyResponse": {
+            "type": "object",
+            "properties": {
+                "employerId": {
+                    "type": "string"
                 }
             }
         },
@@ -6649,6 +7934,77 @@ const docTemplate = `{
                 "code": {
                     "type": "string",
                     "example": "123456"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.cvPayload": {
+            "type": "object",
+            "properties": {
+                "estudios": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "fin": {
+                                "type": "string"
+                            },
+                            "grado": {
+                                "type": "string"
+                            },
+                            "inicio": {
+                                "type": "string"
+                            },
+                            "institucion": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "experiencia": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "descripcion": {
+                                "type": "string"
+                            },
+                            "empresa": {
+                                "type": "string"
+                            },
+                            "fin": {
+                                "type": "string"
+                            },
+                            "inicio": {
+                                "type": "string"
+                            },
+                            "puesto": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "habilidades": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "perfil": {
+                    "type": "object",
+                    "properties": {
+                        "contacto": {
+                            "type": "string"
+                        },
+                        "nombre": {
+                            "type": "string"
+                        },
+                        "resumen": {
+                            "type": "string"
+                        },
+                        "titular": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         }

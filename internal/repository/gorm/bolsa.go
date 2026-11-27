@@ -20,6 +20,9 @@ func (r *vacanteRepo) Create(ctx context.Context, v *models.Vacante) error {
 func (r *vacanteRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.Vacante, error) {
 	return first[models.Vacante](ctx, r.db, "id = ?", id)
 }
+func (r *vacanteRepo) Save(ctx context.Context, v *models.Vacante) error {
+	return translate(r.db.WithContext(ctx).Save(v).Error)
+}
 func (r *vacanteRepo) List(ctx context.Context, f repository.VacanteFilter, page repository.PageRequest) (repository.Page[models.Vacante], error) {
 	q := r.db.WithContext(ctx).Model(&models.Vacante{})
 	if f.Sector != "" {
@@ -33,6 +36,12 @@ func (r *vacanteRepo) List(ctx context.Context, f repository.VacanteFilter, page
 	}
 	if f.Ubicacion != "" {
 		q = q.Where("lower(ubicacion) LIKE lower(?)", "%"+strings.TrimSpace(f.Ubicacion)+"%")
+	}
+	if f.EmpleadorID != nil {
+		q = q.Where("empleador_id = ?", *f.EmpleadorID)
+	}
+	if f.Estado != nil {
+		q = q.Where("estado = ?", *f.Estado)
 	}
 	limit := pageLimit(page)
 	q = applyPage(q, page, "publicada_en", "id", true)
@@ -86,4 +95,18 @@ func (r *postulacionRepo) ExistsMany(ctx context.Context, vacanteIDs []uuid.UUID
 		out[id] = true
 	}
 	return out, nil
+}
+func (r *postulacionRepo) GetByID(ctx context.Context, id uuid.UUID) (*models.Postulacion, error) {
+	return first[models.Postulacion](ctx, r.db, "id = ?", id)
+}
+func (r *postulacionRepo) Save(ctx context.Context, p *models.Postulacion) error {
+	return translate(r.db.WithContext(ctx).Save(p).Error)
+}
+func (r *postulacionRepo) ListByUsuaria(ctx context.Context, usuariaID uuid.UUID) ([]models.Postulacion, error) {
+	var rows []models.Postulacion
+	return rows, translate(r.db.WithContext(ctx).Where("usuaria_id = ?", usuariaID).Order("creado_en DESC").Find(&rows).Error)
+}
+func (r *postulacionRepo) ListByVacante(ctx context.Context, vacanteID uuid.UUID) ([]models.Postulacion, error) {
+	var rows []models.Postulacion
+	return rows, translate(r.db.WithContext(ctx).Where("vacante_id = ?", vacanteID).Order("creado_en DESC").Find(&rows).Error)
 }

@@ -52,6 +52,7 @@ type EventoAuditoria struct {
 	TipoRecurso  string             `gorm:"type:varchar(80);not null"`
 	RecursoID    *uuid.UUID         `gorm:"type:uuid"`
 	Resultado    ResultadoAuditoria `gorm:"type:varchar(20);not null"`
+	Metadatos    []byte             `gorm:"type:jsonb"`
 	OcurridoEn   time.Time          `gorm:"not null"`
 	IPOrigen     *string            `gorm:"type:inet"`
 	RequestID    uuid.UUID          `gorm:"type:uuid;not null"`

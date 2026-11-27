@@ -17,10 +17,12 @@ import (
 	analyticshandler "backend-hackathon/internal/handlers/analytics"
 	auditalerthandler "backend-hackathon/internal/handlers/auditalert"
 	auditloghandler "backend-hackathon/internal/handlers/auditlog"
+	bolsaextrahandler "backend-hackathon/internal/handlers/bolsaextra"
 	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
 	coursehandler "backend-hackathon/internal/handlers/course"
+	employerhandler "backend-hackathon/internal/handlers/employer"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	jobhandler "backend-hackathon/internal/handlers/job"
@@ -50,6 +52,7 @@ import (
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
 	courseservice "backend-hackathon/internal/services/course"
+	employerservice "backend-hackathon/internal/services/employer"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	jobservice "backend-hackathon/internal/services/job"
@@ -148,6 +151,8 @@ func main() {
 	outreachHandler := outreachhandler.New(outreachservice.New(uow))
 	jobHandler := jobhandler.New(jobservice.New(uow))
 	surveyHandler := surveyhandler.New(surveyservice.New(uow))
+	employerHandler := employerhandler.New(employerservice.New(uow))
+	bolsaExtra := bolsaextrahandler.New(uow)
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -199,6 +204,12 @@ func main() {
 	portalProtected.Get("/me", portalHandler.Me)
 	portalProtected.Patch("/me", portalHandler.PatchMe)
 	portalProtected.Post("/auth/logout", portalHandler.Logout)
+	portalProtected.Get("/me/cv", bolsaExtra.GetCV)
+	portalProtected.Put("/me/cv", bolsaExtra.PutCV)
+	portalProtected.Get("/me/applications", bolsaExtra.MyApplications)
+	portalProtected.Get("/me/applications/:id", bolsaExtra.MyApplication)
+	portalProtected.Post("/me/applications/:id/interview-response", bolsaExtra.InterviewResponse)
+	portalProtected.Post("/me/applications/:id/withdrawal", bolsaExtra.Withdraw)
 	helpAlerts := api.Group("/help-alerts", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF())
 	helpAlerts.Post("", portalHandler.CreateAlert)
 	helpAlerts.Post("/:id/trusted-contacts", portalHandler.NotifyTrustedContacts)
@@ -210,6 +221,24 @@ func main() {
 	api.Get("/jobs", middleware.OptionalPortalAuthMiddleware(uow), jobHandler.List)
 	api.Get("/jobs/:id", middleware.OptionalPortalAuthMiddleware(uow), jobHandler.Get)
 	api.Post("/jobs/:id/applications", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), jobHandler.Apply)
+
+	// Employers domain (aislado)
+	emp := api.Group("/employers")
+	emp.Post("/registrations", employerHandler.Register)
+	emp.Post("/auth/login", employerHandler.Login)
+	emp.Post("/auth/verify", employerHandler.Verify)
+	empProtected := emp.Group("/me", middleware.EmployerAuthMiddleware(uow), middleware.EmployerCSRF())
+	empProtected.Get("/registration", employerHandler.MeRegistration)
+	empProtected.Put("/registration", employerHandler.UpdateRegistration)
+	employerJobs := api.Group("/employer", middleware.EmployerAuthMiddleware(uow), middleware.EmployerCSRF())
+	employerJobs.Get("/jobs", employerHandler.ListMyJobs)
+	employerJobs.Post("/jobs", employerHandler.CreateMyJob)
+	employerJobs.Get("/jobs/:id", employerHandler.GetMyJob)
+	employerJobs.Patch("/jobs/:id", employerHandler.PatchMyJob)
+	employerJobs.Get("/jobs/:id/applications", employerHandler.ListJobApplications)
+	employerJobs.Get("/applications/:id", employerHandler.GetApplication)
+	employerJobs.Post("/applications/:id/interview", employerHandler.Interview)
+	employerJobs.Post("/applications/:id/decision", employerHandler.Decide)
 
 	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
 
@@ -250,6 +279,15 @@ func main() {
 	staff.Post("/:userId/force-logout", usermiddleware.RequireCSRF, userHandler.ForceLogout)
 	staff.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
 	staff.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
+	// Compatibilidad alias /api/users*
+	usersAlias := apiContract.Group("/users", middleware.RequirePermiso("admin"))
+	usersAlias.Get("", userHandler.List)
+	usersAlias.Post("", usermiddleware.RequireCSRF, userHandler.Create)
+	usersAlias.Get("/:userId", userHandler.Get)
+	usersAlias.Patch("/:userId", usermiddleware.RequireCSRF, userHandler.Update)
+	usersAlias.Post("/:userId/force-logout", usermiddleware.RequireCSRF, userHandler.ForceLogout)
+	usersAlias.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
+	usersAlias.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
 	csrf := usermiddleware.RequireCSRF
 	apiContract.Post("/case-access-requests", csrf, carmw.Require(carmw.PermRequest), carHandler.Create)
 	apiContract.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)
@@ -263,6 +301,15 @@ func main() {
 	apiContract.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
 	apiContract.Get("/surveys/results", surveymw.Require(surveymw.PermResults), surveyHandler.Results)
 	apiContract.Post("/jobs", csrf, coursemw.Require(coursemw.PermManage), jobHandler.Create)
+	admin := apiContract.Group("/admin", coursemw.Require(coursemw.PermManage))
+	admin.Get("/jobs", bolsaExtra.AdminListJobs)
+	admin.Post("/jobs", csrf, bolsaExtra.AdminCreateJob)
+	admin.Get("/jobs/:id", bolsaExtra.AdminGetJob)
+	admin.Post("/jobs/:id/review", csrf, bolsaExtra.AdminReviewJob)
+	admin.Get("/employers", bolsaExtra.AdminListEmployers)
+	admin.Post("/employers/:id/review", csrf, bolsaExtra.AdminReviewEmployer)
+	admin.Get("/hires", bolsaExtra.AdminHires)
+	admin.Post("/applications/:id/contact-release", csrf, bolsaExtra.AdminContactRelease)
 
 	courses := apiContract.Group("/courses", coursemw.Require(coursemw.PermManage))
 	courses.Get("", courseHandler.List)

@@ -183,3 +183,11 @@ func (s *store) Encuestas() repository.EncuestaRepository { return &encuestaRepo
 
 func (s *store) Vacantes() repository.VacanteRepository          { return &vacanteRepo{db: s.db} }
 func (s *store) Postulaciones() repository.PostulacionRepository { return &postulacionRepo{db: s.db} }
+func (s *store) Empleadores() repository.EmpleadorRepository     { return &empleadorRepo{db: s.db} }
+func (s *store) EmpleadorDesafios() repository.EmpleadorDesafioRepository {
+	return &empleadorDesafioRepo{db: s.db}
+}
+func (s *store) EmpleadorSesiones() repository.EmpleadorSesionRepository {
+	return &empleadorSesionRepo{db: s.db}
+}
+func (s *store) CV() repository.CVRepository { return &cvRepo{db: s.db} }

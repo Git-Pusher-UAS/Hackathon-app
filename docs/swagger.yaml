@@ -85,6 +85,27 @@ definitions:
     x-enum-varnames:
     - DecisionAceptado
     - DecisionRechazado
+  backend-hackathon_internal_models.Empleador:
+    properties:
+      actualizadoEn:
+        type: string
+      correo:
+        type: string
+      creadoEn:
+        type: string
+      descripcion:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoRegistroEmpleador'
+      id:
+        type: string
+      motivoRevision:
+        type: string
+      nombre:
+        type: string
+      telefono:
+        type: string
+    type: object
   backend-hackathon_internal_models.EstadoAlerta:
     enum:
     - abierta
@@ -125,6 +146,36 @@ definitions:
     x-enum-varnames:
     - PersonalActivo
     - PersonalSuspendido
+  backend-hackathon_internal_models.EstadoPostulacion:
+    enum:
+    - submitted
+    - interview_invited
+    - interview_accepted
+    - interview_declined
+    - withdrawn
+    - accepted
+    - rejected
+    - hired
+    type: string
+    x-enum-varnames:
+    - PostulacionEnviada
+    - PostulacionEntrevistaInvitada
+    - PostulacionEntrevistaAceptada
+    - PostulacionEntrevistaRechazada
+    - PostulacionRetirada
+    - PostulacionAceptada
+    - PostulacionRechazada
+    - PostulacionContratada
+  backend-hackathon_internal_models.EstadoRegistroEmpleador:
+    enum:
+    - pending_review
+    - approved
+    - rejected
+    type: string
+    x-enum-varnames:
+    - EmpleadorPendiente
+    - EmpleadorAprobado
+    - EmpleadorRechazado
   backend-hackathon_internal_models.EstadoSolicitudVinculacion:
     enum:
     - pendiente
@@ -135,6 +186,20 @@ definitions:
     - SolicitudPendiente
     - SolicitudAprobada
     - SolicitudRechazada
+  backend-hackathon_internal_models.EstadoVacante:
+    enum:
+    - pending_review
+    - approved
+    - rejected
+    - published
+    - closed
+    type: string
+    x-enum-varnames:
+    - VacantePendiente
+    - VacanteAprobada
+    - VacanteRechazada
+    - VacantePublicada
+    - VacanteCerrada
   backend-hackathon_internal_models.EstadoVisita:
     enum:
     - planeada
@@ -165,6 +230,35 @@ definitions:
     - OrigenLineaAtencion
     - OrigenPatrullaGenero
     - OrigenEmergenciaReferida
+  backend-hackathon_internal_models.Postulacion:
+    properties:
+      actualizadoEn:
+        type: string
+      contactoLiberado:
+        type: boolean
+      contactoLiberadoEn:
+        type: string
+      contactoLiberadoPor:
+        type: string
+      creadoEn:
+        type: string
+      decisionMotivo:
+        type: string
+      entrevistaEn:
+        type: string
+      entrevistaLugar:
+        type: string
+      entrevistaNotas:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoPostulacion'
+      id:
+        type: string
+      usuariaID:
+        type: string
+      vacanteID:
+        type: string
+    type: object
   backend-hackathon_internal_models.TipoCanalizacion:
     enum:
     - interna
@@ -193,6 +287,39 @@ definitions:
     - PreguntaEscala
     - PreguntaOpcion
     - PreguntaAbierta
+  backend-hackathon_internal_models.Vacante:
+    properties:
+      actualizadaEn:
+        type: string
+      creadoEn:
+        type: string
+      descripcion:
+        type: string
+      empleadorID:
+        type: string
+      empresa:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoVacante'
+      horario:
+        type: string
+      id:
+        type: string
+      motivoRevision:
+        type: string
+      publicadaEn:
+        type: string
+      puesto:
+        type: string
+      requisitos:
+        type: string
+      sector:
+        type: string
+      tipoEmpleo:
+        type: string
+      ubicacion:
+        type: string
+    type: object
   backend-hackathon_internal_models_analytics.HeatmapCell:
     properties:
       count:
@@ -422,8 +549,15 @@ definitions:
   backend-hackathon_internal_models_casefile.ReferralCreateRequest:
     properties:
       destinoId:
+        description: departamento (interna), compat
+        type: string
+      institucionId:
+        description: institución (externa)
         type: string
       resumen:
+        type: string
+      tipo:
+        description: interna|externa, default interna
         type: string
     type: object
   backend-hackathon_internal_models_casefile.RevokeConsentRequest:
@@ -577,6 +711,153 @@ definitions:
         type: string
       presente:
         type: boolean
+    type: object
+  backend-hackathon_internal_models_employer.ApplicationView:
+    properties:
+      contacto:
+        type: string
+      contactoLiberado:
+        type: boolean
+      creadoEn:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoPostulacion'
+      id:
+        type: string
+      nombre:
+        type: string
+      vacanteId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.ChallengeResponse:
+    properties:
+      challengeId:
+        type: string
+      telefonoMascara:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.DecisionRequest:
+    properties:
+      decision:
+        type: string
+      motivo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.EmployerMe:
+    properties:
+      correo:
+        type: string
+      descripcion:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoRegistroEmpleador'
+      id:
+        type: string
+      motivoRevision:
+        type: string
+      nombre:
+        type: string
+      telefono:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.InterviewRequest:
+    properties:
+      fecha:
+        type: string
+      lugar:
+        type: string
+      notas:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.JobRequest:
+    properties:
+      descripcion:
+        type: string
+      horario:
+        type: string
+      puesto:
+        type: string
+      requisitos:
+        type: string
+      sector:
+        type: string
+      tipoEmpleo:
+        type: string
+      ubicacion:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.JobView:
+    properties:
+      actualizada:
+        type: string
+      descripcion:
+        type: string
+      empresa:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoVacante'
+      horario:
+        type: string
+      id:
+        type: string
+      postulaciones:
+        type: integer
+      publicadaEn:
+        type: string
+      puesto:
+        type: string
+      requisitos:
+        type: string
+      sector:
+        type: string
+      tipoEmpleo:
+        type: string
+      ubicacion:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.LoginRequest:
+    properties:
+      correo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.RegistrationRequest:
+    properties:
+      correo:
+        type: string
+      descripcion:
+        type: string
+      nombre:
+        type: string
+      telefono:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.RegistrationResponse:
+    properties:
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoRegistroEmpleador'
+      id:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.UpdateRegistrationRequest:
+    properties:
+      descripcion:
+        type: string
+      nombre:
+        type: string
+      telefono:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.VerifyRequest:
+    properties:
+      challengeId:
+        type: string
+      code:
+        type: string
+    type: object
+  backend-hackathon_internal_models_employer.VerifyResponse:
+    properties:
+      employerId:
+        type: string
     type: object
   backend-hackathon_internal_models_helpevent.CreateRequest:
     properties:
@@ -1129,6 +1410,52 @@ definitions:
         example: "123456"
         type: string
     type: object
+  internal_handlers_bolsaextra.cvPayload:
+    properties:
+      estudios:
+        items:
+          properties:
+            fin:
+              type: string
+            grado:
+              type: string
+            inicio:
+              type: string
+            institucion:
+              type: string
+          type: object
+        type: array
+      experiencia:
+        items:
+          properties:
+            descripcion:
+              type: string
+            empresa:
+              type: string
+            fin:
+              type: string
+            inicio:
+              type: string
+            puesto:
+              type: string
+          type: object
+        type: array
+      habilidades:
+        items:
+          type: string
+        type: array
+      perfil:
+        properties:
+          contacto:
+            type: string
+          nombre:
+            type: string
+          resumen:
+            type: string
+          titular:
+            type: string
+        type: object
+    type: object
 host: localhost:3000
 info:
   contact: {}
@@ -1136,6 +1463,170 @@ info:
   title: SAI API
   version: "1.0"
 paths:
+  /admin/applications/{id}/contact-release:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Motivo y campos
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models.Postulacion'
+      summary: Liberar contacto de postulación
+      tags:
+      - admin-jobs
+  /admin/employers:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models.Empleador'
+            type: array
+      summary: Listar empleadores (admin)
+      tags:
+      - admin-jobs
+  /admin/employers/{id}/review:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Employer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Decisión
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models.Empleador'
+      summary: Revisar empleador (admin)
+      tags:
+      - admin-jobs
+  /admin/hires:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models.Postulacion'
+            type: array
+      summary: Listar contrataciones
+      tags:
+      - admin-jobs
+  /admin/jobs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models.Vacante'
+            type: array
+      summary: Listar vacantes (admin)
+      tags:
+      - admin-jobs
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Vacante
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models.Vacante'
+      summary: Crear vacante (admin)
+      tags:
+      - admin-jobs
+  /admin/jobs/{id}:
+    get:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models.Vacante'
+      summary: Obtener vacante (admin)
+      tags:
+      - admin-jobs
+  /admin/jobs/{id}/review:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Decisión
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models.Vacante'
+      summary: Revisar vacante (admin)
+      tags:
+      - admin-jobs
   /analytics/heatmap:
     get:
       description: Devuelve celdas por sector con supresión k<5.
@@ -2767,6 +3258,284 @@ paths:
       summary: Inscribirse a curso
       tags:
       - courses
+  /employer/applications/{id}:
+    get:
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.ApplicationView'
+      summary: Ver postulación (empleador)
+      tags:
+      - employer-jobs
+  /employer/applications/{id}/decision:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Decisión
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.DecisionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.ApplicationView'
+      summary: Decidir postulación
+      tags:
+      - employer-jobs
+  /employer/applications/{id}/interview:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Entrevista
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.InterviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.ApplicationView'
+      summary: Agendar/registrar entrevista
+      tags:
+      - employer-jobs
+  /employer/jobs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_employer.JobView'
+            type: array
+      summary: Listar vacantes del empleador
+      tags:
+      - employer-jobs
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Vacante
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.JobRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.JobView'
+      summary: Crear vacante empleador
+      tags:
+      - employer-jobs
+  /employer/jobs/{id}:
+    get:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.JobView'
+      summary: Obtener vacante empleador
+      tags:
+      - employer-jobs
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Vacante
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.JobRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.JobView'
+      summary: Actualizar vacante empleador
+      tags:
+      - employer-jobs
+  /employer/jobs/{id}/applications:
+    get:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_employer.ApplicationView'
+            type: array
+      summary: Listar postulaciones de vacante
+      tags:
+      - employer-jobs
+  /employers/auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Correo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.ChallengeResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Login empleador (OTP)
+      tags:
+      - employers
+  /employers/auth/verify:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Desafío
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.VerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.VerifyResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Verificar OTP empleador
+      tags:
+      - employers
+  /employers/me/registration:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.EmployerMe'
+      summary: Ver registro empleador
+      tags:
+      - employers
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Datos
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.UpdateRegistrationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.EmployerMe'
+      summary: Actualizar registro empleador
+      tags:
+      - employers
+  /employers/registrations:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registro
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_employer.RegistrationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_employer.RegistrationResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Registrar empleador
+      tags:
+      - employers
   /health:
     get:
       description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera
@@ -3529,6 +4298,126 @@ paths:
       summary: Actualizar cuenta portal
       tags:
       - portal
+  /portal/me/applications:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Mis postulaciones
+      tags:
+      - portal-applications
+  /portal/me/applications/{id}:
+    get:
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Detalle de mi postulación
+      tags:
+      - portal-applications
+  /portal/me/applications/{id}/interview-response:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Respuesta
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Responder entrevista
+      tags:
+      - portal-applications
+  /portal/me/applications/{id}/withdrawal:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Motivo
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Retirar postulación
+      tags:
+      - portal-applications
+  /portal/me/cv:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers_bolsaextra.cvPayload'
+      summary: Obtener mi CV
+      tags:
+      - portal-cv
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: CV
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers_bolsaextra.cvPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers_bolsaextra.cvPayload'
+      summary: Reemplazar mi CV
+      tags:
+      - portal-cv
   /referrals:
     get:
       description: Devuelve canalizaciones por dirección, estado y expediente.
