@@ -37,7 +37,7 @@ type Service interface {
 	ListMySessions(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)
 	RevokeMySession(ctx context.Context, actor repository.ActorContext, actorID, sessionID uuid.UUID) error
 	List(ctx context.Context, actorID uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
-	Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
+	Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error)
 	Update(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	RevokeAllSessions(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
 	ResetMFA(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string, verificacionPresencial bool) (uuid.UUID, error)
@@ -262,13 +262,14 @@ func (s *service) List(ctx context.Context, actorID uuid.UUID, q usermodels.List
 	return &usermodels.Page[usermodels.StaffSummary]{Items: items, NextCursor: next}, nil
 }
 
-func (s *service) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {
+func (s *service) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error) {
 	if err := validateCreate(in); err != nil {
 		return nil, err
 	}
 
 	var created *models.Personal
 	var rolCode string
+	var activacion usermodels.Activacion
 	err := s.uow.Do(ctx, actor, func(ctx context.Context, repos repository.Repositories) error {
 		rol, err := repos.Roles().GetByCodigo(ctx, strings.TrimSpace(in.Rol))
 		if err != nil {
@@ -300,7 +301,8 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 			return err
 		}
 
-		hash, err := auth.HashPassword(in.Password)
+		// Contraseña aleatoria que nadie conoce hasta la activación.
+		inicial, err := auth.HashPassword(uuid.NewString() + uuid.NewString())
 		if err != nil {
 			return err
 		}
@@ -316,7 +318,7 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 			NombreLaboral:          strings.TrimSpace(in.NombreLaboral),
 			RolID:                  rol.ID,
 			DepartamentoID:         departamento.ID,
-			PasswordHash:           hash,
+			PasswordHash:           inicial,
 			RequiereCambioPassword: true,
 			Estado:                 models.PersonalActivo,
 			VersionPermisos:        1,
@@ -329,6 +331,11 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 			return err
 		}
 
+		codigo, vence, err := auth.NuevaActivacion(ctx, repos, s.secret, personal.ID, s.now())
+		if err != nil {
+			return err
+		}
+		activacion = usermodels.Activacion{Codigo: codigo, ExpiresAt: vence}
 		created = personal
 		rolCode = rol.Codigo
 		return audit.Record(ctx, repos, &actor.ActorID, "users.create", models.ResultadoExito, &personal.ID, actor.RequestID, actor.IPOrigen)
@@ -336,7 +343,7 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 	if err != nil {
 		return nil, err
 	}
-	return s.summary(created, rolCode), nil
+	return &usermodels.CreateResponse{Cuenta: *s.summary(created, rolCode), Activacion: activacion}, nil
 }
 
 func (s *service) Update(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error) {

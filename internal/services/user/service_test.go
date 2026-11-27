@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -51,6 +52,19 @@ type fakeRepos struct {
 	operaciones   *fakeOperacionRepo
 	claves        *fakeClaveRegistroRepo
 	audit         *fakeAuditRepo
+	contextos     *fakeContextoRepo
+}
+
+func (r *fakeRepos) ContextosAuth() repository.ContextoAuthRepository { return r.contextos }
+
+type fakeContextoRepo struct {
+	repository.ContextoAuthRepository
+	items []*models.ContextoAuth
+}
+
+func (r *fakeContextoRepo) Create(_ context.Context, c *models.ContextoAuth) error {
+	r.items = append(r.items, c)
+	return nil
 }
 
 func (r *fakeRepos) Actores() repository.ActorRepository                     { return r.actores }
@@ -368,6 +382,7 @@ func newTestFixture(now time.Time) (*service, *fakeRepos, uuid.UUID, uuid.UUID) 
 	sessionID := uuid.New()
 
 	repos := &fakeRepos{
+		contextos: &fakeContextoRepo{},
 		actores: &fakeActorRepo{
 			items: map[uuid.UUID]*models.Actor{
 				actorID: {ID: actorID, Tipo: models.ActorPersonal, Activo: true},
@@ -749,19 +764,26 @@ func TestCreateUser(t *testing.T) {
 			NombreLaboral:  "Carlos Pérez",
 			Rol:            "TrabajoSocial",
 			DepartamentoID: deptID.String(),
-			Password:       "ClaveSegura1234",
 		})
 		if err != nil {
 			t.Fatalf("Create: %v", err)
 		}
-		if res.Usuario != "carlos.perez" || res.Rol != "TrabajoSocial" || res.Estado != models.PersonalActivo {
-			t.Fatalf("summary inesperado: %+v", res)
+		cuenta := res.Cuenta
+		if cuenta.Usuario != "carlos.perez" || cuenta.Rol != "TrabajoSocial" || cuenta.Estado != models.PersonalActivo {
+			t.Fatalf("summary inesperado: %+v", cuenta)
 		}
-		v, err := httpx.DecodeVersionTag(svc.secret, res.VersionTag)
+		v, err := httpx.DecodeVersionTag(svc.secret, cuenta.VersionTag)
 		if err != nil || v != 1 {
 			t.Fatalf("versionTag = (%d, %v), esperado 1", v, err)
 		}
-		created := repos.personal.items[res.ID]
+		if !regexp.MustCompile(`^[A-Z2-9]{4}-[A-Z2-9]{4}$`).MatchString(res.Activacion.Codigo) || !res.Activacion.ExpiresAt.After(now) {
+			t.Fatalf("activación inesperada: %+v", res.Activacion)
+		}
+		if len(repos.contextos.items) != 1 || repos.contextos.items[0].Fase != models.FaseActivacion ||
+			*repos.contextos.items[0].PersonalID != cuenta.ID {
+			t.Fatalf("contexto de activación: %+v", repos.contextos.items)
+		}
+		created := repos.personal.items[cuenta.ID]
 		if !created.RequiereCambioPassword || !strings.HasPrefix(created.PasswordHash, "$argon2id$") {
 			t.Fatalf("personal creado inválido: %+v", created)
 		}
@@ -776,7 +798,6 @@ func TestCreateUser(t *testing.T) {
 			NombreLaboral:  "Duplicada",
 			Rol:            "TrabajoSocial",
 			DepartamentoID: deptID.String(),
-			Password:       "ClaveSegura1234",
 		})
 		if !errors.Is(err, ErrDuplicateUsername) {
 			t.Fatalf("err = %v, esperado ErrDuplicateUsername", err)
@@ -789,7 +810,6 @@ func TestCreateUser(t *testing.T) {
 			NombreLaboral:  "Nombre",
 			Rol:            "TrabajoSocial",
 			DepartamentoID: deptID.String(),
-			Password:       "ClaveSegura1234",
 		})
 		var vErr *ValidationError
 		if !errors.As(err, &vErr) {

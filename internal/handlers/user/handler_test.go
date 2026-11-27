@@ -27,7 +27,7 @@ type stubUserService struct {
 	listMySessionsFn    func(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)
 	revokeMySessionFn   func(ctx context.Context, actor repository.ActorContext, actorID, sessionID uuid.UUID) error
 	listFn              func(ctx context.Context, actorID uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
-	createFn            func(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
+	createFn            func(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error)
 	updateFn            func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	revokeAllSessionsFn func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
 	resetMFAFn          func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string, verificacionPresencial bool) (uuid.UUID, error)
@@ -49,7 +49,7 @@ func (s *stubUserService) List(ctx context.Context, actorID uuid.UUID, q usermod
 	return s.listFn(ctx, actorID, q, page)
 }
 
-func (s *stubUserService) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {
+func (s *stubUserService) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error) {
 	return s.createFn(ctx, actor, in)
 }
 
@@ -347,20 +347,20 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 
 	t.Run("POST /users returns 201 and ETag", func(t *testing.T) {
 		svc := &stubUserService{
-			createFn: func(_ context.Context, _ repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {
+			createFn: func(_ context.Context, _ repository.ActorContext, in usermodels.CreateRequest) (*usermodels.CreateResponse, error) {
 				if in.Usuario != "ana" {
 					t.Fatalf("usuario = %q", in.Usuario)
 				}
-				return &usermodels.StaffSummary{
+				return &usermodels.CreateResponse{Cuenta: usermodels.StaffSummary{
 					ID:             uuid.New(),
 					Usuario:        "ana",
 					DepartamentoID: deptID,
 					VersionTag:     "tag-v1",
-				}, nil
+				}, Activacion: usermodels.Activacion{Codigo: "K7P2-9QX4"}}, nil
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBufferString(`{"usuario":"ana","nombreLaboral":"Ana","rol":"TrabajoSocial","departamentoId":"`+deptID.String()+`","password":"Password1234"}`))
+		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBufferString(`{"usuario":"ana","nombreLaboral":"Ana","rol":"TrabajoSocial","departamentoId":"`+deptID.String()+`"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
