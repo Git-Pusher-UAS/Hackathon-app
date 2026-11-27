@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -102,18 +101,9 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			// /api/v1 usa el sobre de error del contrato; /api conserva el
-			// formato legado.
-			if strings.HasPrefix(c.Path(), "/api/v1/") {
-				return httpx.Write(c, err)
-			}
-			code := fiber.StatusInternalServerError
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
-			}
-			return c.Status(code).JSON(fiber.Map{"error": err.Error()})
-		},
+		// Toda la API responde errores con el sobre del contrato:
+		// {"error": {"code", "message", "requestId", "fields"?}}.
+		ErrorHandler: httpx.Write,
 	})
 
 	// Orden: recover -> requestid -> logger -> cors.
@@ -139,56 +129,68 @@ func main() {
 	api := app.Group("/api")
 	api.Get("/status", statusHandler.Status)
 
-	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
+	// Base del contrato: /api/v1.
+	v1 := app.Group("/api/v1")
+	v1.Get("/health", handlers.Healthcheck)
 
-	// Igual que authMw, pero si no hay header Authorization deja pasar la petición.
-	optionalAuth := func(c *fiber.Ctx) error {
-		if c.Get(fiber.HeaderAuthorization) == "" {
-			return c.Next()
-		}
-		return authMw(c)
+	// Acceso del personal, público y sin CSRF. /api/auth/* queda como alias
+	// temporal de /api/v1/auth/*. Se registran antes de los grupos protegidos,
+	// que se montan como middleware sobre todo su prefijo.
+	for _, g := range []fiber.Router{v1, api} {
+		g.Post("/auth/login", authHandler.Login)
+		g.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
+		g.Post("/auth/mfa/verify", authHandler.VerifyMFA)
 	}
 
-	// Público
-	api.Post("/auth/login", authHandler.Login)
-	api.Post("/auth/mfa/verify", optionalAuth, authHandler.VerifyMFA)
+	// Protegido: JWT (cookie sai_staff o Bearer) + sesión revocable, sin caché
+	// y X-CSRF-Token en toda escritura.
+	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
+	csrfWrites := func(c *fiber.Ctx) error {
+		switch c.Method() {
+		case fiber.MethodGet, fiber.MethodHead, fiber.MethodOptions:
+			return c.Next()
+		}
+		return usermiddleware.RequireCSRF(c)
+	}
 
-	// Protegido: JWT + sesión revocable
-	protected := api.Group("", authMw, middleware.CSRF(uow))
-	protected.Get("/auth/me", authHandler.Me)
-	protected.Get("/auth/csrf-token", authHandler.CSRFToken)
-	protected.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
-	protected.Post("/auth/logout", authHandler.Logout)
+	legacy := api.Group("/auth", authMw, usermiddleware.NoStore, csrfWrites)
+	legacy.Get("/me", authHandler.Me)
+	legacy.Get("/csrf-token", authHandler.CSRFToken)
+	legacy.Post("/logout", authHandler.Logout)
 
-	// /api/v1: contrato nuevo. Comparte el mismo JWT y añade CSRF en escrituras.
-	v1 := app.Group("/api/v1", middleware.AuthMiddleware(cfg.JWT.Secret, uow), usermiddleware.NoStore)
-	v1.Get("/users/me", userHandler.Me)
-	v1.Get("/users/me/sessions", userHandler.ListMySessions)
-	v1.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, userHandler.RevokeMySession)
+	priv := v1.Group("", authMw, usermiddleware.NoStore, csrfWrites)
+	priv.Get("/auth/me", authHandler.Me)
+	priv.Get("/auth/csrf-token", authHandler.CSRFToken)
+	priv.Post("/auth/logout", authHandler.Logout)
 
-	admin := v1.Group("/users", middleware.RequirePermiso("admin"))
+	// /users/me va antes del grupo admin, que exige el permiso "admin" para todo /users.
+	priv.Get("/users/me", userHandler.Me)
+	priv.Get("/users/me/sessions", userHandler.ListMySessions)
+	priv.Delete("/users/me/sessions/:sessionId", userHandler.RevokeMySession)
+
+	admin := priv.Group("/users", middleware.RequirePermiso("admin"))
 	admin.Get("", userHandler.List)
-	admin.Post("", usermiddleware.RequireCSRF, userHandler.Create)
-	admin.Patch("/:userId", usermiddleware.RequireCSRF, userHandler.Update)
-	admin.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
-	admin.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
-	csrf := usermiddleware.RequireCSRF
-	cf := v1.Group("/case-files")
-	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
-	cf.Post("", csrf, casemw.Require(casemw.PermWrite), caseHandler.Create)
+	admin.Post("", userHandler.Create)
+	admin.Patch("/:userId", userHandler.Update)
+	admin.Post("/:userId/session-revocations", userHandler.RevokeAllSessions)
+	admin.Post("/:userId/mfa-resets", userHandler.ResetMFA)
+
+	cf := priv.Group("/case-files")
+	cf.Post("/duplicate-checks", casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
+	cf.Post("", casemw.Require(casemw.PermWrite), caseHandler.Create)
 	cf.Get("", casemw.Require(casemw.PermRead), caseHandler.List)
 	cf.Get("/:recordId", casemw.Require(casemw.PermRead), caseHandler.Get)
-	cf.Patch("/:recordId", csrf, casemw.Require(casemw.PermWrite), caseHandler.Update)
+	cf.Patch("/:recordId", casemw.Require(casemw.PermWrite), caseHandler.Update)
 	cf.Get("/:recordId/timeline", casemw.Require(casemw.PermRead), caseHandler.Timeline)
-	cf.Post("/:recordId/disclosures", csrf, casemw.Require(casemw.PermDisclose), caseHandler.Disclose)
-	cf.Post("/:recordId/assignments", csrf, casemw.Require(casemw.PermAssign), caseHandler.Assign)
-	cf.Post("/:recordId/assignments/:assignmentId/revocations", csrf, casemw.Require(casemw.PermAssign), caseHandler.RevokeAssignment)
+	cf.Post("/:recordId/disclosures", casemw.Require(casemw.PermDisclose), caseHandler.Disclose)
+	cf.Post("/:recordId/assignments", casemw.Require(casemw.PermAssign), caseHandler.Assign)
+	cf.Post("/:recordId/assignments/:assignmentId/revocations", casemw.Require(casemw.PermAssign), caseHandler.RevokeAssignment)
 	cf.Get("/:recordId/departments/:departmentId/notes", casemw.Require(casemw.PermRead), caseHandler.ListNotes)
-	cf.Post("/:recordId/departments/:departmentId/notes", csrf, casemw.Require(casemw.PermWrite), caseHandler.CreateNote)
+	cf.Post("/:recordId/departments/:departmentId/notes", casemw.Require(casemw.PermWrite), caseHandler.CreateNote)
 	cf.Get("/:recordId/consents", casemw.Require(casemw.PermRead), caseHandler.ListConsents)
-	cf.Post("/:recordId/consents", csrf, casemw.Require(casemw.PermConsent), caseHandler.RecordConsent)
-	cf.Post("/:recordId/consents/:consentId/revocations", csrf, casemw.Require(casemw.PermConsent), caseHandler.RevokeConsent)
-	cf.Post("/:recordId/referrals", csrf, casemw.Require(casemw.PermRefer), caseHandler.CreateReferral)
+	cf.Post("/:recordId/consents", casemw.Require(casemw.PermConsent), caseHandler.RecordConsent)
+	cf.Post("/:recordId/consents/:consentId/revocations", casemw.Require(casemw.PermConsent), caseHandler.RevokeConsent)
+	cf.Post("/:recordId/referrals", casemw.Require(casemw.PermRefer), caseHandler.CreateReferral)
 
 	// Apagado ordenado: cierra Fiber y luego el pool de GORM (defer).
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
