@@ -17,17 +17,17 @@ import (
 func RequireCSRF(c *fiber.Ctx) error {
 	token := strings.TrimSpace(c.Get("X-CSRF-Token"))
 	if token == "" {
-		return httpx.E(fiber.StatusForbidden, "CSRF_INVALID", "token CSRF inválido")
+		return httpx.E(fiber.StatusForbidden, "csrf_invalid", "token CSRF inválido")
 	}
 
 	expected, ok := middleware.CSRFHash(c)
 	if !ok || len(expected) == 0 {
-		return httpx.E(fiber.StatusForbidden, "CSRF_INVALID", "token CSRF inválido")
+		return httpx.E(fiber.StatusForbidden, "csrf_invalid", "token CSRF inválido")
 	}
 
 	provided := sha256.Sum256([]byte(token))
 	if subtle.ConstantTimeCompare(provided[:], expected) != 1 {
-		return httpx.E(fiber.StatusForbidden, "CSRF_INVALID", "token CSRF inválido")
+		return httpx.E(fiber.StatusForbidden, "csrf_invalid", "token CSRF inválido")
 	}
 
 	return c.Next()
