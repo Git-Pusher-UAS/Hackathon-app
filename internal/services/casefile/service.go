@@ -25,18 +25,20 @@ const (
 	cursorScopeList     = "casefiles.list"
 	cursorScopeNotes    = "casefiles.notes"
 	cursorScopeTimeline = "casefiles.timeline"
+
+	linkTokenTTL = 30 * time.Minute
 )
 
 var personaFields = []string{"nombre", "curp", "fechaNacimiento", "telefono", "domicilio"}
 
 type Service interface {
-	DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (bool, error)
+	DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (*casemodels.DuplicateCheckResponse, error)
 	Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Summary, error)
 	List(ctx context.Context, actor repository.ActorContext, q casemodels.ListQuery, page repository.PageRequest) (*casemodels.Page[casemodels.Summary], error)
 	Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Summary, error)
 	Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Summary, error)
 	Timeline(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, q casemodels.TimelineQuery, page repository.PageRequest) (*casemodels.Page[casemodels.TimelineItem], error)
-	Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, campo string) (*casemodels.DisclosureResponse, error)
+	Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.DisclosureRequest) (*casemodels.DisclosureResponse, error)
 	Assign(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.AssignRequest) (*casemodels.AssignmentView, error)
 	RevokeAssignment(ctx context.Context, actor repository.ActorContext, recordID, assignmentID uuid.UUID) error
 	ListNotes(ctx context.Context, actor repository.ActorContext, recordID, depID uuid.UUID, episodeID *uuid.UUID, page repository.PageRequest) (*casemodels.Page[casemodels.NoteView], error)
@@ -243,27 +245,72 @@ func (s *service) recordDecision(ctx context.Context, r repository.Repositories,
 
 // ---------------- API-016 ----------------
 
-func (s *service) DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (bool, error) {
+func (s *service) DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (*casemodels.DuplicateCheckResponse, error) {
 	if s.curpKey == "" {
-		return false, ErrCryptoUnavailable
+		return nil, ErrCryptoUnavailable
 	}
 	curp = normalizeCURP(curp)
 	if !curpRe.MatchString(curp) {
-		return false, vErr("curp inv\u00e1lida")
+		return nil, vErr("curp inv\u00e1lida")
 	}
-	dup := false
+	out := &casemodels.DuplicateCheckResponse{}
 	err := s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
-		_, err := r.IndicesCURP().BuscarPersona(ctx, []repository.IndiceCURPClave{{VersionHMAC: curpHMACVersion, ValorHMAC: s.curpHMAC(curp)}})
-		if err == nil {
-			dup = true
-			return nil
-		}
+		personaID, err := r.IndicesCURP().BuscarPersona(ctx, []repository.IndiceCURPClave{{VersionHMAC: curpHMACVersion, ValorHMAC: s.curpHMAC(curp)}})
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		out.Exists = true
+		e, err := r.Expedientes().GetByPersonaID(ctx, personaID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		link, err := s.linkToken(ctx, r, actor, e)
+		if err != nil {
+			return err
+		}
+		out.Department, out.LinkToken, out.LinkExpiresAt = link.department, &link.token, &link.expires
+		return nil
 	})
-	return dup, err
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type link struct {
+	token      string
+	expires    time.Time
+	department *string
+}
+
+func (s *service) linkToken(ctx context.Context, r repository.Repositories, actor repository.ActorContext, e *models.Expediente) (*link, error) {
+	token, hash, err := security.NewOpaqueToken()
+	if err != nil {
+		return nil, err
+	}
+	vence := s.now().Add(linkTokenTTL)
+	if err := r.TokensVinculacion().Create(ctx, &models.TokenVinculacion{ExpedienteID: e.ID, SolicitanteID: actor.ActorID, TokenHash: hash, VenceEn: vence}); err != nil {
+		return nil, err
+	}
+	out := &link{token: "lt_" + token, expires: vence.UTC()}
+	asigs, err := r.Asignaciones().ListByExpediente(ctx, e.ID, true)
+	if err != nil {
+		return nil, err
+	}
+	if len(asigs) > 0 {
+		d, err := r.Departamentos().GetByID(ctx, asigs[0].DepartamentoID)
+		if err != nil {
+			return nil, err
+		}
+		out.department = &d.Nombre
+	}
+	return out, s.audit(ctx, r, actor, "casefile.duplicate_check.link_token", "expediente", &e.ID)
 }
 
 // ---------------- API-017 ----------------
@@ -399,6 +446,11 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, opI
 		out = s.summary(exp, &tipoID)
 		return nil
 	})
+	if errors.Is(err, ErrDuplicatePerson) {
+		if dup, derr := s.DuplicateCheck(ctx, actor, in.CURP); derr == nil && dup.Exists {
+			return nil, &DuplicatePersonError{LinkToken: dup.LinkToken, LinkExpiresAt: dup.LinkExpiresAt, Department: dup.Department}
+		}
+	}
 	if err != nil {
 		return nil, err
 	}

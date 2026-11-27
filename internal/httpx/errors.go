@@ -16,6 +16,7 @@ type Error struct {
 	Code    string
 	Message string
 	Fields  map[string]string
+	Extra   map[string]any
 }
 
 func (e *Error) Error() string { return e.Message }
@@ -61,7 +62,13 @@ func Write(c *fiber.Ctx, err error) error {
 	if len(mapped.Fields) > 0 {
 		detail["fields"] = mapped.Fields
 	}
-	return c.Status(mapped.Status).JSON(fiber.Map{"error": detail})
+	body := fiber.Map{"error": detail}
+	for k, v := range mapped.Extra {
+		if k != "error" {
+			body[k] = v
+		}
+	}
+	return c.Status(mapped.Status).JSON(body)
 }
 
 // RequestID devuelve el id de correlación de Fiber o uno nuevo si falta.

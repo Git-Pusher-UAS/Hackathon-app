@@ -19,7 +19,10 @@ type DuplicateCheckRequest struct {
 	CURP string `json:"curp"`
 }
 type DuplicateCheckResponse struct {
-	Duplicate bool `json:"duplicate"`
+	Exists        bool       `json:"exists"`
+	Department    *string    `json:"department,omitempty"`
+	LinkToken     *string    `json:"linkToken,omitempty"`
+	LinkExpiresAt *time.Time `json:"linkExpiresAt,omitempty"`
 }
 
 type ConsentInput struct {
@@ -86,7 +89,8 @@ type TimelineItem struct {
 
 // API-028
 type DisclosureRequest struct {
-	Campo string `json:"campo"` // nombre|curp|fechaNacimiento|telefono|domicilio
+	Campo  string `json:"campo"` // nombre|curp|fechaNacimiento|telefono|domicilio
+	Motivo string `json:"motivo"`
 }
 type DisclosureResponse struct {
 	Campo string `json:"campo"`
@@ -95,9 +99,10 @@ type DisclosureResponse struct {
 
 // API-024 / API-025
 type AssignRequest struct {
-	PersonalID     string `json:"personalId"`
-	DepartamentoID string `json:"departamentoId"`
-	Motivo         string `json:"motivo"`
+	PersonalID     string  `json:"personalId"`
+	DepartamentoID string  `json:"departamentoId"`
+	Motivo         string  `json:"motivo"`
+	SolicitudID    *string `json:"solicitudId,omitempty"`
 }
 type AssignmentView struct {
 	ID             uuid.UUID  `json:"id"`

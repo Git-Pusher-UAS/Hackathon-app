@@ -283,6 +283,229 @@ const docTemplate = `{
                 }
             }
         },
+        "/case-access-requests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve metadatos de solicitudes. Nunca expone identidad PII ni notas.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-access-requests"
+                ],
+                "summary": "Listar solicitudes de acceso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "pendiente | aprobada | rechazada",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1..100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_caseaccessrequest.Item"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea una solicitud de acceso usando linkToken.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-access-requests"
+                ],
+                "summary": "Solicitar acceso a expediente",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Solicitud",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_caseaccessrequest.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_caseaccessrequest.Created"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "Gone",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/case-access-requests/{id}/rejection": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Rechaza una solicitud pendiente, audita y responde 204.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "case-access-requests"
+                ],
+                "summary": "Rechazar solicitud de acceso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID de solicitud",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_caseaccessrequest.RejectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Rechazada"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/case-files": {
             "get": {
                 "description": "Obtiene una página de expedientes filtrable por estado y alias.",
@@ -2311,6 +2534,19 @@ const docTemplate = `{
                 "PersonalSuspendido"
             ]
         },
+        "backend-hackathon_internal_models.EstadoSolicitudVinculacion": {
+            "type": "string",
+            "enum": [
+                "pendiente",
+                "aprobada",
+                "rechazada"
+            ],
+            "x-enum-varnames": [
+                "SolicitudPendiente",
+                "SolicitudAprobada",
+                "SolicitudRechazada"
+            ]
+        },
         "backend-hackathon_internal_models.ModalidadConsentimiento": {
             "type": "string",
             "enum": [
@@ -2339,6 +2575,73 @@ const docTemplate = `{
                 "OrigenEmergenciaReferida"
             ]
         },
+        "backend-hackathon_internal_models_caseaccessrequest.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "linkToken": {
+                    "type": "string"
+                },
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_caseaccessrequest.Created": {
+            "type": "object",
+            "properties": {
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoSolicitudVinculacion"
+                },
+                "requestId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_caseaccessrequest.Item": {
+            "type": "object",
+            "properties": {
+                "departamento": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoSolicitudVinculacion"
+                },
+                "expedienteId": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "motivo": {
+                    "type": "string"
+                },
+                "solicitante": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_caseaccessrequest.Solicitante"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_caseaccessrequest.RejectRequest": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_caseaccessrequest.Solicitante": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombreLaboral": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_casefile.AssignRequest": {
             "type": "object",
             "properties": {
@@ -2349,6 +2652,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "personalId": {
+                    "type": "string"
+                },
+                "solicitudId": {
                     "type": "string"
                 }
             }
@@ -2418,6 +2724,9 @@ const docTemplate = `{
                 "campo": {
                     "description": "nombre|curp|fechaNacimiento|telefono|domicilio",
                     "type": "string"
+                },
+                "motivo": {
+                    "type": "string"
                 }
             }
         },
@@ -2432,8 +2741,17 @@ const docTemplate = `{
         "backend-hackathon_internal_models_casefile.DuplicateCheckResponse": {
             "type": "object",
             "properties": {
-                "duplicate": {
+                "department": {
+                    "type": "string"
+                },
+                "exists": {
                     "type": "boolean"
+                },
+                "linkExpiresAt": {
+                    "type": "string"
+                },
+                "linkToken": {
+                    "type": "string"
                 }
             }
         },
