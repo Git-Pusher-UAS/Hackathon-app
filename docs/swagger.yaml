@@ -805,6 +805,19 @@ definitions:
       nextCursor:
         type: string
     type: object
+  backend-hackathon_internal_models_referral.TransitionRequest:
+    properties:
+      accion:
+        enum:
+        - aceptar
+        - rechazar
+        - completar
+        - cancelar
+        type: string
+      motivo:
+        description: 10 a 500; obligatorio en rechazar y cancelar
+        type: string
+    type: object
   backend-hackathon_internal_models_referral.View:
     properties:
       alias:
@@ -2468,6 +2481,73 @@ paths:
       security:
       - BearerAuth: []
       summary: Bandeja de canalizaciones
+      tags:
+      - referrals
+  /referrals/{referralId}/transitions:
+    post:
+      consumes:
+      - application/json
+      description: aceptar (destino, pendiente a aceptada; crea la asignación del
+        área destino), rechazar (destino, motivo obligatorio), completar (destino,
+        aceptada a completada; en una externa la completa el origen desde pendiente),
+        cancelar (origen, pendiente a cancelada, motivo obligatorio). Exige If-Match
+        con el versionTag. Requiere referral.transition.
+      parameters:
+      - description: UUID de la canalización
+        in: path
+        name: referralId
+        required: true
+        type: string
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: versionTag vigente
+        in: header
+        name: If-Match
+        required: true
+        type: string
+      - description: Acción y motivo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_referral.TransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            ETag:
+              description: Nueva versión
+              type: string
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_referral.View'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: invalid_transition o record_closed
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "412":
+          description: precondition_failed
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "428":
+          description: precondition_required
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cambiar estado de una canalización
       tags:
       - referrals
   /status:
