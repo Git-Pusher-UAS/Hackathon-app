@@ -19,12 +19,14 @@ import (
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	notehandler "backend-hackathon/internal/handlers/note"
+	referralhandler "backend-hackathon/internal/handlers/referral"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
 	"backend-hackathon/internal/middleware/idempotency"
+	refmw "backend-hackathon/internal/middleware/referral"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
@@ -34,6 +36,7 @@ import (
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	noteservice "backend-hackathon/internal/services/note"
+	referralservice "backend-hackathon/internal/services/referral"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -110,6 +113,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	referralHandler := referralhandler.New(referralservice.New(uow, keyring, cfg.JWT.Secret))
 	noteHandler := notehandler.New(noteservice.New(caseService))
 	carHandler := carhandler.New(carservice.New(uow, keyring, cfg.JWT.Secret))
 	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
@@ -209,6 +213,7 @@ func main() {
 	priv.Post("/case-access-requests/:id/rejection", carmw.Require(carmw.PermReview), carHandler.Reject)
 
 	priv.Post("/notes/sync", casemw.Require(casemw.PermWrite), noteHandler.Sync)
+	priv.Get("/referrals", refmw.Require(refmw.PermRead), referralHandler.List)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")

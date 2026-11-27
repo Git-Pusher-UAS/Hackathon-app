@@ -780,6 +780,57 @@ definitions:
         - retryable
         type: string
     type: object
+  backend-hackathon_internal_models_referral.Destino:
+    properties:
+      departamentoId:
+        type: string
+      institucionId:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_referral.Origen:
+    properties:
+      departamentoId:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_referral.Page:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_referral.View'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  backend-hackathon_internal_models_referral.View:
+    properties:
+      alias:
+        type: string
+      createdAt:
+        type: string
+      destino:
+        $ref: '#/definitions/backend-hackathon_internal_models_referral.Destino'
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoCanalizacion'
+      expedienteId:
+        type: string
+      id:
+        type: string
+      motivo:
+        description: del último rechazo o cancelación
+        type: string
+      origen:
+        $ref: '#/definitions/backend-hackathon_internal_models_referral.Origen'
+      resumen:
+        type: string
+      tipo:
+        $ref: '#/definitions/backend-hackathon_internal_models.TipoCanalizacion'
+      versionTag:
+        type: string
+    type: object
   backend-hackathon_internal_models_user.Activacion:
     properties:
       codigo:
@@ -2368,6 +2419,57 @@ paths:
       summary: Sincronizar notas offline
       tags:
       - notes
+  /referrals:
+    get:
+      description: 'incoming: canalizaciones a las áreas del actor; outgoing: las
+        que emitieron sus áreas. Con recordId se usa en la pestaña Canalizaciones
+        del expediente. Cada elemento trae versionTag para If-Match y el motivo del
+        último rechazo o cancelación. Requiere referral.read.'
+      parameters:
+      - description: incoming (por defecto) | outgoing
+        in: query
+        name: direction
+        type: string
+      - description: 'Estados separados por coma: pendiente,aceptada,rechazada,completada,cancelada'
+        in: query
+        name: status
+        type: string
+      - description: UUID del expediente
+        in: query
+        name: recordId
+        type: string
+      - description: 1..100 (20 por defecto)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_referral.Page'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bandeja de canalizaciones
+      tags:
+      - referrals
   /status:
     get:
       description: Comprueba la conexión con la base de datos y devuelve el estado

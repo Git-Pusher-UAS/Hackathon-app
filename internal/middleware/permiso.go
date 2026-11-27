@@ -16,3 +16,10 @@ func RequirePermiso(codigo string) fiber.Handler {
 		return c.Next()
 	}
 }
+
+// PermisoSeed es un permiso que crea el seed con los roles que lo reciben.
+// El admin los recibe todos.
+type PermisoSeed struct {
+	Codigo, Descripcion string
+	Roles               []string
+}
