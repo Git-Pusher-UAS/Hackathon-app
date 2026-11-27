@@ -250,12 +250,12 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // Get obtiene el detalle de un expediente por su UUID e incluye su ETag.
 //
 // @Summary      Obtener expediente
-// @Description  Devuelve los datos de un expediente por recordId y su cabecera ETag.
+// @Description  Encabezado y resumen del expediente con sector, edad (nunca la fecha de nacimiento), áreas y los datos sensibles ya enmascarados en ocultos. 404 si no existe o no está asignado al actor. Devuelve ETag.
 // @Tags         case-files
 // @Security     BearerAuth
 // @Produce      json
 // @Param        recordId  path      string  true  "UUID del expediente"
-// @Success      200       {object}  casemodels.Summary
+// @Success      200       {object}  casemodels.Detail
 // @Header       200       {string}  ETag                 "Versión actual del recurso"
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
@@ -282,7 +282,7 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 // Update actualiza un expediente validando concurrencia optimista mediante If-Match.
 //
 // @Summary      Actualizar expediente
-// @Description  Actualiza un expediente requiriendo la cabecera If-Match con la versión esperada.
+// @Description  Cambia estado, alias o tipo de caso con If-Match. Reabrir un expediente cerrado exige motivo (10 a 500 caracteres). Responde el mismo objeto que GET con su nuevo ETag.
 // @Tags         case-files
 // @Security     BearerAuth
 // @Accept       json
@@ -291,7 +291,7 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 // @Param        If-Match  header    string                 true  "ETag / versión actual del recurso"
 // @Param        request   body      casemodels.UpdateRequest  true  "Campos a actualizar"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
-// @Success      200       {object}  casemodels.Summary
+// @Success      200       {object}  casemodels.Detail
 // @Header       200       {string}  ETag                      "Nueva versión del recurso"
 // @Failure      400       {object}  httpx.ErrorResponse
 // @Failure      401       {object}  httpx.ErrorResponse
