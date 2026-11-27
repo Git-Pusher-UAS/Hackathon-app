@@ -1,8 +1,11 @@
 package httpx
 
 import (
+	"encoding/json"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
@@ -85,5 +88,26 @@ func TestDecodeCursorEmpty(t *testing.T) {
 	plain, err := DecodeCursor("secreto", "", uuid.New(), "scope", "filtros")
 	if err != nil || plain != "" {
 		t.Fatalf("DecodeCursor vacío = (%q,%v), esperado (\"\",nil)", plain, err)
+	}
+}
+
+func TestWriteExtraJuntoAError(t *testing.T) {
+	app := fiber.New(fiber.Config{ErrorHandler: Write})
+	app.Get("/", func(c *fiber.Ctx) error {
+		e := E(fiber.StatusConflict, "person_exists", "ya existe")
+		e.Extra = map[string]any{"linkToken": "lt_x", "error": "ignorado"}
+		return e
+	})
+	resp, err := app.Test(httptest.NewRequest("GET", "/", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	errObj, _ := body["error"].(map[string]any)
+	if resp.StatusCode != 409 || body["linkToken"] != "lt_x" || errObj["code"] != "person_exists" {
+		t.Fatalf("cuerpo: %v", body)
 	}
 }
