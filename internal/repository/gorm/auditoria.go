@@ -84,6 +84,11 @@ func auditHash(prev []byte, e *models.EventoAuditoria) []byte {
 	if e.IPOrigen != nil {
 		write(*e.IPOrigen)
 	}
+	// Solo entra al hash si existe, para no invalidar los eventos anteriores.
+	if e.Detalle != nil {
+		write("|")
+		write(*e.Detalle)
+	}
 	write("|")
 	write(e.RequestID.String())
 

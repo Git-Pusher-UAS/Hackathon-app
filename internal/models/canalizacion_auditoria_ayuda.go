@@ -44,19 +44,22 @@ func (HistorialCanalizacion) TableName() string { return "canalizacion.historial
 // A36 · auditoria.eventos. Append-only encadenado por hash.
 // recurso_id NO tiene FK a propósito (puede auditarse un UUID inexistente).
 type EventoAuditoria struct {
-	ID           uuid.UUID          `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Secuencia    int64              `gorm:"not null;uniqueIndex"`
-	ActorID      *uuid.UUID         `gorm:"type:uuid"` // nulo solo en acción anónima
-	Accion       string             `gorm:"type:varchar(100);not null"`
-	TipoRecurso  string             `gorm:"type:varchar(80);not null"`
-	RecursoID    *uuid.UUID         `gorm:"type:uuid"`
-	Resultado    ResultadoAuditoria `gorm:"type:varchar(20);not null"`
-	OcurridoEn   time.Time          `gorm:"not null"`
-	IPOrigen     *string            `gorm:"type:inet"`
-	RequestID    uuid.UUID          `gorm:"type:uuid;not null"`
-	HashAnterior []byte             `gorm:"type:bytea;not null"` // 32 bytes
-	HashActual   []byte             `gorm:"type:bytea;not null;uniqueIndex"`
-	CreadoEn     time.Time          `gorm:"not null;default:now();<-:create"`
+	ID          uuid.UUID          `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Secuencia   int64              `gorm:"not null;uniqueIndex"`
+	ActorID     *uuid.UUID         `gorm:"type:uuid"` // nulo solo en acción anónima
+	Accion      string             `gorm:"type:varchar(100);not null"`
+	TipoRecurso string             `gorm:"type:varchar(80);not null"`
+	RecursoID   *uuid.UUID         `gorm:"type:uuid"`
+	Resultado   ResultadoAuditoria `gorm:"type:varchar(20);not null"`
+	OcurridoEn  time.Time          `gorm:"not null"`
+	IPOrigen    *string            `gorm:"type:inet"`
+	RequestID   uuid.UUID          `gorm:"type:uuid;not null"`
+	// Detalle es un texto corto para la bitácora (p. ej. el campo revelado y
+	// el motivo). Nunca lleva el valor de un dato sensible.
+	Detalle      *string   `gorm:"type:varchar(600)"`
+	HashAnterior []byte    `gorm:"type:bytea;not null"` // 32 bytes
+	HashActual   []byte    `gorm:"type:bytea;not null;uniqueIndex"`
+	CreadoEn     time.Time `gorm:"not null;default:now();<-:create"`
 }
 
 func (EventoAuditoria) TableName() string { return "auditoria.eventos" }
