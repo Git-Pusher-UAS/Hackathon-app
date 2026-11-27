@@ -6843,6 +6843,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "inscrita": {
+                    "type": "boolean"
+                },
                 "inscritas": {
                     "type": "integer"
                 },

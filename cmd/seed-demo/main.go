@@ -331,12 +331,12 @@ func seedPortal(db *gorm.DB) error {
 		err := db.Where("curp_normalizada = ?", a.curp).First(&existing).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			row := models.PortalCuenta{
-				ID:          a.id,
-				Alias:       a.alias,
-				Nombre:      a.nombre,
+				ID:              a.id,
+				Alias:           a.alias,
+				Nombre:          a.nombre,
 				CURPNormalizada: a.curp,
-				Telefono:    a.telefono,
-				AceptaAviso: true,
+				Telefono:        a.telefono,
+				AceptaAviso:     true,
 			}
 			if err := db.Create(&row).Error; err != nil {
 				return err

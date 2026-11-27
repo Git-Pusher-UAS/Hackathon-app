@@ -2,6 +2,7 @@ package employer
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -49,14 +50,19 @@ type Service interface {
 }
 
 type service struct {
-	uow     repository.UnitOfWork
-	now     func() time.Time
-	devMode bool
-	logf    func(string, ...any)
+	uow       repository.UnitOfWork
+	now       func() time.Time
+	devMode   bool
+	logf      func(string, ...any)
+	otpSecret []byte
 }
 
-func New(uow repository.UnitOfWork, devMode bool) Service {
-	return &service{uow: uow, now: time.Now, devMode: devMode, logf: log.Printf}
+func New(uow repository.UnitOfWork, devMode bool, otpSecret string) Service {
+	secret := []byte(strings.TrimSpace(otpSecret))
+	if len(secret) == 0 {
+		secret = []byte("dev-otp-secret")
+	}
+	return &service{uow: uow, now: time.Now, devMode: devMode, logf: log.Printf, otpSecret: secret}
 }
 
 func randomDigits(n int) (string, error) {
@@ -71,6 +77,16 @@ func randomDigits(n int) (string, error) {
 	return string(b), nil
 }
 func hashToken(raw string) []byte { s := sha256.Sum256([]byte(raw)); return s[:] }
+func (s *service) otpHash(challengeID uuid.UUID, code string) []byte {
+	m := hmac.New(sha256.New, s.otpSecret)
+	m.Write([]byte(challengeID.String()))
+	m.Write([]byte(":"))
+	m.Write([]byte(strings.TrimSpace(code)))
+	return m.Sum(nil)
+}
+func (s *service) fakeChallenge() *emodels.ChallengeResponse {
+	return &emodels.ChallengeResponse{ChallengeID: uuid.New(), TelefonoMascara: "****0000"}
+}
 func randomToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -113,7 +129,8 @@ func (s *service) createChallenge(ctx context.Context, r repository.Repositories
 	if err != nil {
 		return nil, err
 	}
-	d := &models.EmpleadorDesafioOTP{ID: uuid.New(), EmpleadorID: e.ID, CodigoHash: hashToken(code), VenceEn: s.now().Add(10 * time.Minute), CreadoEn: s.now()}
+	d := &models.EmpleadorDesafioOTP{ID: uuid.New(), EmpleadorID: e.ID, VenceEn: s.now().Add(10 * time.Minute), CreadoEn: s.now()}
+	d.CodigoHash = s.otpHash(d.ID, code)
 	if err := r.EmpleadorDesafios().Create(ctx, d); err != nil {
 		return nil, err
 	}
@@ -133,7 +150,8 @@ func (s *service) Login(ctx context.Context, correo string) (*emodels.ChallengeR
 		e, err := r.Empleadores().GetByCorreo(ctx, correo)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return ErrNotFound
+				out = s.fakeChallenge()
+				return nil
 			}
 			return err
 		}
@@ -152,14 +170,14 @@ func (s *service) Verify(ctx context.Context, challengeID uuid.UUID, code string
 	err := s.uow.DoSystem(ctx, func(ctx context.Context, r repository.Repositories) error {
 		d, err := r.EmpleadorDesafios().GetByID(ctx, challengeID)
 		if err != nil {
-			return ErrNotFound
+			return ErrInvalid
 		}
 		now := s.now()
 		if d.ConsumidoEn != nil || !d.VenceEn.After(now) || d.Intentos >= 5 {
 			return ErrInvalid
 		}
-		sum := sha256.Sum256([]byte(code))
-		if subtle.ConstantTimeCompare(sum[:], d.CodigoHash) != 1 {
+		expected := s.otpHash(d.ID, code)
+		if subtle.ConstantTimeCompare(expected, d.CodigoHash) != 1 {
 			d.Intentos++
 			_ = r.EmpleadorDesafios().Save(ctx, d)
 			return ErrInvalid

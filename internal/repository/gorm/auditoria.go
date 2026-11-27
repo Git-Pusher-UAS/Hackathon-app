@@ -86,6 +86,10 @@ func auditHash(prev []byte, e *models.EventoAuditoria) []byte {
 	}
 	write("|")
 	write(e.RequestID.String())
+	write("|")
+	if len(e.Metadatos) > 0 {
+		h.Write(e.Metadatos)
+	}
 
 	return h.Sum(nil)
 }

@@ -146,12 +146,12 @@ func main() {
 	auditLogHandler := auditloghandler.New(auditlogservice.New(uow))
 	auditAlertHandler := auditalerthandler.New(auditalertservice.New(uow))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
-	portalHandler := portalhandler.New(portalservice.New(uow, cfg.IsDev()))
+	portalHandler := portalhandler.New(portalservice.New(uow, cfg.IsDev(), cfg.OTPSecret))
 	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
 	outreachHandler := outreachhandler.New(outreachservice.New(uow))
 	jobHandler := jobhandler.New(jobservice.New(uow))
 	surveyHandler := surveyhandler.New(surveyservice.New(uow))
-	employerHandler := employerhandler.New(employerservice.New(uow, cfg.IsDev()))
+	employerHandler := employerhandler.New(employerservice.New(uow, cfg.IsDev(), cfg.OTPSecret))
 	bolsaExtra := bolsaextrahandler.New(uow)
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
@@ -196,10 +196,12 @@ func main() {
 	api.Get("/status", statusHandler.Status)
 	api.Get("/institutional-contacts", icHandler.List)
 
+	otpLimit := middleware.NewRateLimiter(10, time.Minute)
+	strictOtpLimit := middleware.NewRateLimiter(20, 10*time.Minute)
 	portal := api.Group("/portal")
-	portal.Post("/auth/login", portalHandler.Login)
-	portal.Post("/auth/verify", portalHandler.Verify)
-	portal.Post("/accounts", portalHandler.CreateAccount)
+	portal.Post("/auth/login", otpLimit.Middleware(func(c *fiber.Ctx) string { return "portal-login:" + c.IP() }), portalHandler.Login)
+	portal.Post("/auth/verify", strictOtpLimit.Middleware(func(c *fiber.Ctx) string { return "portal-verify:" + c.IP() }), portalHandler.Verify)
+	portal.Post("/accounts", otpLimit.Middleware(func(c *fiber.Ctx) string { return "portal-account:" + c.IP() }), portalHandler.CreateAccount)
 	portalProtected := portal.Group("", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF())
 	portalProtected.Get("/me", portalHandler.Me)
 	portalProtected.Patch("/me", portalHandler.PatchMe)
@@ -227,9 +229,9 @@ func main() {
 
 	// Employers domain (aislado)
 	emp := api.Group("/employers")
-	emp.Post("/registrations", employerHandler.Register)
-	emp.Post("/auth/login", employerHandler.Login)
-	emp.Post("/auth/verify", employerHandler.Verify)
+	emp.Post("/registrations", otpLimit.Middleware(func(c *fiber.Ctx) string { return "emp-reg:" + c.IP() }), employerHandler.Register)
+	emp.Post("/auth/login", otpLimit.Middleware(func(c *fiber.Ctx) string { return "emp-login:" + c.IP() }), employerHandler.Login)
+	emp.Post("/auth/verify", strictOtpLimit.Middleware(func(c *fiber.Ctx) string { return "emp-verify:" + c.IP() }), employerHandler.Verify)
 	empProtected := emp.Group("/me", middleware.EmployerAuthMiddleware(uow), middleware.EmployerCSRF())
 	empProtected.Get("/registration", employerHandler.MeRegistration)
 	empProtected.Put("/registration", employerHandler.UpdateRegistration)
@@ -282,15 +284,17 @@ func main() {
 	staff.Post("/:userId/force-logout", usermiddleware.RequireCSRF, userHandler.ForceLogout)
 	staff.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
 	staff.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
-	// Compatibilidad alias /api/users*
-	usersAlias := apiContract.Group("/users", middleware.RequirePermiso("admin"))
+	// Compatibilidad alias /api/users* (evita sombrear /users/me*)
+	usersAlias := apiContract.Group("/users", middleware.RequirePermiso("admin"), func(c *fiber.Ctx) error {
+		if uid := c.Params("userId"); uid == "me" {
+			return c.Next()
+		}
+		return c.Next()
+	})
 	usersAlias.Get("", userHandler.List)
 	usersAlias.Post("", usermiddleware.RequireCSRF, userHandler.Create)
-	usersAlias.Get("/:userId", userHandler.Get)
-	usersAlias.Patch("/:userId", usermiddleware.RequireCSRF, userHandler.Update)
-	usersAlias.Post("/:userId/force-logout", usermiddleware.RequireCSRF, userHandler.ForceLogout)
-	usersAlias.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
-	usersAlias.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
+	// rutas paramétricas: el guard anterior no puede saltar a otra ruta; se mantienen en /users/staff/*
+	// para evitar shadowing de /users/me. Se deja solo alias de colección.
 	csrf := usermiddleware.RequireCSRF
 	apiContract.Post("/case-access-requests", csrf, carmw.Require(carmw.PermRequest), carHandler.Create)
 	apiContract.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)

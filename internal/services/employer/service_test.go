@@ -30,7 +30,7 @@ type stubRepos struct {
 	sesiones    *stubSesionRepo
 }
 
-func (r *stubRepos) Empleadores() repository.EmpleadorRepository           { return r.empleadores }
+func (r *stubRepos) Empleadores() repository.EmpleadorRepository              { return r.empleadores }
 func (r *stubRepos) EmpleadorDesafios() repository.EmpleadorDesafioRepository { return r.desafios }
 func (r *stubRepos) EmpleadorSesiones() repository.EmpleadorSesionRepository  { return r.sesiones }
 
@@ -92,7 +92,7 @@ func newEmployerTestFixture(devMode bool) (*service, string, *[]string) {
 		sesiones:    &stubSesionRepo{},
 	}
 	logs := []string{}
-	svc := New(&stubUOW{repos: repos}, devMode).(*service)
+	svc := New(&stubUOW{repos: repos}, devMode, "test-otp-secret").(*service)
 	svc.now = func() time.Time { return time.Date(2026, 11, 27, 10, 0, 0, 0, time.UTC) }
 	svc.logf = func(format string, args ...any) {
 		logs = append(logs, fmt.Sprintf(format, args...))

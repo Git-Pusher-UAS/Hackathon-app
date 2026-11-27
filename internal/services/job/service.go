@@ -84,6 +84,9 @@ func (s *service) Get(ctx context.Context, id uuid.UUID, portalUsuariaID *uuid.U
 	if err != nil {
 		return nil, err
 	}
+	if v.Estado != models.VacantePublicada {
+		return nil, ErrNotFound
+	}
 	counts, err := r.Vacantes().CountPostulaciones(ctx, []uuid.UUID{id})
 	if err != nil {
 		return nil, err

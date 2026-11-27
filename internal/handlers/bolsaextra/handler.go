@@ -28,7 +28,11 @@ func New(uow repository.UnitOfWork) *Handler { return &Handler{uow: uow, admin: 
 // @Success 200 {array} models.Vacante
 // @Router /admin/jobs [get]
 func (h *Handler) AdminListJobs(c *fiber.Ctx) error {
-	res, err := h.admin.ListJobs(c.Context())
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
+	res, err := h.admin.ListJobs(c.Context(), actor)
 	if err != nil {
 		return err
 	}
@@ -44,11 +48,15 @@ func (h *Handler) AdminListJobs(c *fiber.Ctx) error {
 // @Success 201 {object} models.Vacante
 // @Router /admin/jobs [post]
 func (h *Handler) AdminCreateJob(c *fiber.Ctx) error {
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
 	var in map[string]any
 	if err := httpx.DecodeJSON(c, &in); err != nil {
 		return err
 	}
-	res, err := h.admin.CreateJob(c.Context(), in)
+	res, err := h.admin.CreateJob(c.Context(), actor, in)
 	if err != nil {
 		return err
 	}
@@ -63,13 +71,17 @@ func (h *Handler) AdminCreateJob(c *fiber.Ctx) error {
 // @Success 200 {object} models.Vacante
 // @Router /admin/jobs/{id} [get]
 func (h *Handler) AdminGetJob(c *fiber.Ctx) error {
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return httpx.E(422, "VALIDATION_ERROR", "id invalido")
 	}
-	res, err := h.admin.GetJob(c.Context(), id)
+	res, err := h.admin.GetJob(c.Context(), actor, id)
 	if err != nil {
-		return httpx.E(404, "RESOURCE_NOT_FOUND", "no encontrado")
+		return err
 	}
 	return c.JSON(res)
 }
@@ -84,6 +96,10 @@ func (h *Handler) AdminGetJob(c *fiber.Ctx) error {
 // @Success 200 {object} models.Vacante
 // @Router /admin/jobs/{id}/review [post]
 func (h *Handler) AdminReviewJob(c *fiber.Ctx) error {
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return httpx.E(422, "VALIDATION_ERROR", "id invalido")
@@ -92,7 +108,7 @@ func (h *Handler) AdminReviewJob(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &in); err != nil {
 		return err
 	}
-	res, err := h.admin.ReviewJob(c.Context(), id, in["decision"], in["motivo"])
+	res, err := h.admin.ReviewJob(c.Context(), actor, id, in["decision"], in["motivo"])
 	if err != nil {
 		return err
 	}
@@ -106,7 +122,11 @@ func (h *Handler) AdminReviewJob(c *fiber.Ctx) error {
 // @Success 200 {array} models.Empleador
 // @Router /admin/employers [get]
 func (h *Handler) AdminListEmployers(c *fiber.Ctx) error {
-	res, err := h.admin.ListEmployers(c.Context())
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
+	res, err := h.admin.ListEmployers(c.Context(), actor)
 	if err != nil {
 		return err
 	}
@@ -123,6 +143,10 @@ func (h *Handler) AdminListEmployers(c *fiber.Ctx) error {
 // @Success 200 {object} models.Empleador
 // @Router /admin/employers/{id}/review [post]
 func (h *Handler) AdminReviewEmployer(c *fiber.Ctx) error {
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return httpx.E(422, "VALIDATION_ERROR", "id invalido")
@@ -131,7 +155,7 @@ func (h *Handler) AdminReviewEmployer(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &in); err != nil {
 		return err
 	}
-	res, err := h.admin.ReviewEmployer(c.Context(), id, in["decision"], in["motivo"])
+	res, err := h.admin.ReviewEmployer(c.Context(), actor, id, in["decision"], in["motivo"])
 	if err != nil {
 		return err
 	}
@@ -145,7 +169,11 @@ func (h *Handler) AdminReviewEmployer(c *fiber.Ctx) error {
 // @Success 200 {array} models.Postulacion
 // @Router /admin/hires [get]
 func (h *Handler) AdminHires(c *fiber.Ctx) error {
-	res, err := h.admin.ListHires(c.Context())
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
+	}
+	res, err := h.admin.ListHires(c.Context(), actor)
 	if err != nil {
 		return err
 	}
