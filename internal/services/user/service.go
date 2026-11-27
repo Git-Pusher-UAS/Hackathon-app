@@ -124,13 +124,18 @@ func (s *service) ListMySessions(ctx context.Context, actorID, currentSessionID 
 
 	items := make([]usermodels.SessionSummary, 0, len(repoPage.Items))
 	for _, sesion := range repoPage.Items {
+		label := neutralDeviceLabel(sesion.Dispositivo)
+		current := sesion.ID == currentSessionID
 		items = append(items, usermodels.SessionSummary{
 			ID:             sesion.ID,
 			CreatedAt:      sesion.CreadoEn.UTC(),
 			LastActivityAt: sesion.UltimaActividad.UTC(),
 			ExpiresAt:      sesion.VenceAbsoluto.UTC(),
-			DeviceLabel:    neutralDeviceLabel(sesion.Dispositivo),
-			Current:        sesion.ID == currentSessionID,
+			DeviceLabel:    label,
+			Current:        current,
+			Dispositivo:    label,
+			UltimoUso:      sesion.UltimaActividad.UTC(),
+			Actual:         current,
 		})
 	}
 

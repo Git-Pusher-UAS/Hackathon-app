@@ -331,11 +331,17 @@ definitions:
     properties:
       departamentoId:
         type: string
+      linkRequestId:
+        description: alias compat
+        type: string
       motivo:
         type: string
       personalId:
         type: string
       solicitudId:
+        type: string
+      staffId:
+        description: alias compat
         type: string
     type: object
   backend-hackathon_internal_models_casefile.ConsentInput:
@@ -381,6 +387,9 @@ definitions:
     properties:
       campo:
         description: nombre|curp|fechaNacimiento|telefono|domicilio
+        type: string
+      field:
+        description: alias compat
         type: string
       motivo:
         type: string
@@ -434,7 +443,17 @@ definitions:
         $ref: '#/definitions/backend-hackathon_internal_models.EstadoExpediente'
       motivo:
         type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models.EstadoExpediente'
+        description: alias compat
       tipoCasoId:
+        type: string
+      version:
+        description: compat If-Match
+        type: integer
+      versionTag:
+        description: compat If-Match
         type: string
     type: object
   backend-hackathon_internal_models_catalog.Departamento:
@@ -807,6 +826,10 @@ definitions:
         type: string
       motivo:
         type: string
+      version:
+        type: integer
+      versionTag:
+        type: string
     type: object
   backend-hackathon_internal_models_referral.View:
     properties:
@@ -969,17 +992,23 @@ definitions:
     type: object
   backend-hackathon_internal_models_user.SessionSummary:
     properties:
+      actual:
+        type: boolean
       createdAt:
         type: string
       current:
         type: boolean
       deviceLabel:
         type: string
+      dispositivo:
+        type: string
       expiresAt:
         type: string
       id:
         type: string
       lastActivityAt:
+        type: string
+      ultimoUso:
         type: string
     type: object
   backend-hackathon_internal_models_user.StaffSummary:
@@ -3303,6 +3332,35 @@ paths:
           schema:
             $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
       summary: Login portal
+      tags:
+      - portal
+  /portal/auth/logout:
+    post:
+      description: Revoca la sesión portal y limpia cookies.
+      parameters:
+      - description: Token CSRF portal
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Sin contenido
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Logout portal
       tags:
       - portal
   /portal/auth/verify:

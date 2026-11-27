@@ -198,6 +198,7 @@ func main() {
 	portalProtected := portal.Group("", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF())
 	portalProtected.Get("/me", portalHandler.Me)
 	portalProtected.Patch("/me", portalHandler.PatchMe)
+	portalProtected.Post("/auth/logout", portalHandler.Logout)
 	helpAlerts := api.Group("/help-alerts", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF())
 	helpAlerts.Post("", portalHandler.CreateAlert)
 	helpAlerts.Post("/:id/trusted-contacts", portalHandler.NotifyTrustedContacts)

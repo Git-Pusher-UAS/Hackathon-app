@@ -57,6 +57,8 @@ type ExpedienteFilter struct {
 	TipoCasoID     *uuid.UUID // del episodio activo
 	DepartamentoID *uuid.UUID
 	Alias          string
+	From           *time.Time
+	To             *time.Time
 }
 
 // A23 · expedientes.expedientes

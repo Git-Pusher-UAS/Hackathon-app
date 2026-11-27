@@ -3389,6 +3389,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/portal/auth/logout": {
+            "post": {
+                "description": "Revoca la sesión portal y limpia cookies.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "portal"
+                ],
+                "summary": "Logout portal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF portal",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Sin contenido"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/portal/auth/verify": {
             "post": {
                 "description": "Verifica el desafío OTP y establece cookie de sesión portal.",
@@ -5341,6 +5385,10 @@ const docTemplate = `{
                 "departamentoId": {
                     "type": "string"
                 },
+                "linkRequestId": {
+                    "description": "alias compat",
+                    "type": "string"
+                },
                 "motivo": {
                     "type": "string"
                 },
@@ -5348,6 +5396,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "solicitudId": {
+                    "type": "string"
+                },
+                "staffId": {
+                    "description": "alias compat",
                     "type": "string"
                 }
             }
@@ -5416,6 +5468,10 @@ const docTemplate = `{
             "properties": {
                 "campo": {
                     "description": "nombre|curp|fechaNacimiento|telefono|domicilio",
+                    "type": "string"
+                },
+                "field": {
+                    "description": "alias compat",
                     "type": "string"
                 },
                 "motivo": {
@@ -5499,7 +5555,23 @@ const docTemplate = `{
                 "motivo": {
                     "type": "string"
                 },
+                "status": {
+                    "description": "alias compat",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.EstadoExpediente"
+                        }
+                    ]
+                },
                 "tipoCasoId": {
+                    "type": "string"
+                },
+                "version": {
+                    "description": "compat If-Match",
+                    "type": "integer"
+                },
+                "versionTag": {
+                    "description": "compat If-Match",
                     "type": "string"
                 }
             }
@@ -6074,6 +6146,12 @@ const docTemplate = `{
                 },
                 "motivo": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "versionTag": {
+                    "type": "string"
                 }
             }
         },
@@ -6325,6 +6403,9 @@ const docTemplate = `{
         "backend-hackathon_internal_models_user.SessionSummary": {
             "type": "object",
             "properties": {
+                "actual": {
+                    "type": "boolean"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -6334,6 +6415,9 @@ const docTemplate = `{
                 "deviceLabel": {
                     "type": "string"
                 },
+                "dispositivo": {
+                    "type": "string"
+                },
                 "expiresAt": {
                     "type": "string"
                 },
@@ -6341,6 +6425,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "lastActivityAt": {
+                    "type": "string"
+                },
+                "ultimoUso": {
                     "type": "string"
                 }
             }

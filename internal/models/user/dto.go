@@ -44,6 +44,9 @@ type SessionSummary struct {
 	ExpiresAt      time.Time `json:"expiresAt"`
 	DeviceLabel    string    `json:"deviceLabel"`
 	Current        bool      `json:"current"`
+	Dispositivo    string    `json:"dispositivo"`
+	UltimoUso      time.Time `json:"ultimoUso"`
+	Actual         bool      `json:"actual"`
 }
 
 // Page es el sobre paginado del contrato.

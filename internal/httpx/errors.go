@@ -54,19 +54,30 @@ func Map(err error) *Error {
 func Write(c *fiber.Ctx, err error) error {
 	mapped := Map(err)
 	c.Set(fiber.HeaderCacheControl, "no-store")
+	requestID := RequestID(c)
 	detail := fiber.Map{
 		"code":      mapped.Code,
 		"message":   mapped.Message,
-		"requestId": RequestID(c),
+		"requestId": requestID,
 	}
 	if len(mapped.Fields) > 0 {
 		detail["fields"] = mapped.Fields
 	}
-	body := fiber.Map{"error": detail}
+	body := fiber.Map{
+		"error":          detail,
+		"code":           mapped.Code,
+		"correlation_id": requestID,
+	}
 	for k, v := range mapped.Extra {
-		if k != "error" {
-			body[k] = v
+		if k == "error" || k == "code" || k == "correlation_id" {
+			continue
 		}
+		if k == "retryAfter" || k == "retry_after" {
+			if s, ok := v.(string); ok && s != "" {
+				c.Set("Retry-After", s)
+			}
+		}
+		body[k] = v
 	}
 	return c.Status(mapped.Status).JSON(body)
 }
