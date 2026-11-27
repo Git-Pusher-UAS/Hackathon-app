@@ -700,6 +700,77 @@ components:
             type: string
           type: array
       type: object
+    CourseCreateRequest:
+      properties:
+        cupo:
+          example: 25
+          type: integer
+        descripcion:
+          type: string
+        fecha:
+          example: "2026-12-12"
+          type: string
+        hora:
+          example: "17:00"
+          type: string
+        lugar:
+          type: string
+        tipo:
+          allOf:
+            - $ref: '#/components/schemas/TipoCurso'
+          enum:
+            - curso
+            - charla
+            - conferencia
+        titulo:
+          type: string
+      type: object
+    CourseCurso:
+      properties:
+        cupo:
+          example: 25
+          type: integer
+        descripcion:
+          type: string
+        fecha:
+          description: AAAA-MM-DD
+          example: "2026-12-12"
+          type: string
+        hora:
+          description: HH:MM
+          example: "17:00"
+          type: string
+        id:
+          type: string
+        inscrita:
+          description: Inscrita solo se llena con sesión de usuaria.
+          type: boolean
+        inscritas:
+          example: 18
+          type: integer
+        lugar:
+          example: Sala 2, Los Mochis
+          type: string
+        tipo:
+          allOf:
+            - $ref: '#/components/schemas/TipoCurso'
+          enum:
+            - curso
+            - charla
+            - conferencia
+        titulo:
+          example: Finanzas para tu negocio
+          type: string
+      type: object
+    CoursePage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CourseCurso'
+          type: array
+        nextCursor:
+          type: string
+      type: object
     DecisionConsentimiento:
       enum:
         - aceptado
@@ -1018,6 +1089,16 @@ components:
       x-enum-varnames:
         - CanalizacionInternaTipo
         - CanalizacionExternaTipo
+    TipoCurso:
+      enum:
+        - curso
+        - charla
+        - conferencia
+      type: string
+      x-enum-varnames:
+        - CursoCurso
+        - CursoCharla
+        - CursoConferencia
     TipoSector:
       enum:
         - sector
@@ -2769,6 +2850,127 @@ paths:
       summary: Catálogos
       tags:
         - catalogs
+  /courses:
+    get:
+      description: Eventos de Capacitación, de la fecha más próxima a la más lejana, con cupo e inscritas. Requiere courses.manage.
+      parameters:
+        - description: curso | charla | conferencia
+          in: query
+          name: type
+          schema:
+            type: string
+        - description: Fecha desde (AAAA-MM-DD, inclusive)
+          in: query
+          name: from
+          schema:
+            type: string
+        - description: Fecha hasta (AAAA-MM-DD, inclusive)
+          in: query
+          name: to
+          schema:
+            type: string
+        - description: 1..100 (20 por defecto)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor opaco
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoursePage'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Listar cursos
+      tags:
+        - courses
+    post:
+      description: Se publica en el foro de inmediato. La fecha no puede ser pasada (hora de Los Mochis) y el cupo debe ser de 1 o más. Requiere courses.manage.
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+        - description: UUID de la operación
+          in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseCreateRequest'
+        description: Datos del curso
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseCurso'
+          description: Created
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: validation_failed con fields (fecha_pasada, minimo_1...)
+      security:
+        - BearerAuth: []
+      summary: Crear curso
+      tags:
+        - courses
+  /courses/{id}:
+    get:
+      description: Requiere courses.manage.
+      parameters:
+        - description: UUID del curso
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseCurso'
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+      security:
+        - BearerAuth: []
+      summary: Obtener curso
+      tags:
+        - courses
   /health:
     get:
       description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.
