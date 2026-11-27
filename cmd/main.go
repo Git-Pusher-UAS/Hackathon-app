@@ -13,6 +13,7 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+	analyticshandler "backend-hackathon/internal/handlers/analytics"
 	auditloghandler "backend-hackathon/internal/handlers/auditlog"
 	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
@@ -24,6 +25,7 @@ import (
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	analyticsmw "backend-hackathon/internal/middleware/analytics"
 	auditmw "backend-hackathon/internal/middleware/auditlog"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
@@ -32,6 +34,7 @@ import (
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
+	analyticsservice "backend-hackathon/internal/services/analytics"
 	auditlogservice "backend-hackathon/internal/services/auditlog"
 	carservice "backend-hackathon/internal/services/caseaccessrequest"
 	caseservice "backend-hackathon/internal/services/casefile"
@@ -116,6 +119,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
 	auditlogHandler := auditloghandler.New(auditlogservice.New(uow, cfg.JWT.Secret))
 	referralHandler := referralhandler.New(referralservice.New(uow, keyring, cfg.JWT.Secret))
 	noteHandler := notehandler.New(noteservice.New(caseService))
@@ -220,6 +224,7 @@ func main() {
 	priv.Get("/referrals", refmw.Require(refmw.PermRead), referralHandler.List)
 	priv.Post("/referrals/:referralId/transitions", refmw.Require(refmw.PermTransition), referralHandler.Transition)
 	priv.Get("/audit-logs", auditmw.Require(), auditlogHandler.Logs)
+	priv.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")
