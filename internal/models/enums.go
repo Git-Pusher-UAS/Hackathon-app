@@ -38,6 +38,8 @@ const (
 	FaseAnonimo      FaseContexto = "anonimo"
 	FaseTOTP         FaseContexto = "totp"
 	FaseEnrolamiento FaseContexto = "enrolamiento"
+	// FaseActivacion es el código de un solo uso para elegir la contraseña.
+	FaseActivacion FaseContexto = "activacion"
 )
 
 type EstadoExpediente string
