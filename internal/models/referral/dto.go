@@ -50,6 +50,20 @@ type Page struct {
 	NextCursor *string `json:"nextCursor"`
 }
 
+// Acciones de §8.3.
+const (
+	AccionAceptar   = "aceptar"   // destino: pendiente -> aceptada (crea la asignación del área destino)
+	AccionRechazar  = "rechazar"  // destino: pendiente -> rechazada (motivo obligatorio)
+	AccionCompletar = "completar" // destino: aceptada -> completada; externa: origen, pendiente -> completada
+	AccionCancelar  = "cancelar"  // origen: pendiente -> cancelada (motivo obligatorio)
+)
+
+// TransitionRequest cambia el estado de una canalización.
+type TransitionRequest struct {
+	Accion string  `json:"accion" enums:"aceptar,rechazar,completar,cancelar"`
+	Motivo *string `json:"motivo,omitempty"` // 10 a 500; obligatorio en rechazar y cancelar
+}
+
 // ListQuery son los filtros de la bandeja.
 type ListQuery struct {
 	Direction string
