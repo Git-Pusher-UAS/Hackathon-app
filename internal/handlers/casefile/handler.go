@@ -126,17 +126,19 @@ func mapError(err error) error {
 // DuplicateCheck verifica si ya existe un expediente asociado a un CURP.
 //
 // @Summary      Verificar duplicado por CURP
-// @Description  Consulta si ya existe un expediente registrado con el CURP proporcionado.
+// @Description  Consulta si ya existe una persona con ese CURP. Si existe, devuelve además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests. El CURP viaja solo en el cuerpo, nunca en la URL.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        request  body      casemodels.DuplicateCheckRequest   true  "CURP a verificar"
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
 // @Success      200      {object}  casemodels.DuplicateCheckResponse
 // @Failure      400      {object}  httpx.ErrorResponse
 // @Failure      401      {object}  httpx.ErrorResponse
 // @Failure      422      {object}  httpx.ErrorResponse
 // @Failure      500      {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/duplicate-check [post]
+// @Router       /case-files/duplicate-checks [post]
 func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -158,11 +160,13 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 // @Summary      Crear expediente
 // @Description  Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        X-Operation-Id  header    string                 true  "UUID de operación idempotente"
 // @Param        request         body      casemodels.CreateRequest  true  "Datos del expediente"
-// @Success      201             {object}  object
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      201             {object}  casemodels.Summary
 // @Header       201             {string}  ETag                    "Versión actual del recurso"
 // @Failure      400             {object}  httpx.ErrorResponse
 // @Failure      401             {object}  httpx.ErrorResponse
@@ -170,7 +174,7 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 // @Failure      422             {object}  httpx.ErrorResponse
 // @Failure      500             {object}  httpx.ErrorResponse
 // @Failure      503             {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files [post]
+// @Router       /case-files [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -197,16 +201,17 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Summary      Listar expedientes
 // @Description  Obtiene una página de expedientes filtrable por estado y alias.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Produce      json
 // @Param        limit   query     int     false  "Tamaño de página (1-100, default 20)"
 // @Param        cursor  query     string  false  "Cursor de paginación"
 // @Param        estado  query     string  false  "Estado del expediente"
 // @Param        alias   query     string  false  "Alias de búsqueda"
-// @Success      200     {object}  object
+// @Success      200     {object}  casemodels.Page[casemodels.Summary]
 // @Failure      401     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files [get]
+// @Router       /case-files [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -229,15 +234,16 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Summary      Obtener expediente
 // @Description  Devuelve los datos de un expediente por recordId y su cabecera ETag.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Produce      json
 // @Param        recordId  path      string  true  "UUID del expediente"
-// @Success      200       {object}  object
+// @Success      200       {object}  casemodels.Summary
 // @Header       200       {string}  ETag                 "Versión actual del recurso"
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId} [get]
+// @Router       /case-files/{recordId} [get]
 func (h *Handler) Get(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -260,12 +266,14 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 // @Summary      Actualizar expediente
 // @Description  Actualiza un expediente requiriendo la cabecera If-Match con la versión esperada.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId  path      string                 true  "UUID del expediente"
 // @Param        If-Match  header    string                 true  "ETag / versión actual del recurso"
 // @Param        request   body      casemodels.UpdateRequest  true  "Campos a actualizar"
-// @Success      200       {object}  object
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      200       {object}  casemodels.Summary
 // @Header       200       {string}  ETag                      "Nueva versión del recurso"
 // @Failure      400       {object}  httpx.ErrorResponse
 // @Failure      401       {object}  httpx.ErrorResponse
@@ -274,7 +282,7 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 // @Failure      412       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId} [patch]
+// @Router       /case-files/{recordId} [patch]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -305,6 +313,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Summary      Línea de tiempo del expediente
 // @Description  Lista eventos del expediente filtrables por tipos, rango de fechas RFC3339 y paginación.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Produce      json
 // @Param        recordId  path      string  true   "UUID del expediente"
 // @Param        limit     query     int     false  "Tamaño de página (1-100, default 20)"
@@ -312,12 +321,12 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Param        tipos     query     string  false  "Tipos de evento separados por coma"
 // @Param        desde     query     string  false  "Fecha inicial en formato RFC3339"
 // @Param        hasta     query     string  false  "Fecha final en formato RFC3339"
-// @Success      200       {object}  object
+// @Success      200       {object}  casemodels.Page[casemodels.TimelineItem]
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/timeline [get]
+// @Router       /case-files/{recordId}/timeline [get]
 func (h *Handler) Timeline(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -353,11 +362,13 @@ func (h *Handler) Timeline(c *fiber.Ctx) error {
 // @Summary      Revelar campo del expediente
 // @Description  Solicita la divulgación o consulta de un campo específico del expediente.
 // @Tags         case-files
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId  path      string                    true  "UUID del expediente"
 // @Param        request   body      casemodels.DisclosureRequest  true  "Campo a revelar"
-// @Success      200       {object}  object
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      200       {object}  casemodels.DisclosureResponse
 // @Failure      400       {object}  httpx.ErrorResponse
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
@@ -365,7 +376,7 @@ func (h *Handler) Timeline(c *fiber.Ctx) error {
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
 // @Failure      503       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/disclose [post]
+// @Router       /case-files/{recordId}/disclosures [post]
 func (h *Handler) Disclose(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -391,18 +402,20 @@ func (h *Handler) Disclose(c *fiber.Ctx) error {
 // @Summary      Asignar personal al expediente
 // @Description  Crea una asignación activa sobre el expediente indicado.
 // @Tags         case-files-assignments
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId  path      string                 true  "UUID del expediente"
 // @Param        request   body      casemodels.AssignRequest  true  "Datos de asignación"
-// @Success      201       {object}  object
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      201       {object}  casemodels.AssignmentView
 // @Failure      400       {object}  httpx.ErrorResponse
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      409       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/assignments [post]
+// @Router       /case-files/{recordId}/assignments [post]
 func (h *Handler) Assign(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -428,16 +441,18 @@ func (h *Handler) Assign(c *fiber.Ctx) error {
 // @Summary      Revocar asignación
 // @Description  Revoca una asignación específica dentro de un expediente.
 // @Tags         case-files-assignments
+// @Security     BearerAuth
 // @Produce      json
 // @Param        recordId      path      string  true  "UUID del expediente"
 // @Param        assignmentId  path      string  true  "UUID de la asignación"
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
 // @Success      204           {string}  string  ""
 // @Failure      401           {object}  httpx.ErrorResponse
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/assignments/{assignmentId} [delete]
+// @Router       /case-files/{recordId}/assignments/{assignmentId}/revocations [post]
 func (h *Handler) RevokeAssignment(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -462,18 +477,19 @@ func (h *Handler) RevokeAssignment(c *fiber.Ctx) error {
 // @Summary      Listar notas por departamento
 // @Description  Obtiene notas paginadas de un expediente para un departamento dado.
 // @Tags         case-files-notes
+// @Security     BearerAuth
 // @Produce      json
 // @Param        recordId      path      string  true   "UUID del expediente"
 // @Param        departmentId  path      string  true   "UUID del departamento"
 // @Param        limit         query     int     false  "Tamaño de página (1-100, default 20)"
 // @Param        cursor        query     string  false  "Cursor de paginación"
 // @Param        episodeId     query     string  false  "UUID del episodio (opcional)"
-// @Success      200           {object}  object
+// @Success      200           {object}  casemodels.Page[casemodels.NoteView]
 // @Failure      401           {object}  httpx.ErrorResponse
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/departments/{departmentId}/notes [get]
+// @Router       /case-files/{recordId}/departments/{departmentId}/notes [get]
 func (h *Handler) ListNotes(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -511,20 +527,22 @@ func (h *Handler) ListNotes(c *fiber.Ctx) error {
 // @Summary      Crear nota
 // @Description  Registra una nota en un expediente y departamento usando X-Operation-Id.
 // @Tags         case-files-notes
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId      path      string                     true  "UUID del expediente"
 // @Param        departmentId  path      string                     true  "UUID del departamento"
 // @Param        X-Operation-Id  header    string                     true  "UUID de operación idempotente"
 // @Param        request       body      casemodels.NoteCreateRequest  true  "Contenido de la nota"
-// @Success      201           {object}  object
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      201           {object}  casemodels.NoteView
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/departments/{departmentId}/notes [post]
+// @Router       /case-files/{recordId}/departments/{departmentId}/notes [post]
 func (h *Handler) CreateNote(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -558,14 +576,15 @@ func (h *Handler) CreateNote(c *fiber.Ctx) error {
 // @Summary      Listar consentimientos
 // @Description  Devuelve los consentimientos asociados a un expediente bajo la clave items.
 // @Tags         case-files-consents
+// @Security     BearerAuth
 // @Produce      json
 // @Param        recordId  path      string          true  "UUID del expediente"
-// @Success      200       {object}  map[string]any
+// @Success      200       {object}  object{items=[]casemodels.ConsentView}
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
 // @Failure      500       {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/consents [get]
+// @Router       /case-files/{recordId}/consents [get]
 func (h *Handler) ListConsents(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -587,19 +606,21 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 // @Summary      Registrar consentimiento
 // @Description  Guarda un consentimiento con cabecera X-Operation-Id opcional.
 // @Tags         case-files-consents
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId      path      string                  true   "UUID del expediente"
 // @Param        X-Operation-Id  header    string                  false  "UUID de operación idempotente (opcional)"
 // @Param        request       body      casemodels.ConsentInput true   "Datos del consentimiento"
-// @Success      201           {object}  map[string]any
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      201           {object}  object{items=[]casemodels.ConsentView}
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/consents [post]
+// @Router       /case-files/{recordId}/consents [post]
 func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -627,21 +648,23 @@ func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 // RevokeConsent revoca un consentimiento específico de un expediente.
 //
 // @Summary      Revocar consentimiento
-// @Description  Registra la revocación de un consentimiento identificado por consentId.
+// @Description  Revoca finalidades opcionales de una decisión de consentimiento. Devuelve el estado vigente de todas las finalidades.
 // @Tags         case-files-consents
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId   path      string                            true  "UUID del expediente"
 // @Param        consentId  path      string                            true  "UUID del consentimiento"
 // @Param        request    body      casemodels.RevokeConsentRequest   true  "Motivo o datos de revocación"
-// @Success      201        {object}  map[string]any
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      201        {object}  object{items=[]casemodels.ConsentView}
 // @Failure      400        {object}  httpx.ErrorResponse
 // @Failure      401        {object}  httpx.ErrorResponse
 // @Failure      404        {object}  httpx.ErrorResponse
 // @Failure      409        {object}  httpx.ErrorResponse
 // @Failure      422        {object}  httpx.ErrorResponse
 // @Failure      500        {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/consents/{consentId}/revoke [post]
+// @Router       /case-files/{recordId}/consents/{consentId}/revocations [post]
 func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -671,12 +694,14 @@ func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 // @Summary      Crear canalización
 // @Description  Registra una canalización para el expediente requiriendo X-Operation-Id y devuelve ETag.
 // @Tags         case-files-referrals
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId      path      string                        true  "UUID del expediente"
 // @Param        X-Operation-Id  header    string                        true  "UUID de operación idempotente"
 // @Param        request       body      casemodels.ReferralCreateRequest  true  "Datos de la canalización"
-// @Success      201           {object}  object
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
+// @Success      201           {object}  casemodels.ReferralView
 // @Header       201           {string}  ETag                          "Versión actual del recurso"
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
@@ -684,7 +709,7 @@ func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /api/v1/case-files/{recordId}/referrals [post]
+// @Router       /case-files/{recordId}/referrals [post]
 func (h *Handler) CreateReferral(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {

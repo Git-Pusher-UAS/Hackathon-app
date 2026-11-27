@@ -40,7 +40,7 @@ var version = "dev"
 // @version         1.0
 // @description     Documentación de endpoints de la API.
 // @host            localhost:3000
-// @BasePath        /api
+// @BasePath        /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in              header
 // @name            Authorization
@@ -132,6 +132,7 @@ func main() {
 	// Base del contrato: /api/v1.
 	v1 := app.Group("/api/v1")
 	v1.Get("/health", handlers.Healthcheck)
+	v1.Get("/status", statusHandler.Status)
 
 	// Acceso del personal, público y sin CSRF. /api/auth/* queda como alias
 	// temporal de /api/v1/auth/*. Se registran antes de los grupos protegidos,
