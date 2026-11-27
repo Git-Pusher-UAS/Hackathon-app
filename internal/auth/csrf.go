@@ -11,7 +11,7 @@ import (
 
 // CSRFResult es la respuesta de GET /auth/csrf-token.
 type CSRFResult struct {
-	CSRF string `json:"csrf_token"`
+	CSRF string `json:"csrfToken"`
 }
 
 // RotarCSRF genera un token CSRF nuevo para la sesión y guarda solo su hash.

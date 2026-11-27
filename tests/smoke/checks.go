@@ -41,9 +41,9 @@ func TargetFromEnv() Target {
 	return Target{
 		BaseURL:          env("SMOKE_BASE_URL", "http://localhost:"+env("PORT", "3000")),
 		HealthPath:       env("SMOKE_HEALTH_PATH", "/health"),
-		ProtectedRoutes:  list("SMOKE_PROTECTED_ROUTES", "/api/auth/me,/api/v1/users/me"),
-		ValidationRoutes: list("SMOKE_VALIDATION_ROUTES", "/api/auth/login"),
-		PaginatedRoutes:  list("SMOKE_PAGINATED_ROUTES", ""),
+		ProtectedRoutes:  list("SMOKE_PROTECTED_ROUTES", "/api/v1/auth/me,/api/v1/users/me"),
+		ValidationRoutes: list("SMOKE_VALIDATION_ROUTES", "/api/v1/auth/login"),
+		PaginatedRoutes:  list("SMOKE_PAGINATED_ROUTES", "/api/v1/case-files"),
 		Token:            os.Getenv("SMOKE_TOKEN"),
 		MaxLatency:       500 * time.Millisecond,
 		Client:           &http.Client{Timeout: 5 * time.Second},
@@ -266,7 +266,7 @@ func CheckPagination(t Target) error {
 	}
 	var errs []string
 	for _, path := range t.PaginatedRoutes {
-		full := path + sep(path) + "page=1&limit=2"
+		full := path + sep(path) + "limit=2"
 		res, err := t.do(http.MethodGet, full, t.Token, nil)
 		if err != nil {
 			errs = append(errs, err.Error())
@@ -276,21 +276,20 @@ func CheckPagination(t Target) error {
 			errs = append(errs, fmt.Sprintf("GET %s: se esperaba 200, se recibió %d", full, res.status))
 			continue
 		}
+		// Contrato §1.6: {"items": [...], "nextCursor": "..." | null}.
 		var payload struct {
-			Data       []json.RawMessage `json:"data"`
-			Pagination *struct {
-				Page  *int `json:"page"`
-				Limit *int `json:"limit"`
-				Total *int `json:"total"`
-			} `json:"pagination"`
+			Items      []json.RawMessage `json:"items"`
+			NextCursor *json.RawMessage  `json:"nextCursor"`
 		}
-		if err := json.Unmarshal(res.body, &payload); err != nil || payload.Data == nil || payload.Pagination == nil ||
-			payload.Pagination.Page == nil || payload.Pagination.Limit == nil || payload.Pagination.Total == nil {
-			errs = append(errs, fmt.Sprintf("GET %s: se esperaba {data: [], pagination: {page, limit, total}}, se recibió %q", full, truncate(res.body)))
+		var keys map[string]json.RawMessage
+		_ = json.Unmarshal(res.body, &keys)
+		_, hasCursor := keys["nextCursor"]
+		if err := json.Unmarshal(res.body, &payload); err != nil || payload.Items == nil || !hasCursor {
+			errs = append(errs, fmt.Sprintf("GET %s: se esperaba {items: [], nextCursor}, se recibió %q", full, truncate(res.body)))
 			continue
 		}
-		if len(payload.Data) > 2 {
-			errs = append(errs, fmt.Sprintf("GET %s: limit=2 pero devolvió %d elementos", full, len(payload.Data)))
+		if len(payload.Items) > 2 {
+			errs = append(errs, fmt.Sprintf("GET %s: limit=2 pero devolvió %d elementos", full, len(payload.Items)))
 		}
 	}
 	return joinErrs(errs)

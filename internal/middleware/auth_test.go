@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"backend-hackathon/internal/httpx"
 	"context"
 	"crypto/sha256"
 	"net/http/httptest"
@@ -28,7 +29,7 @@ type stubRepos struct {
 	sesiones *stubSesionRepo
 }
 
-func (r *stubRepos) Personal() repository.PersonalRepository     { return r.personal }
+func (r *stubRepos) Personal() repository.PersonalRepository       { return r.personal }
 func (r *stubRepos) Sesiones() repository.SesionPersonalRepository { return r.sesiones }
 
 type stubPersonalRepo struct {
@@ -91,7 +92,7 @@ func TestAuthMiddlewareIdleAndSessionChecks(t *testing.T) {
 			},
 			sesiones: &stubSesionRepo{s: sesion},
 		}
-		app := fiber.New()
+		app := fiber.New(fiber.Config{ErrorHandler: httpx.Write})
 		app.Use(AuthMiddleware(secret, &stubUOW{repos: repos}))
 		app.Get("/protected", func(c *fiber.Ctx) error {
 			return c.SendStatus(fiber.StatusOK)

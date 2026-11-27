@@ -57,24 +57,26 @@ type LoginInput struct {
 type UsuarioInfo struct {
 	ID                     uuid.UUID `json:"id"`
 	Usuario                string    `json:"usuario"`
-	NombreLaboral          string    `json:"nombre_laboral"`
+	NombreLaboral          string    `json:"nombreLaboral"`
 	Rol                    string    `json:"rol"`
+	DepartamentoID         uuid.UUID `json:"departamentoId"`
 	Permisos               []string  `json:"permisos"`
-	RequiereCambioPassword bool      `json:"requiere_cambio_password"`
+	RequiereCambioPassword bool      `json:"requiereCambioPassword"`
 }
 
-// LoginResult es la respuesta de un login exitoso.
-type LoginResult struct {
-	Token     string      `json:"token"`
-	TokenType string      `json:"token_type"`
-	ExpiresIn int64       `json:"expires_in"`
-	CSRF      string      `json:"csrf_token"`
-	Usuario   UsuarioInfo `json:"usuario"`
+// Session es la sesión que crea POST /auth/mfa/verify. El JWT viaja en la
+// cookie sai_staff (y sirve como Bearer); nunca en el cuerpo.
+type Session struct {
+	Token         string      `json:"-"`
+	CSRF          string      `json:"csrfToken"`
+	ExpiresAt     time.Time   `json:"expiresAt"`
+	IdleExpiresAt time.Time   `json:"idleExpiresAt"`
+	Usuario       UsuarioInfo `json:"usuario"`
 }
 
-// Login valida credenciales, aplica rate limit y crea una sesión revocable.
-// Si la cuenta tiene MFA activo devuelve *MFAChallengeError con el challenge_token.
-func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginResult, error) {
+// Login valida credenciales y aplica rate limit. Nunca crea la sesión: siempre
+// devuelve un reto para el segundo factor (next = totp o enroll).
+func (s *Service) Login(ctx context.Context, in LoginInput) (*Challenge, error) {
 	usuario := strings.ToLower(strings.TrimSpace(in.Usuario))
 	if usuario == "" || in.Password == "" {
 		return nil, ErrCredenciales
@@ -121,35 +123,35 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginResult, error
 		return nil, ErrCredenciales
 	}
 
-	mfa, err := repos.MFA().GetByPersonalID(ctx, p.ID)
-	switch {
-	case err == nil && mfa.Estado == models.MFAActivo:
-		token, err := s.crearDesafio(ctx, repos, p.ID, mfa.ID, now)
-		if err != nil {
-			return nil, err
-		}
-		s.audit(ctx, &p.ID, "auth.login_mfa_pendiente", models.ResultadoDenegado, &p.ID, in.RequestID, in.IP)
-		return nil, &MFAChallengeError{Challenge: token}
-	case err != nil && !errors.Is(err, repository.ErrNotFound):
-		return nil, fmt.Errorf("auth: consultar MFA: %w", err)
-	}
-
 	if err := repos.Personal().ReiniciarFallos(ctx, p.ID); err != nil {
 		return nil, fmt.Errorf("auth: reiniciar fallos: %w", err)
 	}
 
-	return s.emitirSesion(ctx, repos, p, now, in)
+	mfa, err := repos.MFA().GetByPersonalID(ctx, p.ID)
+	var ch *Challenge
+	switch {
+	case err == nil && mfa.Estado == models.MFAActivo:
+		ch, err = s.crearDesafio(ctx, repos, p.ID, models.FaseTOTP, &mfa.ID, now)
+	case err == nil || errors.Is(err, repository.ErrNotFound):
+		ch, err = s.crearDesafio(ctx, repos, p.ID, models.FaseEnrolamiento, nil, now)
+	default:
+		return nil, fmt.Errorf("auth: consultar MFA: %w", err)
+	}
+	if err != nil {
+		return nil, err
+	}
+	s.audit(ctx, &p.ID, "auth.login_segundo_factor", models.ResultadoExito, &p.ID, in.RequestID, in.IP)
+	return ch, nil
 }
 
-// emitirSesion crea la sesión revocable y arma el LoginResult.
-// La usan Login (sin MFA) y VerifyMFA (con challenge).
+// emitirSesion crea la sesión revocable. Solo la llama VerifyMFA.
 func (s *Service) emitirSesion(
 	ctx context.Context,
 	repos repository.Repositories,
 	p *models.Personal,
 	now time.Time,
 	in LoginInput,
-) (*LoginResult, error) {
+) (*Session, error) {
 	rol, err := s.rolCodigo(ctx, repos, p.RolID)
 	if err != nil {
 		return nil, err
@@ -199,16 +201,17 @@ func (s *Service) emitirSesion(
 
 	s.audit(ctx, &p.ID, "auth.login", models.ResultadoExito, &p.ID, in.RequestID, in.IP)
 
-	return &LoginResult{
-		Token:     token,
-		TokenType: "Bearer",
-		ExpiresIn: int64(s.ttl.Seconds()),
-		CSRF:      csrf,
+	return &Session{
+		Token:         token,
+		CSRF:          csrf,
+		ExpiresAt:     expires.UTC(),
+		IdleExpiresAt: now.Add(IdleTimeout).UTC(),
 		Usuario: UsuarioInfo{
 			ID:                     p.ID,
 			Usuario:                p.Usuario,
 			NombreLaboral:          p.NombreLaboral,
 			Rol:                    rol,
+			DepartamentoID:         p.DepartamentoID,
 			Permisos:               permisos,
 			RequiereCambioPassword: p.RequiereCambioPassword,
 		},
@@ -240,6 +243,7 @@ func (s *Service) Me(ctx context.Context, personalID uuid.UUID) (*UsuarioInfo, e
 		Usuario:                p.Usuario,
 		NombreLaboral:          p.NombreLaboral,
 		Rol:                    rol,
+		DepartamentoID:         p.DepartamentoID,
 		Permisos:               permisos,
 		RequiereCambioPassword: p.RequiereCambioPassword,
 	}, nil

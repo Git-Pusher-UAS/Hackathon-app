@@ -148,6 +148,11 @@ jobs:
           bash .github/scripts/db-setup.sh
           bash .github/scripts/start-server.sh
       - uses: grafana/setup-k6-action@v1
+      - name: Login del usuario de carga
+        run: |
+          token=$(go run ./tests/tools/stafflogin -base "http://localhost:${PORT:-3000}" -user "$LOAD_USUARIO" -password "$LOAD_PASSWORD")
+          echo "::add-mask::$token"
+          echo "LOAD_TOKEN=$token" >> "$GITHUB_ENV"
       - name: Prueba de carga
         run: k6 run tests/load/k6_load_test.js
       - name: Log de la API
