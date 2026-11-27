@@ -593,15 +593,6 @@ definitions:
       idleExpiresAt:
         type: string
     type: object
-  backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/backend-hackathon_internal_models_user.SessionSummary'
-        type: array
-      nextCursor:
-        type: string
-    type: object
   backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_StaffSummary:
     properties:
       items:
@@ -2235,35 +2226,20 @@ paths:
       - users
   /users/me/sessions:
     get:
-      description: Devuelve las sesiones de la cuenta autenticada en orden de actividad
-        reciente.
-      parameters:
-      - default: 20
-        description: Tamaño de página (1-100)
-        in: query
-        name: limit
-        type: integer
-      - description: Cursor opaco de paginación
-        in: query
-        name: cursor
-        type: string
+      description: Sesiones vigentes de la cuenta autenticada, de la actividad más
+        reciente a la más antigua. Arreglo directo de hasta 10 elementos (lista corta,
+        sin paginar).
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary'
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_user.SessionSummary'
+            type: array
         "401":
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
-        "500":
-          description: Internal Server Error
           schema:
             $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
       security:
