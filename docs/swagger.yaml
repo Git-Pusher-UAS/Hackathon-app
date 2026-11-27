@@ -484,6 +484,23 @@ definitions:
           type: string
         type: array
     type: object
+  backend-hackathon_internal_models_casefile.ConsentView:
+    properties:
+      consentId:
+        type: string
+      decididoEn:
+        type: string
+      decision:
+        $ref: '#/definitions/backend-hackathon_internal_models.DecisionConsentimiento'
+      propositoId:
+        type: string
+      revocado:
+        type: boolean
+      revocadoEn:
+        type: string
+      vigente:
+        type: boolean
+    type: object
   backend-hackathon_internal_models_casefile.CreateRequest:
     properties:
       alias:
@@ -1527,6 +1544,13 @@ definitions:
             type: string
         type: object
     type: object
+  internal_handlers_casefile.ConsentListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentView'
+        type: array
+    type: object
 host: localhost:3000
 info:
   contact: {}
@@ -2562,8 +2586,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/internal_handlers_casefile.ConsentListResponse'
         "401":
           description: Unauthorized
           schema:
@@ -2609,8 +2632,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/internal_handlers_casefile.ConsentListResponse'
         "400":
           description: Bad Request
           schema:
@@ -2666,8 +2688,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/internal_handlers_casefile.ConsentListResponse'
         "400":
           description: Bad Request
           schema:

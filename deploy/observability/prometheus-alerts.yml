@@ -1,0 +1,23 @@
+groups:
+  - name: sai-backend
+    rules:
+      - alert: SaiHighErrorRate
+        expr: sum(rate(sai_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(sai_http_requests_total[5m])), 1) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "High 5xx error rate" }
+      - alert: SaiRateLimitSpike
+        expr: increase(sai_rate_limit_blocked_total[5m]) > 100
+        for: 2m
+        labels: { severity: warning }
+        annotations: { summary: "Rate limit blocks spiking" }
+      - alert: SaiOTPVerifyFailures
+        expr: increase(sai_otp_verifications_total{result="fail"}[10m]) > 50
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "OTP verification failures spiking" }
+      - alert: SaiAuditAppendErrors
+        expr: increase(sai_audit_append_errors_total[5m]) > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations: { summary: "Audit append errors detected" }

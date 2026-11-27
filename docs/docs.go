@@ -1640,8 +1640,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_handlers_casefile.ConsentListResponse"
                         }
                     },
                     "401": {
@@ -1710,8 +1709,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_handlers_casefile.ConsentListResponse"
                         }
                     },
                     "400": {
@@ -1795,8 +1793,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_handlers_casefile.ConsentListResponse"
                         }
                     },
                     "400": {
@@ -6505,6 +6502,32 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_casefile.ConsentView": {
+            "type": "object",
+            "properties": {
+                "consentId": {
+                    "type": "string"
+                },
+                "decididoEn": {
+                    "type": "string"
+                },
+                "decision": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.DecisionConsentimiento"
+                },
+                "propositoId": {
+                    "type": "string"
+                },
+                "revocado": {
+                    "type": "boolean"
+                },
+                "revocadoEn": {
+                    "type": "string"
+                },
+                "vigente": {
+                    "type": "boolean"
+                }
+            }
+        },
         "backend-hackathon_internal_models_casefile.CreateRequest": {
             "type": "object",
             "properties": {
@@ -8100,6 +8123,17 @@ const docTemplate = `{
                         "titular": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "internal_handlers_casefile.ConsentListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
                     }
                 }
             }

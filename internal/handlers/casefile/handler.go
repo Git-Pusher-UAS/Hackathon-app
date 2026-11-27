@@ -21,6 +21,10 @@ import (
 
 type Handler struct{ service svc.Service }
 
+type ConsentListResponse struct {
+	Items []casemodels.ConsentView `json:"items"`
+}
+
 func New(service svc.Service) *Handler { return &Handler{service: service} }
 
 func actorOf(c *fiber.Ctx) (repository.ActorContext, error) {
@@ -577,7 +581,7 @@ func (h *Handler) CreateNote(c *fiber.Ctx) error {
 // @Tags         case-files-consents
 // @Produce      json
 // @Param        recordId  path      string          true  "UUID del expediente"
-// @Success      200       {object}  map[string]any
+// @Success      200       {object}  ConsentListResponse
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
@@ -609,7 +613,7 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 // @Param        recordId      path      string                  true   "UUID del expediente"
 // @Param        X-Operation-Id  header    string                  false  "UUID de operación idempotente (opcional)"
 // @Param        request       body      casemodels.ConsentInput true   "Datos del consentimiento"
-// @Success      201           {object}  map[string]any
+// @Success      201           {object}  ConsentListResponse
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
 // @Failure      404           {object}  httpx.ErrorResponse
@@ -651,7 +655,7 @@ func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 // @Param        recordId   path      string                            true  "UUID del expediente"
 // @Param        consentId  path      string                            true  "UUID del consentimiento"
 // @Param        request    body      casemodels.RevokeConsentRequest   true  "Motivo o datos de revocación"
-// @Success      201        {object}  map[string]any
+// @Success      201        {object}  ConsentListResponse
 // @Failure      400        {object}  httpx.ErrorResponse
 // @Failure      401        {object}  httpx.ErrorResponse
 // @Failure      404        {object}  httpx.ErrorResponse
