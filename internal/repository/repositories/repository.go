@@ -123,4 +123,5 @@ type Repositories interface {
 	// analitica (vistas)
 	Resumen() ResumenRepository
 	Mapa() MapaRepository
+	Indicadores() IndicadoresRepository
 }

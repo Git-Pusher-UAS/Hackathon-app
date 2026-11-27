@@ -88,3 +88,26 @@ type MapaFiltro struct {
 type MapaRepository interface {
 	Consultar(ctx context.Context, f MapaFiltro) ([]models.MapaCelda, error)
 }
+
+// Conteo es una cifra agregada por etiqueta.
+type Conteo struct {
+	Etiqueta string
+	Valor    int
+}
+
+// IndicadoresFiltro limita agregados del tablero.
+type IndicadoresFiltro struct {
+	Rango      TimeRange
+	TipoCasoID *uuid.UUID
+	Estado     *models.EstadoExpediente
+}
+
+// IndicadoresRepository calcula agregados del tablero.
+type IndicadoresRepository interface {
+	Expedientes(ctx context.Context, f IndicadoresFiltro) (int, error)
+	Canalizaciones(ctx context.Context, f IndicadoresFiltro) (int, error)
+	PorMes(ctx context.Context, f IndicadoresFiltro) ([]Conteo, error)
+	PorOrigen(ctx context.Context, f IndicadoresFiltro) ([]Conteo, error)
+	PorArea(ctx context.Context, f IndicadoresFiltro) ([]Conteo, error)
+	PorSector(ctx context.Context, f IndicadoresFiltro) ([]Conteo, error)
+}

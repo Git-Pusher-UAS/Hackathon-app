@@ -14,6 +14,9 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+	analyticshandler "backend-hackathon/internal/handlers/analytics"
+	auditalerthandler "backend-hackathon/internal/handlers/auditalert"
+	auditloghandler "backend-hackathon/internal/handlers/auditlog"
 	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
@@ -24,12 +27,17 @@ import (
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	analyticsmw "backend-hackathon/internal/middleware/analytics"
+	auditlogmw "backend-hackathon/internal/middleware/auditlog"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
 	refmw "backend-hackathon/internal/middleware/referral"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
+	analyticsservice "backend-hackathon/internal/services/analytics"
+	auditalertservice "backend-hackathon/internal/services/auditalert"
+	auditlogservice "backend-hackathon/internal/services/auditlog"
 	carservice "backend-hackathon/internal/services/caseaccessrequest"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
@@ -119,6 +127,9 @@ func main() {
 	carHandler := carhandler.New(carservice.New(uow, keyring, cfg.JWT.Secret))
 	referralHandler := referralhandler.New(referralservice.New(uow, keyring, cfg.JWT.Secret))
 	noteHandler := notehandler.New(noteservice.New(caseService))
+	auditLogHandler := auditloghandler.New(auditlogservice.New(uow))
+	auditAlertHandler := auditalerthandler.New(auditalertservice.New(uow))
+	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -204,6 +215,10 @@ func main() {
 	apiContract.Get("/referrals", refmw.Require(refmw.PermRead), referralHandler.List)
 	apiContract.Post("/referrals/:referralId/transitions", csrf, refmw.Require(refmw.PermTransition), referralHandler.Transition)
 	apiContract.Post("/notes/sync", csrf, casemw.Require(casemw.PermWrite), noteHandler.Sync)
+	apiContract.Get("/audit-logs", auditlogmw.Require(), auditLogHandler.List)
+	apiContract.Get("/audit-alerts", auditlogmw.Require(), auditAlertHandler.List)
+	apiContract.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
+	apiContract.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
 
 	cf := apiContract.Group("/case-files")
 	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
