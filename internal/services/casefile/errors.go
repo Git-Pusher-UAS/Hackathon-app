@@ -9,6 +9,7 @@ var (
 	ErrNotFound             = errors.New("record not found")
 	ErrCryptoUnavailable    = errors.New("cryptographic service unavailable")
 	ErrAlreadyAssigned      = errors.New("already assigned")
+	ErrAlreadyCorrected     = errors.New("note already corrected")
 	ErrRequestNotPending    = errors.New("access request not pending")
 	ErrNoPrivacyNotice      = errors.New("privacy notice required")
 	ErrDuplicatePerson      = errors.New("duplicate person")

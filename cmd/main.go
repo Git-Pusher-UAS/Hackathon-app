@@ -19,11 +19,14 @@ import (
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
+	notehandler "backend-hackathon/internal/handlers/note"
+	referralhandler "backend-hackathon/internal/handlers/referral"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
+	refmw "backend-hackathon/internal/middleware/referral"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
@@ -32,6 +35,8 @@ import (
 	catalogservice "backend-hackathon/internal/services/catalog"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
+	noteservice "backend-hackathon/internal/services/note"
+	referralservice "backend-hackathon/internal/services/referral"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -112,6 +117,8 @@ func main() {
 	icHandler := ichandler.New(icservice.New(uow))
 	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
 	carHandler := carhandler.New(carservice.New(uow, keyring, cfg.JWT.Secret))
+	referralHandler := referralhandler.New(referralservice.New(uow, keyring, cfg.JWT.Secret))
+	noteHandler := notehandler.New(noteservice.New(caseService))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -194,6 +201,9 @@ func main() {
 	apiContract.Post("/case-access-requests", csrf, carmw.Require(carmw.PermRequest), carHandler.Create)
 	apiContract.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)
 	apiContract.Post("/case-access-requests/:id/rejection", csrf, carmw.Require(carmw.PermReview), carHandler.Reject)
+	apiContract.Get("/referrals", refmw.Require(refmw.PermRead), referralHandler.List)
+	apiContract.Post("/referrals/:referralId/transitions", csrf, refmw.Require(refmw.PermTransition), referralHandler.Transition)
+	apiContract.Post("/notes/sync", csrf, casemw.Require(casemw.PermWrite), noteHandler.Sync)
 
 	cf := apiContract.Group("/case-files")
 	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)

@@ -6,13 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// A34 · canalizacion.internas. CHECK origen_id <> destino_id; único parcial
-// (expediente_id, origen_id, destino_id) WHERE estado IN ('pendiente','aceptada').
+// A34 · canalizacion.internas.
 type CanalizacionInterna struct {
 	ID                  uuid.UUID          `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	ExpedienteID        uuid.UUID          `gorm:"type:uuid;not null"`
 	OrigenID            uuid.UUID          `gorm:"type:uuid;not null"`
-	DestinoID           uuid.UUID          `gorm:"type:uuid;not null"`
+	Tipo                TipoCanalizacion   `gorm:"type:varchar(10);not null;default:interna"`
+	DestinoID           *uuid.UUID         `gorm:"type:uuid"`
+	InstitucionID       *uuid.UUID         `gorm:"type:uuid"`
 	EmitidaPor          uuid.UUID          `gorm:"type:uuid;not null"`
 	ResumenCifrado      []byte             `gorm:"type:bytea;not null"`
 	Estado              EstadoCanalizacion `gorm:"type:varchar(20);not null"`

@@ -80,6 +80,13 @@ const (
 	ModalidadDigital    ModalidadConsentimiento = "digital"
 )
 
+type TipoCanalizacion string
+
+const (
+	CanalizacionInternaTipo TipoCanalizacion = "interna"
+	CanalizacionExternaTipo TipoCanalizacion = "externa"
+)
+
 type EstadoCanalizacion string
 
 const (
