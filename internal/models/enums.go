@@ -82,6 +82,13 @@ const (
 	ModalidadDigital    ModalidadConsentimiento = "digital"
 )
 
+type TipoCanalizacion string
+
+const (
+	CanalizacionInternaTipo TipoCanalizacion = "interna" // a otro departamento
+	CanalizacionExternaTipo TipoCanalizacion = "externa" // a una institución de catalogos.instituciones
+)
+
 type EstadoCanalizacion string
 
 const (
