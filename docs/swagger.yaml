@@ -1602,12 +1602,9 @@ paths:
         "200":
           description: OK
           schema:
-            properties:
-              items:
-                items:
-                  $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentView'
-                type: array
-            type: object
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentView'
+            type: array
         "401":
           description: Unauthorized
           schema:
@@ -1660,12 +1657,9 @@ paths:
         "201":
           description: Created
           schema:
-            properties:
-              items:
-                items:
-                  $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentView'
-                type: array
-            type: object
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentView'
+            type: array
         "400":
           description: Bad Request
           schema:
@@ -1726,15 +1720,8 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
-          schema:
-            properties:
-              items:
-                items:
-                  $ref: '#/definitions/backend-hackathon_internal_models_casefile.ConsentView'
-                type: array
-            type: object
+        "204":
+          description: Revocada; la decisión original se conserva en el historial
         "400":
           description: Bad Request
           schema:
@@ -1748,7 +1735,7 @@ paths:
           schema:
             $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
         "409":
-          description: Conflict
+          description: purpose_mandatory o already_revoked
           schema:
             $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
         "422":

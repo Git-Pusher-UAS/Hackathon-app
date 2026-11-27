@@ -1718,12 +1718,9 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      $ref: '#/components/schemas/CasefileConsentView'
-                    type: array
-                type: object
+                items:
+                  $ref: '#/components/schemas/CasefileConsentView'
+                type: array
           description: OK
         "401":
           content:
@@ -1787,12 +1784,9 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      $ref: '#/components/schemas/CasefileConsentView'
-                    type: array
-                type: object
+                items:
+                  $ref: '#/components/schemas/CasefileConsentView'
+                type: array
           description: Created
         "400":
           content:
@@ -1866,17 +1860,8 @@ paths:
         required: true
         x-originalParamName: request
       responses:
-        "201":
-          content:
-            application/json:
-              schema:
-                properties:
-                  items:
-                    items:
-                      $ref: '#/components/schemas/CasefileConsentView'
-                    type: array
-                type: object
-          description: Created
+        "204":
+          description: Revocada; la decisión original se conserva en el historial
         "400":
           content:
             application/json:
@@ -1900,7 +1885,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-          description: Conflict
+          description: purpose_mandatory o already_revoked
         "422":
           content:
             application/json:

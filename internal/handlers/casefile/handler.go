@@ -599,7 +599,7 @@ func (h *Handler) CreateNote(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Produce      json
 // @Param        recordId  path      string          true  "UUID del expediente"
-// @Success      200       {object}  object{items=[]casemodels.ConsentView}
+// @Success      200       {array}   casemodels.ConsentView
 // @Failure      401       {object}  httpx.ErrorResponse
 // @Failure      404       {object}  httpx.ErrorResponse
 // @Failure      422       {object}  httpx.ErrorResponse
@@ -618,7 +618,7 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 	if err != nil {
 		return mapError(err)
 	}
-	return c.JSON(fiber.Map{"items": res})
+	return c.JSON(res)
 }
 
 // RecordConsent registra un nuevo consentimiento en el expediente.
@@ -633,7 +633,7 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 // @Param        Idempotency-Key  header    string                  false  "UUID de operación idempotente (opcional)"
 // @Param        request       body      casemodels.ConsentInput true   "Datos del consentimiento"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
-// @Success      201           {object}  object{items=[]casemodels.ConsentView}
+// @Success      201           {array}   casemodels.ConsentView
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
 // @Failure      404           {object}  httpx.ErrorResponse
@@ -662,7 +662,7 @@ func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 	if err != nil {
 		return mapError(err)
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"items": res})
+	return c.Status(fiber.StatusCreated).JSON(res)
 }
 
 // RevokeConsent revoca un consentimiento específico de un expediente.
@@ -677,11 +677,11 @@ func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 // @Param        consentId  path      string                            true  "UUID del consentimiento"
 // @Param        request    body      casemodels.RevokeConsentRequest   true  "Motivo o datos de revocación"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
-// @Success      201        {object}  object{items=[]casemodels.ConsentView}
+// @Success      204        "Revocada; la decisión original se conserva en el historial"
 // @Failure      400        {object}  httpx.ErrorResponse
 // @Failure      401        {object}  httpx.ErrorResponse
 // @Failure      404        {object}  httpx.ErrorResponse
-// @Failure      409        {object}  httpx.ErrorResponse
+// @Failure      409        {object}  httpx.ErrorResponse  "purpose_mandatory o already_revoked"
 // @Failure      422        {object}  httpx.ErrorResponse
 // @Failure      500        {object}  httpx.ErrorResponse
 // @Router       /case-files/{recordId}/consents/{consentId}/revocations [post]
@@ -702,11 +702,10 @@ func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
 	}
-	res, err := h.service.RevokeConsent(c.Context(), actor, id, cid, req)
-	if err != nil {
+	if _, err := h.service.RevokeConsent(c.Context(), actor, id, cid, req); err != nil {
 		return mapError(err)
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"items": res})
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // CreateReferral crea una canalización de forma idempotente sobre el expediente.
