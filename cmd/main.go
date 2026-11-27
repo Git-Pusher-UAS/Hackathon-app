@@ -15,6 +15,7 @@ import (
 	"backend-hackathon/internal/handlers"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
+	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
@@ -26,6 +27,7 @@ import (
 	"backend-hackathon/internal/security"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
+	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
@@ -103,6 +105,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
 	icHandler := ichandler.New(icservice.New(uow))
 	catalogHandler := cataloghandler.New(catalogservice.New(uow))
 	app := fiber.New(fiber.Config{
@@ -191,6 +194,8 @@ func main() {
 	idem := func(required bool) fiber.Handler {
 		return idempotency.New(idempotency.Config{UOW: uow, Keyring: keyring, Secret: cfg.JWT.Secret}, required)
 	}
+
+	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")
 	cf.Post("/duplicate-checks", casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
