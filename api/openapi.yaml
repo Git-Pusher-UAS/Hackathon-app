@@ -687,6 +687,8 @@ components:
           type: string
         rol:
           type: string
+        ultimoAcceso:
+          type: string
         usuario:
           type: string
         versionTag:
@@ -2126,11 +2128,21 @@ paths:
         - status
   /users:
     get:
-      description: Lista las cuentas de personal. Requiere permiso de administración.
+      description: 'Lista las cuentas de personal con ultimoAcceso. Requiere admin, o users.read_attention (Coordinación): en ese caso solo devuelve personal activo de áreas de atención, para asignar expedientes.'
       parameters:
-        - description: Búsqueda por usuario o nombre laboral
+        - description: Usuario o nombre, sin distinguir acentos
           in: query
           name: q
+          schema:
+            type: string
+        - description: Código de rol, p. ej. Psicología
+          in: query
+          name: role
+          schema:
+            type: string
+        - description: activo | suspendido
+          in: query
+          name: status
           schema:
             type: string
         - description: Tamaño de página (1-100)
