@@ -18,6 +18,7 @@ import (
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
 	casemw "backend-hackathon/internal/middleware/casefile"
+	"backend-hackathon/internal/middleware/idempotency"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
@@ -114,8 +115,8 @@ func main() {
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:  cfg.Server.CORSOrigin,
-		AllowHeaders:  "Authorization, Content-Type, X-CSRF-Token, If-Match, X-Operation-Id",
-		ExposeHeaders: "ETag",
+		AllowHeaders:  "Authorization, Content-Type, X-CSRF-Token, If-Match, If-None-Match, Idempotency-Key, X-Operation-Id",
+		ExposeHeaders: "ETag, Location, Retry-After, X-Request-Id, Idempotent-Replayed",
 	}))
 
 	statusHandler := handlers.NewStatusHandler(sqlDB, version)
@@ -176,22 +177,27 @@ func main() {
 	admin.Post("/:userId/session-revocations", userHandler.RevokeAllSessions)
 	admin.Post("/:userId/mfa-resets", userHandler.ResetMFA)
 
+	// Idempotency-Key en las creaciones (seguridad.operaciones, 24 h).
+	idem := func(required bool) fiber.Handler {
+		return idempotency.New(idempotency.Config{UOW: uow, Keyring: keyring, Secret: cfg.JWT.Secret}, required)
+	}
+
 	cf := priv.Group("/case-files")
 	cf.Post("/duplicate-checks", casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
-	cf.Post("", casemw.Require(casemw.PermWrite), caseHandler.Create)
+	cf.Post("", casemw.Require(casemw.PermWrite), idem(true), caseHandler.Create)
 	cf.Get("", casemw.Require(casemw.PermRead), caseHandler.List)
 	cf.Get("/:recordId", casemw.Require(casemw.PermRead), caseHandler.Get)
 	cf.Patch("/:recordId", casemw.Require(casemw.PermWrite), caseHandler.Update)
 	cf.Get("/:recordId/timeline", casemw.Require(casemw.PermRead), caseHandler.Timeline)
 	cf.Post("/:recordId/disclosures", casemw.Require(casemw.PermDisclose), caseHandler.Disclose)
-	cf.Post("/:recordId/assignments", casemw.Require(casemw.PermAssign), caseHandler.Assign)
+	cf.Post("/:recordId/assignments", casemw.Require(casemw.PermAssign), idem(false), caseHandler.Assign)
 	cf.Post("/:recordId/assignments/:assignmentId/revocations", casemw.Require(casemw.PermAssign), caseHandler.RevokeAssignment)
 	cf.Get("/:recordId/departments/:departmentId/notes", casemw.Require(casemw.PermRead), caseHandler.ListNotes)
-	cf.Post("/:recordId/departments/:departmentId/notes", casemw.Require(casemw.PermWrite), caseHandler.CreateNote)
+	cf.Post("/:recordId/departments/:departmentId/notes", casemw.Require(casemw.PermWrite), idem(true), caseHandler.CreateNote)
 	cf.Get("/:recordId/consents", casemw.Require(casemw.PermRead), caseHandler.ListConsents)
-	cf.Post("/:recordId/consents", casemw.Require(casemw.PermConsent), caseHandler.RecordConsent)
+	cf.Post("/:recordId/consents", casemw.Require(casemw.PermConsent), idem(false), caseHandler.RecordConsent)
 	cf.Post("/:recordId/consents/:consentId/revocations", casemw.Require(casemw.PermConsent), caseHandler.RevokeConsent)
-	cf.Post("/:recordId/referrals", casemw.Require(casemw.PermRefer), caseHandler.CreateReferral)
+	cf.Post("/:recordId/referrals", casemw.Require(casemw.PermRefer), idem(true), caseHandler.CreateReferral)
 
 	// Apagado ordenado: cierra Fiber y luego el pool de GORM (defer).
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -10,6 +10,7 @@ import (
 
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	"backend-hackathon/internal/middleware/idempotency"
 	"backend-hackathon/internal/models"
 	casemodels "backend-hackathon/internal/models/casefile"
 	repository "backend-hackathon/internal/repository/repositories"
@@ -39,19 +40,20 @@ func uuidParam(c *fiber.Ctx, name string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// X-Operation-Id (UUID generado por el cliente) hace idempotentes las escrituras.
+// Idempotency-Key (o su alias X-Operation-Id), UUID generado por el cliente,
+// hace idempotentes las escrituras.
 func operationID(c *fiber.Ctx, required bool) (*uuid.UUID, error) {
-	raw := strings.TrimSpace(c.Get("X-Operation-Id"))
-	if raw == "" {
+	key, err := idempotency.Key(c)
+	if err != nil {
+		return nil, err
+	}
+	if key == "" {
 		if required {
-			return nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "X-Operation-Id requerido (UUID)")
+			return nil, httpx.Invalid("Idempotency-Key requerido", map[string]string{idempotency.HeaderKey: "requerido"})
 		}
 		return nil, nil
 	}
-	id, err := uuid.Parse(raw)
-	if err != nil {
-		return nil, httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", "X-Operation-Id inv\u00e1lido")
-	}
+	id := uuid.MustParse(key)
 	return &id, nil
 }
 
@@ -158,12 +160,12 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 // Create crea un nuevo expediente de forma idempotente y devuelve su ETag de versión.
 //
 // @Summary      Crear expediente
-// @Description  Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.
+// @Description  Crea un expediente nuevo con Idempotency-Key (X-Operation-Id como alias). Repetir la clave en 24 h devuelve la misma respuesta; con otro cuerpo responde 409 idempotency_mismatch.
 // @Tags         case-files
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        X-Operation-Id  header    string                 true  "UUID de operación idempotente"
+// @Param        Idempotency-Key  header    string                 true  "UUID de operación idempotente"
 // @Param        request         body      casemodels.CreateRequest  true  "Datos del expediente"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
 // @Success      201             {object}  casemodels.Summary
@@ -525,14 +527,14 @@ func (h *Handler) ListNotes(c *fiber.Ctx) error {
 // CreateNote crea una nueva nota de forma idempotente en un expediente y departamento.
 //
 // @Summary      Crear nota
-// @Description  Registra una nota en un expediente y departamento usando X-Operation-Id.
+// @Description  Registra una nota en un expediente y departamento con Idempotency-Key.
 // @Tags         case-files-notes
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId      path      string                     true  "UUID del expediente"
 // @Param        departmentId  path      string                     true  "UUID del departamento"
-// @Param        X-Operation-Id  header    string                     true  "UUID de operación idempotente"
+// @Param        Idempotency-Key  header    string                     true  "UUID de operación idempotente"
 // @Param        request       body      casemodels.NoteCreateRequest  true  "Contenido de la nota"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
 // @Success      201           {object}  casemodels.NoteView
@@ -604,13 +606,13 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 // RecordConsent registra un nuevo consentimiento en el expediente.
 //
 // @Summary      Registrar consentimiento
-// @Description  Guarda un consentimiento con cabecera X-Operation-Id opcional.
+// @Description  Guarda un consentimiento con Idempotency-Key opcional.
 // @Tags         case-files-consents
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId      path      string                  true   "UUID del expediente"
-// @Param        X-Operation-Id  header    string                  false  "UUID de operación idempotente (opcional)"
+// @Param        Idempotency-Key  header    string                  false  "UUID de operación idempotente (opcional)"
 // @Param        request       body      casemodels.ConsentInput true   "Datos del consentimiento"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
 // @Success      201           {object}  object{items=[]casemodels.ConsentView}
@@ -692,13 +694,13 @@ func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 // CreateReferral crea una canalización de forma idempotente sobre el expediente.
 //
 // @Summary      Crear canalización
-// @Description  Registra una canalización para el expediente requiriendo X-Operation-Id y devuelve ETag.
+// @Description  Registra una canalización para el expediente con Idempotency-Key y devuelve ETag.
 // @Tags         case-files-referrals
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        recordId      path      string                        true  "UUID del expediente"
-// @Param        X-Operation-Id  header    string                        true  "UUID de operación idempotente"
+// @Param        Idempotency-Key  header    string                        true  "UUID de operación idempotente"
 // @Param        request       body      casemodels.ReferralCreateRequest  true  "Datos de la canalización"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
 // @Success      201           {object}  casemodels.ReferralView
