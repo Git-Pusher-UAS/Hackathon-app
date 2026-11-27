@@ -148,6 +148,18 @@ definitions:
     - OrigenLineaAtencion
     - OrigenPatrullaGenero
     - OrigenEmergenciaReferida
+  backend-hackathon_internal_models.ResultadoAuditoria:
+    enum:
+    - exito
+    - denegado
+    - error
+    - intento_entrega
+    type: string
+    x-enum-varnames:
+    - ResultadoExito
+    - ResultadoDenegado
+    - ResultadoError
+    - ResultadoIntentoEntrega
   backend-hackathon_internal_models.TipoCanalizacion:
     enum:
     - interna
@@ -172,6 +184,47 @@ definitions:
     - SectorSector
     - SectorColonia
     - SectorSindicatura
+  backend-hackathon_internal_models_auditlog.Actor:
+    properties:
+      id:
+        type: string
+      nombreLaboral:
+        type: string
+    type: object
+  backend-hackathon_internal_models_auditlog.Entry:
+    properties:
+      accion:
+        example: casefile.disclose.telefono
+        type: string
+      actor:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models_auditlog.Actor'
+        description: null en acciones anónimas
+      detalle:
+        example: 'Reveló teléfono. Motivo: Contacto de seguimiento'
+        type: string
+      expedienteId:
+        type: string
+      fecha:
+        type: string
+      id:
+        type: string
+      requestId:
+        type: string
+      resultado:
+        $ref: '#/definitions/backend-hackathon_internal_models.ResultadoAuditoria'
+      rol:
+        type: string
+    type: object
+  backend-hackathon_internal_models_auditlog.Page:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_auditlog.Entry'
+        type: array
+      nextCursor:
+        type: string
+    type: object
   backend-hackathon_internal_models_caseaccessrequest.CreateRequest:
     properties:
       linkToken:
@@ -1038,6 +1091,60 @@ info:
   title: SAI API
   version: "1.0"
 paths:
+  /audit-logs:
+    get:
+      description: 'Eventos del más reciente al más antiguo: actor, rol, acción, expediente,
+        resultado y detalle (por ejemplo, el campo revelado y el motivo). Nunca incluye
+        la IP ni valores sensibles. La consulta queda en la bitácora. Requiere auditlog.read.'
+      parameters:
+      - description: UUID del actor
+        in: query
+        name: actorId
+        type: string
+      - description: UUID del expediente
+        in: query
+        name: recordId
+        type: string
+      - description: Acción exacta, p. ej. casefile.disclose.telefono
+        in: query
+        name: action
+        type: string
+      - description: Desde (RFC 3339)
+        in: query
+        name: from
+        type: string
+      - description: Hasta (RFC 3339, exclusivo)
+        in: query
+        name: to
+        type: string
+      - description: 1..100 (20 por defecto)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_auditlog.Page'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Consultar bitácora
+      tags:
+      - audit
   /auth/activations:
     post:
       consumes:
