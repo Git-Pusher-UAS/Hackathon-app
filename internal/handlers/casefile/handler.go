@@ -203,13 +203,15 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // List lista expedientes con paginación por cursor y filtros opcionales.
 //
 // @Summary      Listar expedientes
-// @Description  Obtiene una página de expedientes filtrable por estado y alias.
+// @Description  Solo los expedientes asignados al actor, con las áreas que tienen asignación vigente. Sin búsqueda por nombre ni CURP, a propósito.
 // @Tags         case-files
 // @Security     BearerAuth
 // @Produce      json
 // @Param        limit   query     int     false  "Tamaño de página (1-100, default 20)"
 // @Param        cursor  query     string  false  "Cursor de paginación"
-// @Param        estado  query     string  false  "Estado del expediente"
+// @Param        status  query     string  false  "abierto | en_seguimiento | cerrado"
+// @Param        from    query     string  false  "updatedAt desde (RFC 3339)"
+// @Param        to      query     string  false  "updatedAt hasta (RFC 3339, exclusivo)"
 // @Param        alias   query     string  false  "Alias de búsqueda"
 // @Success      200     {object}  casemodels.Page[casemodels.Summary]
 // @Failure      401     {object}  httpx.ErrorResponse
@@ -225,7 +227,19 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	q := casemodels.ListQuery{Estado: models.EstadoExpediente(c.Query("estado")), Alias: c.Query("alias")}
+	estado := c.Query("status", c.Query("estado"))
+	switch models.EstadoExpediente(estado) {
+	case "", models.ExpedienteAbierto, models.ExpedienteEnSeguimiento, models.ExpedienteCerrado:
+	default:
+		return httpx.Invalid("status inválido", map[string]string{"status": "valor_invalido"})
+	}
+	q := casemodels.ListQuery{Estado: models.EstadoExpediente(estado), Alias: c.Query("alias")}
+	if q.Desde, err = timeQuery(c, "from"); err != nil {
+		return err
+	}
+	if q.Hasta, err = timeQuery(c, "to"); err != nil {
+		return err
+	}
 	res, err := h.service.List(c.Context(), actor, q, page)
 	if err != nil {
 		return mapError(err)
