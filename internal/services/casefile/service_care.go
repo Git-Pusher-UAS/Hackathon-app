@@ -522,23 +522,45 @@ func (s *service) RevokeConsent(ctx context.Context, actor repository.ActorConte
 // ---------------- API-033 ----------------
 
 func (s *service) CreateReferral(ctx context.Context, actor repository.ActorContext, recordID, opID uuid.UUID, in casemodels.ReferralCreateRequest) (*casemodels.ReferralView, error) {
-	destino, err := parseUUID(in.DestinoID, "destinoId")
-	if err != nil {
-		return nil, err
+	tipo := models.TipoCanalizacion(strings.TrimSpace(in.Tipo))
+	if tipo == "" {
+		tipo = models.CanalizacionInternaTipo
+	}
+	fields := map[string]string{}
+	var destino, institucion *uuid.UUID
+	switch tipo {
+	case models.CanalizacionInternaTipo:
+		if in.DestinoID == nil || strings.TrimSpace(*in.DestinoID) == "" {
+			fields["destinoId"] = "requerido"
+		} else if id, err := uuid.Parse(strings.TrimSpace(*in.DestinoID)); err != nil {
+			fields["destinoId"] = "formato_invalido"
+		} else {
+			destino = &id
+		}
+	case models.CanalizacionExternaTipo:
+		if in.InstitucionID == nil || strings.TrimSpace(*in.InstitucionID) == "" {
+			fields["institucionId"] = "requerido"
+		} else if id, err := uuid.Parse(strings.TrimSpace(*in.InstitucionID)); err != nil {
+			fields["institucionId"] = "formato_invalido"
+		} else {
+			institucion = &id
+		}
+	default:
+		fields["tipo"] = "valor_invalido"
 	}
 	if !between(in.Resumen, 1, 2000) {
-		return nil, vErr("resumen debe tener entre 1 y 2000 caracteres")
+		fields["resumen"] = "longitud_invalida"
+	}
+	if len(fields) > 0 {
+		return nil, httpx.Invalid("canalización inválida", fields)
 	}
 	view := func(c *models.CanalizacionInterna) casemodels.ReferralView {
-		var dest uuid.UUID
-		if c.DestinoID != nil {
-			dest = *c.DestinoID
-		}
-		return casemodels.ReferralView{ID: c.ID, ExpedienteID: c.ExpedienteID, OrigenID: c.OrigenID, DestinoID: dest,
+		return casemodels.ReferralView{ID: c.ID, ExpedienteID: c.ExpedienteID, OrigenID: c.OrigenID, Tipo: c.Tipo,
+			DestinoID: c.DestinoID, InstitucionID: c.InstitucionID,
 			Estado: c.Estado, VersionTag: httpx.EncodeVersionTag(s.secret, c.Version), CreatedAt: c.CreadoEn.UTC()}
 	}
 	var out casemodels.ReferralView
-	err = s.do(ctx, actor, "casefile.referrals.create", &recordID, func(ctx context.Context, r repository.Repositories) error {
+	err := s.do(ctx, actor, "casefile.referrals.create", &recordID, func(ctx context.Context, r repository.Repositories) error {
 		if prev, err := r.Canalizaciones().GetByOperacionID(ctx, opID); err == nil {
 			out = view(prev)
 			return nil
@@ -560,25 +582,38 @@ func (s *service) CreateReferral(ctx context.Context, actor repository.ActorCont
 		if err := access(ctx, r, actor.ActorID, e.ID, &origen); err != nil {
 			return err
 		}
-		if origen == destino {
-			return vErr("origen y destino no pueden ser el mismo departamento")
-		}
-		dep, err := r.Departamentos().GetByID(ctx, destino)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return vErr("departamento destino inexistente")
+		if destino != nil {
+			if origen == *destino {
+				return vErr("origen y destino no pueden ser el mismo departamento")
 			}
-			return err
-		}
-		if !dep.Activo {
-			return vErr("departamento destino inactivo")
-		}
-		existe, err := r.Canalizaciones().ExisteActiva(ctx, e.ID, origen, destino)
-		if err != nil {
-			return err
-		}
-		if existe {
-			return ErrReferralExists
+			dep, err := r.Departamentos().GetByID(ctx, *destino)
+			if err != nil {
+				if errors.Is(err, repository.ErrNotFound) {
+					return vErr("departamento destino inexistente")
+				}
+				return err
+			}
+			if !dep.Activo {
+				return vErr("departamento destino inactivo")
+			}
+			existe, err := r.Canalizaciones().ExisteActiva(ctx, e.ID, origen, *destino)
+			if err != nil {
+				return err
+			}
+			if existe {
+				return ErrReferralExists
+			}
+		} else if institucion != nil {
+			inst, err := r.Instituciones().GetByID(ctx, *institucion)
+			if err != nil {
+				if errors.Is(err, repository.ErrNotFound) {
+					return vErr("institución inexistente")
+				}
+				return err
+			}
+			if !inst.Activo {
+				return vErr("institución inactiva")
+			}
 		}
 		id := uuid.New()
 		clave, payload, err := s.seal(ctx, r, "canalizacion", "resumen", id, strings.TrimSpace(in.Resumen))
@@ -586,8 +621,7 @@ func (s *service) CreateReferral(ctx context.Context, actor repository.ActorCont
 			return err
 		}
 		now := s.now()
-		destID := destino
-		c := &models.CanalizacionInterna{ID: id, ExpedienteID: e.ID, OrigenID: origen, Tipo: models.CanalizacionInternaTipo, DestinoID: &destID,
+		c := &models.CanalizacionInterna{ID: id, ExpedienteID: e.ID, OrigenID: origen, Tipo: tipo, DestinoID: destino, InstitucionID: institucion,
 			EmitidaPor: actor.ActorID, ResumenCifrado: payload, Estado: models.CanalizacionPendiente,
 			OperacionID: opID, ClaveID: clave, Version: 1, CreadoEn: now, ActualizadoEn: now}
 		if err := r.Canalizaciones().Create(ctx, c); err != nil {
