@@ -3,12 +3,19 @@ package handlers
 import (
 	"errors"
 	"log"
+	"strings"
+	"time"
 
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/middleware"
 	repository "backend-hackathon/internal/repository/repositories"
 
 	"github.com/gofiber/fiber/v2"
+)
+
+const (
+	sessionCookieName = "sai_session"
+	csrfCookieName    = "csrf_token"
 )
 
 // AuthHandler expone login, logout, CSRF y MFA.
@@ -21,25 +28,70 @@ func NewAuthHandler(authService *auth.Service) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
+func setSessionCookies(c *fiber.Ctx, res *auth.LoginResult) {
+	if res == nil {
+		return
+	}
+	secure := c.Secure() || strings.EqualFold(c.Get("X-Forwarded-Proto"), "https")
+	sameSite := "Lax"
+	c.Cookie(&fiber.Cookie{
+		Name:     sessionCookieName,
+		Value:    res.Token,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		MaxAge:   int(res.ExpiresIn),
+	})
+	if res.CSRF != "" {
+		c.Cookie(&fiber.Cookie{
+			Name:     csrfCookieName,
+			Value:    res.CSRF,
+			Path:     "/",
+			HTTPOnly: false,
+			Secure:   secure,
+			SameSite: sameSite,
+			MaxAge:   int(res.ExpiresIn),
+		})
+	}
+}
+
+func clearSessionCookies(c *fiber.Ctx) {
+	secure := c.Secure() || strings.EqualFold(c.Get("X-Forwarded-Proto"), "https")
+	for _, name := range []string{sessionCookieName, csrfCookieName} {
+		c.Cookie(&fiber.Cookie{
+			Name:     name,
+			Value:    "",
+			Path:     "/",
+			HTTPOnly: name == sessionCookieName,
+			Secure:   secure,
+			SameSite: "Lax",
+			Expires:  time.Unix(0, 0),
+			MaxAge:   -1,
+		})
+	}
+}
+
 // LoginRequest son las credenciales de acceso.
 type LoginRequest struct {
+	Username string `json:"username" example:"admin"`
 	Usuario  string `json:"usuario" example:"admin"`
 	Password string `json:"password" example:"admin123"`
 }
 
 // Login autentica usuario/contraseña y devuelve un JWT con sesión revocable.
-// Si la cuenta tiene MFA activo responde 403 con challenge_token.
+// Si la cuenta requiere MFA responde 202 con challengeId y next.
 //
 // @Summary      Iniciar sesión
-// @Description  Valida usuario y contraseña, aplica rate limit y crea una sesión revocable. Si la cuenta tiene MFA activo devuelve un challenge_token.
+// @Description  Valida usuario y contraseña. Si requiere MFA devuelve 202 con challengeId y next; si no, emite sesión completa.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Param        request  body      LoginRequest  true  "Credenciales de acceso"
 // @Success      200      {object}  auth.LoginResult
+// @Success      202      {object}  auth.MFAChallengeResponse
 // @Failure      400      {object}  ErrorResponse
 // @Failure      401      {object}  ErrorResponse
-// @Failure      403      {object}  auth.MFAChallengeResponse
 // @Failure      429      {object}  ErrorResponse
 // @Failure      500      {object}  ErrorResponse
 // @Router       /auth/login [post]
@@ -49,8 +101,13 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "cuerpo de la petición inválido")
 	}
 
+	username := req.Username
+	if username == "" {
+		username = req.Usuario
+	}
+
 	res, err := h.authService.Login(c.Context(), auth.LoginInput{
-		Usuario:   req.Usuario,
+		Usuario:   username,
 		Password:  req.Password,
 		IP:        c.IP(),
 		UserAgent: c.Get(fiber.HeaderUserAgent),
@@ -60,6 +117,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return authError(c, err)
 	}
 
+	setSessionCookies(c, res)
 	return c.JSON(res)
 }
 
@@ -105,53 +163,67 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	personalID, ok := middleware.PersonalID(c)
-	if !ok {
-		return fiber.NewError(fiber.StatusUnauthorized, auth.ErrTokenInvalido.Error())
-	}
-	sessionID, ok := middleware.SessionID(c)
-	if !ok {
-		return fiber.NewError(fiber.StatusUnauthorized, auth.ErrTokenInvalido.Error())
-	}
-
-	err := h.authService.Logout(
-		c.Context(),
-		personalID,
-		sessionID,
-		middleware.RequestID(c),
-		c.IP(),
-	)
-	if err != nil {
-		log.Printf("auth: logout: %v", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "error interno")
+	sessionID, sok := middleware.SessionID(c)
+	if ok && sok {
+		if err := h.authService.Logout(
+			c.Context(),
+			personalID,
+			sessionID,
+			middleware.RequestID(c),
+			c.IP(),
+		); err != nil {
+			log.Printf("auth: logout: %v", err)
+			return fiber.NewError(fiber.StatusInternalServerError, "error interno")
+		}
 	}
 
+	clearSessionCookies(c)
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// CSRFToken rota y devuelve el token CSRF de la sesión actual.
+// CSRFToken rota y devuelve el token CSRF de la sesión actual o anónima.
 //
 // @Summary      Obtener token CSRF
-// @Description  Genera un token CSRF nuevo para la sesión autenticada e invalida el anterior.
+// @Description  Devuelve un token CSRF. Si hay sesión autenticada, lo rota en servidor; si es anónimo, emite un token para uso previo al login.
 // @Tags         auth
 // @Produce      json
-// @Security     BearerAuth
 // @Success      200  {object}  auth.CSRFResult
-// @Failure      401  {object}  ErrorResponse
 // @Failure      500  {object}  ErrorResponse
 // @Router       /auth/csrf-token [get]
 func (h *AuthHandler) CSRFToken(c *fiber.Ctx) error {
-	sessionID, ok := middleware.SessionID(c)
-	if !ok {
-		return fiber.NewError(fiber.StatusUnauthorized, auth.ErrTokenInvalido.Error())
+	if sessionID, ok := middleware.SessionID(c); ok {
+		res, err := h.authService.RotarCSRF(c.Context(), sessionID)
+		if err != nil {
+			log.Printf("auth: csrf: %v", err)
+			return fiber.NewError(fiber.StatusInternalServerError, "error interno")
+		}
+		secure := c.Secure() || strings.EqualFold(c.Get("X-Forwarded-Proto"), "https")
+		c.Cookie(&fiber.Cookie{
+			Name:     csrfCookieName,
+			Value:    res.CSRF,
+			Path:     "/",
+			HTTPOnly: false,
+			Secure:   secure,
+			SameSite: "Lax",
+		})
+		return c.JSON(res)
 	}
 
-	res, err := h.authService.RotarCSRF(c.Context(), sessionID)
+	token, err := auth.RandomToken(32)
 	if err != nil {
-		log.Printf("auth: csrf: %v", err)
+		log.Printf("auth: csrf anon: %v", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "error interno")
 	}
-
-	return c.JSON(res)
+	secure := c.Secure() || strings.EqualFold(c.Get("X-Forwarded-Proto"), "https")
+	c.Cookie(&fiber.Cookie{
+		Name:     csrfCookieName,
+		Value:    token,
+		Path:     "/",
+		HTTPOnly: false,
+		Secure:   secure,
+		SameSite: "Lax",
+	})
+	return c.JSON(auth.CSRFResult{CSRF: token})
 }
 
 // EnrollMFA inicia el enrolamiento TOTP.
@@ -183,14 +255,15 @@ func (h *AuthHandler) EnrollMFA(c *fiber.Ctx) error {
 // VerifyMFARequest es el cuerpo de /auth/mfa/verify.
 type VerifyMFARequest struct {
 	Code           string `json:"code" example:"123456"`
+	ChallengeID    string `json:"challengeId,omitempty"`
 	ChallengeToken string `json:"challenge_token,omitempty"`
 }
 
 // VerifyMFA valida un código TOTP.
-// Con Bearer confirma el enrolamiento; con challenge_token completa el login.
+// Con Bearer confirma el enrolamiento; con challengeId completa el login.
 //
 // @Summary      Verificar código MFA
-// @Description  Con Bearer confirma el enrolamiento; con challenge_token completa el login y devuelve la sesión.
+// @Description  Con Bearer confirma el enrolamiento; con challengeId completa el login y emite cookies de sesión.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
@@ -208,8 +281,13 @@ func (h *AuthHandler) VerifyMFA(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "cuerpo de la petición inválido")
 	}
 
+	challenge := req.ChallengeID
+	if challenge == "" {
+		challenge = req.ChallengeToken
+	}
+
 	in := auth.VerifyMFAInput{
-		Challenge: req.ChallengeToken,
+		Challenge: challenge,
 		Code:      req.Code,
 		IP:        c.IP(),
 		UserAgent: c.Get(fiber.HeaderUserAgent),
@@ -224,15 +302,38 @@ func (h *AuthHandler) VerifyMFA(c *fiber.Ctx) error {
 		return mfaError(err)
 	}
 
+	if res.Login != nil {
+		setSessionCookies(c, res.Login)
+		return c.JSON(fiber.Map{
+			"id":                       res.Login.Usuario.ID,
+			"usuario":                  res.Login.Usuario.Usuario,
+			"nombre":                   res.Login.Usuario.NombreLaboral,
+			"nombre_laboral":           res.Login.Usuario.NombreLaboral,
+			"rol":                      res.Login.Usuario.Rol,
+			"permisos":                 res.Login.Usuario.Permisos,
+			"requiere_cambio_password": res.Login.Usuario.RequiereCambioPassword,
+			"csrf_token":               res.Login.CSRF,
+			"token":                    res.Login.Token,
+			"token_type":               res.Login.TokenType,
+			"expires_in":               res.Login.ExpiresIn,
+		})
+	}
+
 	return c.JSON(res)
 }
 
 func authError(c *fiber.Ctx, err error) error {
 	var ch *auth.MFAChallengeError
 	if errors.As(err, &ch) {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error":           auth.ErrMFARequerido.Error(),
-			"challenge_token": ch.Challenge,
+		next := ch.Next
+		if next == "" {
+			next = "totp"
+		}
+		return c.Status(fiber.StatusAccepted).JSON(auth.MFAChallengeResponse{
+			ChallengeID:    ch.Challenge,
+			Next:           next,
+			ChallengeToken: ch.Challenge,
+			Error:          auth.ErrMFARequerido.Error(),
 		})
 	}
 

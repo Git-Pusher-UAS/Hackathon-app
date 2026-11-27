@@ -23,6 +23,10 @@ func AuthMiddleware(secret string, uow repository.UnitOfWork) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		raw, ok := bearerToken(c.Get(fiber.HeaderAuthorization))
 		if !ok {
+			raw = strings.TrimSpace(c.Cookies("sai_session"))
+			ok = raw != ""
+		}
+		if !ok {
 			return unauthorized(c)
 		}
 

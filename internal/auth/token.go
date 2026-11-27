@@ -69,6 +69,11 @@ func ParseToken(secret, raw string) (*Claims, error) {
 	return claims, nil
 }
 
+// RandomToken devuelve n bytes aleatorios codificados en base64url.
+func RandomToken(n int) (string, error) {
+	return randomToken(n)
+}
+
 // randomToken devuelve n bytes aleatorios codificados en base64url.
 func randomToken(n int) (string, error) {
 	b := make([]byte, n)
