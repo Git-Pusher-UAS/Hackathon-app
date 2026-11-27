@@ -332,6 +332,11 @@ components:
       properties:
         alias:
           type: string
+        areas:
+          description: Areas son los códigos de los departamentos con asignación vigente.
+          items:
+            type: string
+          type: array
         closedAt:
           type: string
         createdAt:
@@ -1223,7 +1228,7 @@ paths:
         - case-access-requests
   /case-files:
     get:
-      description: Obtiene una página de expedientes filtrable por estado y alias.
+      description: Solo los expedientes asignados al actor, con las áreas que tienen asignación vigente. Sin búsqueda por nombre ni CURP, a propósito.
       parameters:
         - description: Tamaño de página (1-100, default 20)
           in: query
@@ -1235,9 +1240,19 @@ paths:
           name: cursor
           schema:
             type: string
-        - description: Estado del expediente
+        - description: abierto | en_seguimiento | cerrado
           in: query
-          name: estado
+          name: status
+          schema:
+            type: string
+        - description: updatedAt desde (RFC 3339)
+          in: query
+          name: from
+          schema:
+            type: string
+        - description: updatedAt hasta (RFC 3339, exclusivo)
+          in: query
+          name: to
           schema:
             type: string
         - description: Alias de búsqueda
