@@ -68,15 +68,18 @@ func fmtTime(t interface{ IsZero() bool }) string { return "" } // reemplazado a
 
 // ---------------- API-028 ----------------
 
-func (s *service) Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, campo string) (*casemodels.DisclosureResponse, error) {
+func (s *service) Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.DisclosureRequest) (*casemodels.DisclosureResponse, error) {
 	idx := -1
 	for i, f := range personaFields {
-		if f == campo {
+		if f == in.Campo {
 			idx = i
 		}
 	}
 	if idx < 0 {
 		return nil, vErr("campo inv\u00e1lido")
+	}
+	if !between(in.Motivo, 10, 500) {
+		return nil, vErr("motivo debe tener entre 10 y 500 caracteres")
 	}
 	var out casemodels.DisclosureResponse
 	err := s.do(ctx, actor, "casefile.disclose", &recordID, func(ctx context.Context, r repository.Repositories) error {
@@ -94,16 +97,15 @@ func (s *service) Disclose(ctx context.Context, actor repository.ActorContext, r
 		payloads := [][]byte{p.NombreCifrado, p.CURPCifrada, p.FechaNacimientoCifrada, p.TelefonoCifrado, p.DomicilioCifrado}
 		valor := ""
 		if len(payloads[idx]) > 0 {
-			valor, err = s.open(ctx, r, p.ClaveID, payloads[idx], "persona", campo, p.ID)
+			valor, err = s.open(ctx, r, p.ClaveID, payloads[idx], "persona", in.Campo, p.ID)
 			if err != nil {
 				return err
 			}
 		}
-		// La auditor\u00eda va en la misma transacci\u00f3n: sin evento no hay revelaci\u00f3n.
-		if err := s.audit(ctx, r, actor, "casefile.disclose."+campo, "expediente", &e.ID); err != nil {
+		if err := s.audit(ctx, r, actor, "casefile.disclose."+in.Campo, "expediente", &e.ID); err != nil {
 			return err
 		}
-		out = casemodels.DisclosureResponse{Campo: campo, Valor: valor}
+		out = casemodels.DisclosureResponse{Campo: in.Campo, Valor: valor}
 		return nil
 	})
 	if err != nil {
@@ -126,17 +128,38 @@ func (s *service) Assign(ctx context.Context, actor repository.ActorContext, rec
 	if !between(in.Motivo, 10, 500) {
 		return nil, vErr("motivo debe tener entre 10 y 500 caracteres")
 	}
+	var solicitudID *uuid.UUID
+	if in.SolicitudID != nil && strings.TrimSpace(*in.SolicitudID) != "" {
+		id, err := parseUUID(*in.SolicitudID, "solicitudId")
+		if err != nil {
+			return nil, err
+		}
+		solicitudID = &id
+	}
 	var out casemodels.AssignmentView
 	err = s.do(ctx, actor, "casefile.assign", &recordID, func(ctx context.Context, r repository.Repositories) error {
 		e, err := loadExp(ctx, r, recordID, false)
 		if err != nil {
 			return err
 		}
-		if err := access(ctx, r, actor.ActorID, e.ID, nil); err != nil {
-			return err
-		}
 		if e.Estado == models.ExpedienteCerrado {
 			return ErrCaseClosed
+		}
+		var sol *models.SolicitudVinculacion
+		if solicitudID != nil {
+			sol, err = r.SolicitudesVinculacion().GetByID(ctx, *solicitudID)
+			if errors.Is(err, repository.ErrNotFound) {
+				return vErr("solicitudId inexistente")
+			}
+			if err != nil {
+				return err
+			}
+			if sol.ExpedienteID != e.ID {
+				return vErr("la solicitud no corresponde a este expediente")
+			}
+			if sol.Estado != models.SolicitudPendiente {
+				return ErrRequestNotPending
+			}
 		}
 		target, err := r.Personal().GetByID(ctx, personalID)
 		if err != nil {
@@ -154,6 +177,17 @@ func (s *service) Assign(ctx context.Context, actor repository.ActorContext, rec
 		a, err := s.assignTx(ctx, r, e.ID, personalID, depID, actor.ActorID, strings.TrimSpace(in.Motivo), s.now())
 		if err != nil {
 			return err
+		}
+		if sol != nil {
+			if err := r.SolicitudesVinculacion().Resolver(ctx, sol.ID, models.SolicitudAprobada, actor.ActorID, s.now(), &a.ID, sol.Version); err != nil {
+				if errors.Is(err, repository.ErrVersionMismatch) {
+					return ErrRequestNotPending
+				}
+				return err
+			}
+			if err := s.audit(ctx, r, actor, "case_access_request.approve", "solicitud_vinculacion", &sol.ID); err != nil {
+				return err
+			}
 		}
 		out = casemodels.AssignmentView{ID: a.ID, PersonalID: a.PersonalID, DepartamentoID: a.DepartamentoID, Inicio: a.Inicio.UTC()}
 		return s.audit(ctx, r, actor, "casefile.assign", "expediente", &e.ID)

@@ -14,6 +14,7 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
@@ -21,10 +22,12 @@ import (
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
+	carservice "backend-hackathon/internal/services/caseaccessrequest"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
@@ -108,6 +111,7 @@ func main() {
 	catalogHandler := cataloghandler.New(catalogservice.New(uow))
 	icHandler := ichandler.New(icservice.New(uow))
 	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
+	carHandler := carhandler.New(carservice.New(uow, keyring, cfg.JWT.Secret))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -187,6 +191,10 @@ func main() {
 	admin.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
 	admin.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
 	csrf := usermiddleware.RequireCSRF
+	apiContract.Post("/case-access-requests", csrf, carmw.Require(carmw.PermRequest), carHandler.Create)
+	apiContract.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)
+	apiContract.Post("/case-access-requests/:id/rejection", csrf, carmw.Require(carmw.PermReview), carHandler.Reject)
+
 	cf := apiContract.Group("/case-files")
 	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
 	cf.Post("", csrf, casemw.Require(casemw.PermWrite), caseHandler.Create)

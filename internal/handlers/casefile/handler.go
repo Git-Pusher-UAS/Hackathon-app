@@ -97,14 +97,22 @@ func mapError(err error) error {
 		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
 	case errors.Is(err, svc.ErrCryptoUnavailable):
 		return httpx.E(fiber.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "cifrado no configurado")
+	case errors.As(err, new(*svc.DuplicatePersonError)):
+		var dupErr *svc.DuplicatePersonError
+		errors.As(err, &dupErr)
+		e := httpx.E(fiber.StatusConflict, "PERSON_EXISTS", "la persona ya tiene expediente")
+		e.Extra = map[string]any{"linkToken": dupErr.LinkToken, "linkExpiresAt": dupErr.LinkExpiresAt, "department": dupErr.Department}
+		return e
 	case errors.Is(err, svc.ErrDuplicatePerson):
-		return httpx.E(fiber.StatusConflict, "DUPLICATE_PERSON", "la persona ya tiene expediente")
+		return httpx.E(fiber.StatusConflict, "PERSON_EXISTS", "la persona ya tiene expediente")
 	case errors.Is(err, svc.ErrNoPrivacyNotice):
 		return httpx.E(fiber.StatusConflict, "NO_PRIVACY_NOTICE", "no hay aviso de privacidad vigente")
 	case errors.Is(err, svc.ErrInvalidTransition):
 		return httpx.E(fiber.StatusConflict, "INVALID_TRANSITION", "transici\u00f3n de estado inv\u00e1lida")
 	case errors.Is(err, svc.ErrCaseClosed):
 		return httpx.E(fiber.StatusConflict, "CASE_CLOSED", "el expediente est\u00e1 cerrado")
+	case errors.Is(err, svc.ErrRequestNotPending):
+		return httpx.E(fiber.StatusConflict, "REQUEST_NOT_PENDING", "la solicitud ya fue resuelta")
 	case errors.Is(err, svc.ErrAlreadyAssigned):
 		return httpx.E(fiber.StatusConflict, "ALREADY_ASSIGNED", "ya existe una asignaci\u00f3n vigente")
 	case errors.Is(err, svc.ErrAlreadyRevoked):
@@ -146,11 +154,11 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
 	}
-	dup, err := h.service.DuplicateCheck(c.Context(), actor, req.CURP)
+	res, err := h.service.DuplicateCheck(c.Context(), actor, req.CURP)
 	if err != nil {
 		return mapError(err)
 	}
-	return c.JSON(casemodels.DuplicateCheckResponse{Duplicate: dup})
+	return c.JSON(res)
 }
 
 // Create crea un nuevo expediente de forma idempotente y devuelve su ETag de versión.
@@ -189,6 +197,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		return mapError(err)
 	}
 	c.Set(fiber.HeaderETag, httpx.FormatETag(res.VersionTag))
+	c.Set(fiber.HeaderLocation, "/api/case-files/"+res.ID.String())
 	return c.Status(fiber.StatusCreated).JSON(res)
 }
 
@@ -379,7 +388,7 @@ func (h *Handler) Disclose(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
 	}
-	res, err := h.service.Disclose(c.Context(), actor, id, req.Campo)
+	res, err := h.service.Disclose(c.Context(), actor, id, req)
 	if err != nil {
 		return mapError(err)
 	}

@@ -103,6 +103,16 @@ definitions:
     x-enum-varnames:
     - PersonalActivo
     - PersonalSuspendido
+  backend-hackathon_internal_models.EstadoSolicitudVinculacion:
+    enum:
+    - pendiente
+    - aprobada
+    - rechazada
+    type: string
+    x-enum-varnames:
+    - SolicitudPendiente
+    - SolicitudAprobada
+    - SolicitudRechazada
   backend-hackathon_internal_models.ModalidadConsentimiento:
     enum:
     - presencial
@@ -125,6 +135,49 @@ definitions:
     - OrigenLineaAtencion
     - OrigenPatrullaGenero
     - OrigenEmergenciaReferida
+  backend-hackathon_internal_models_caseaccessrequest.CreateRequest:
+    properties:
+      linkToken:
+        type: string
+      motivo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Created:
+    properties:
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoSolicitudVinculacion'
+      requestId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Item:
+    properties:
+      departamento:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoSolicitudVinculacion'
+      expedienteId:
+        type: string
+      fecha:
+        type: string
+      id:
+        type: string
+      motivo:
+        type: string
+      solicitante:
+        $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Solicitante'
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.RejectRequest:
+    properties:
+      motivo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Solicitante:
+    properties:
+      id:
+        type: string
+      nombreLaboral:
+        type: string
+    type: object
   backend-hackathon_internal_models_casefile.AssignRequest:
     properties:
       departamentoId:
@@ -132,6 +185,8 @@ definitions:
       motivo:
         type: string
       personalId:
+        type: string
+      solicitudId:
         type: string
     type: object
   backend-hackathon_internal_models_casefile.ConsentInput:
@@ -178,6 +233,8 @@ definitions:
       campo:
         description: nombre|curp|fechaNacimiento|telefono|domicilio
         type: string
+      motivo:
+        type: string
     type: object
   backend-hackathon_internal_models_casefile.DuplicateCheckRequest:
     properties:
@@ -186,8 +243,14 @@ definitions:
     type: object
   backend-hackathon_internal_models_casefile.DuplicateCheckResponse:
     properties:
-      duplicate:
+      department:
+        type: string
+      exists:
         type: boolean
+      linkExpiresAt:
+        type: string
+      linkToken:
+        type: string
     type: object
   backend-hackathon_internal_models_casefile.NoteCreateRequest:
     properties:
@@ -669,6 +732,151 @@ paths:
       summary: Verificar código MFA
       tags:
       - auth
+  /case-access-requests:
+    get:
+      description: Devuelve metadatos de solicitudes. Nunca expone identidad PII ni
+        notas.
+      parameters:
+      - description: pendiente | aprobada | rechazada
+        in: query
+        name: status
+        type: string
+      - description: 1..100
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Item'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar solicitudes de acceso
+      tags:
+      - case-access-requests
+    post:
+      consumes:
+      - application/json
+      description: Crea una solicitud de acceso usando linkToken.
+      parameters:
+      - description: Token CSRF
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: Solicitud
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Created'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "410":
+          description: Gone
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Solicitar acceso a expediente
+      tags:
+      - case-access-requests
+  /case-access-requests/{id}/rejection:
+    post:
+      consumes:
+      - application/json
+      description: Rechaza una solicitud pendiente, audita y responde 204.
+      parameters:
+      - description: ID de solicitud
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Token CSRF
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: Motivo
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.RejectRequest'
+      responses:
+        "204":
+          description: Rechazada
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rechazar solicitud de acceso
+      tags:
+      - case-access-requests
   /case-files:
     get:
       description: Obtiene una página de expedientes filtrable por estado y alias.
