@@ -17,12 +17,7 @@ const docTemplate = `{
     "paths": {
         "/auth/csrf-token": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Genera un token CSRF nuevo para la sesión autenticada e invalida el anterior.",
+                "description": "Devuelve un token CSRF. Si hay sesión autenticada, lo rota en servidor; si es anónimo, emite un token para uso previo al login.",
                 "produces": [
                     "application/json"
                 ],
@@ -37,12 +32,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/backend-hackathon_internal_auth.CSRFResult"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -54,7 +43,7 @@ const docTemplate = `{
         },
         "/auth/login": {
             "post": {
-                "description": "Valida usuario y contraseña, aplica rate limit y crea una sesión revocable. Si la cuenta tiene MFA activo devuelve un challenge_token.",
+                "description": "Valida usuario y contraseña. Si requiere MFA devuelve 202 con challengeId y next; si no, emite sesión completa.",
                 "consumes": [
                     "application/json"
                 ],
@@ -83,6 +72,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/backend-hackathon_internal_auth.LoginResult"
                         }
                     },
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_auth.MFAChallengeResponse"
+                        }
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -93,12 +88,6 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.MFAChallengeResponse"
                         }
                     },
                     "429": {
@@ -232,7 +221,7 @@ const docTemplate = `{
         },
         "/auth/mfa/verify": {
             "post": {
-                "description": "Con Bearer confirma el enrolamiento; con challenge_token completa el login y devuelve la sesión.",
+                "description": "Con Bearer confirma el enrolamiento; con challengeId completa el login y emite cookies de sesión.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2052,12 +2041,17 @@ const docTemplate = `{
         "backend-hackathon_internal_auth.MFAChallengeResponse": {
             "type": "object",
             "properties": {
+                "challengeId": {
+                    "type": "string"
+                },
                 "challenge_token": {
                     "type": "string"
                 },
                 "error": {
-                    "type": "string",
-                    "example": "mfa_requerido"
+                    "type": "string"
+                },
+                "next": {
+                    "type": "string"
                 }
             }
         },
@@ -2525,6 +2519,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "admin123"
                 },
+                "username": {
+                    "type": "string",
+                    "example": "admin"
+                },
                 "usuario": {
                     "type": "string",
                     "example": "admin"
@@ -2575,6 +2573,9 @@ const docTemplate = `{
         "internal_handlers.VerifyMFARequest": {
             "type": "object",
             "properties": {
+                "challengeId": {
+                    "type": "string"
+                },
                 "challenge_token": {
                     "type": "string"
                 },

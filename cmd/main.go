@@ -122,10 +122,12 @@ func main() {
 	app.Use(logger.New(logger.Config{
 		Format: "[${time}] ${status} - ${latency} ${method} ${path} (${ip}) rid=${locals:requestid}\n",
 	}))
+	allowCredentials := cfg.Server.CORSOrigin != "*"
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:  cfg.Server.CORSOrigin,
-		AllowHeaders:  "Authorization, Content-Type, X-CSRF-Token, If-Match, X-Operation-Id",
-		ExposeHeaders: "ETag",
+		AllowOrigins:     cfg.Server.CORSOrigin,
+		AllowCredentials: allowCredentials,
+		AllowHeaders:     "Authorization, Content-Type, X-CSRF-Token, If-Match, X-Operation-Id",
+		ExposeHeaders:    "ETag",
 	}))
 
 	statusHandler := handlers.NewStatusHandler(sqlDB, version)
@@ -141,22 +143,22 @@ func main() {
 
 	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
 
-	// Igual que authMw, pero si no hay header Authorization deja pasar la petición.
+	// Igual que authMw, pero si no hay credenciales de sesión deja pasar la petición.
 	optionalAuth := func(c *fiber.Ctx) error {
-		if c.Get(fiber.HeaderAuthorization) == "" {
+		if c.Get(fiber.HeaderAuthorization) == "" && c.Cookies("sai_session") == "" {
 			return c.Next()
 		}
 		return authMw(c)
 	}
 
-	// Público
+	// Público / arranque de sesión
 	api.Post("/auth/login", authHandler.Login)
 	api.Post("/auth/mfa/verify", optionalAuth, authHandler.VerifyMFA)
+	api.Get("/auth/csrf-token", optionalAuth, authHandler.CSRFToken)
 
-	// Protegido: JWT + sesión revocable
+	// Protegido: sesión por cookie o Bearer + CSRF en escrituras
 	protected := api.Group("", authMw, middleware.CSRF(uow))
 	protected.Get("/auth/me", authHandler.Me)
-	protected.Get("/auth/csrf-token", authHandler.CSRFToken)
 	protected.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
 	protected.Post("/auth/logout", authHandler.Logout)
 

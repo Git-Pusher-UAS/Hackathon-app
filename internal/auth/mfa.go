@@ -26,19 +26,21 @@ const (
 	duracionDesafio = 5 * time.Minute
 )
 
-// MFAChallengeError se devuelve en el login cuando la cuenta tiene MFA activo.
-// Equivale a ErrMFARequerido, pero lleva el challenge_token para /auth/mfa/verify.
+// MFAChallengeError se devuelve en el login cuando la cuenta requiere MFA.
 type MFAChallengeError struct {
 	Challenge string
+	Next      string
 }
 
 func (e *MFAChallengeError) Error() string { return ErrMFARequerido.Error() }
 func (e *MFAChallengeError) Unwrap() error { return ErrMFARequerido }
 
-// MFAChallengeResponse documenta la respuesta 403 del login cuando se requiere MFA.
+// MFAChallengeResponse documenta la respuesta cuando se requiere MFA.
 type MFAChallengeResponse struct {
-	Error          string `json:"error" example:"mfa_requerido"`
-	ChallengeToken string `json:"challenge_token"`
+	ChallengeID    string `json:"challengeId"`
+	Next           string `json:"next"`
+	ChallengeToken string `json:"challenge_token,omitempty"`
+	Error          string `json:"error,omitempty"`
 }
 
 // EnrollmentResult es la respuesta de POST /auth/mfa/enrollments.

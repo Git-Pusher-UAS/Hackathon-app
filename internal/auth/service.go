@@ -129,7 +129,7 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*LoginResult, error
 			return nil, err
 		}
 		s.audit(ctx, &p.ID, "auth.login_mfa_pendiente", models.ResultadoDenegado, &p.ID, in.RequestID, in.IP)
-		return nil, &MFAChallengeError{Challenge: token}
+		return nil, &MFAChallengeError{Challenge: token, Next: "totp"}
 	case err != nil && !errors.Is(err, repository.ErrNotFound):
 		return nil, fmt.Errorf("auth: consultar MFA: %w", err)
 	}
