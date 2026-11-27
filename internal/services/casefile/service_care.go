@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"backend-hackathon/internal/audit"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/models"
 	casemodels "backend-hackathon/internal/models/casefile"
@@ -68,15 +69,27 @@ func fmtTime(t interface{ IsZero() bool }) string { return "" } // reemplazado a
 
 // ---------------- API-028 ----------------
 
-func (s *service) Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, campo string) (*casemodels.DisclosureResponse, error) {
+// nombresCampo son los nombres visibles de los campos revelables (bitácora).
+var nombresCampo = map[string]string{"nombre": "nombre", "curp": "CURP", "fechaNacimiento": "fecha de nacimiento",
+	"telefono": "teléfono", "domicilio": "domicilio"}
+
+func (s *service) Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.DisclosureRequest) (*casemodels.DisclosureResponse, error) {
+	campo, motivo := in.Campo, strings.TrimSpace(in.Motivo)
 	idx := -1
 	for i, f := range personaFields {
 		if f == campo {
 			idx = i
 		}
 	}
+	fields := map[string]string{}
 	if idx < 0 {
-		return nil, vErr("campo inv\u00e1lido")
+		fields["campo"] = "valor_invalido"
+	}
+	if !between(motivo, 10, 500) {
+		fields["motivo"] = "motivo_required"
+	}
+	if len(fields) > 0 {
+		return nil, httpx.Invalid("revelación inválida", fields)
 	}
 	var out casemodels.DisclosureResponse
 	err := s.do(ctx, actor, "casefile.disclose", &recordID, func(ctx context.Context, r repository.Repositories) error {
@@ -100,7 +113,9 @@ func (s *service) Disclose(ctx context.Context, actor repository.ActorContext, r
 			}
 		}
 		// La auditor\u00eda va en la misma transacci\u00f3n: sin evento no hay revelaci\u00f3n.
-		if err := s.audit(ctx, r, actor, "casefile.disclose."+campo, "expediente", &e.ID); err != nil {
+		detalle := "Reveló " + nombresCampo[campo] + ". Motivo: " + motivo
+		if err := audit.RecordDetail(ctx, r, &actor.ActorID, "casefile.disclose."+campo, "expediente",
+			models.ResultadoExito, &e.ID, actor.RequestID, actor.IPOrigen, detalle); err != nil {
 			return err
 		}
 		out = casemodels.DisclosureResponse{Campo: campo, Valor: valor}

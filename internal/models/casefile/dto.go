@@ -112,7 +112,8 @@ type TimelineItem struct {
 
 // API-028
 type DisclosureRequest struct {
-	Campo string `json:"campo"` // nombre|curp|fechaNacimiento|telefono|domicilio
+	Campo  string `json:"campo" enums:"nombre,curp,fechaNacimiento,telefono,domicilio"`
+	Motivo string `json:"motivo" example:"Contacto de seguimiento"` // 10 a 500 caracteres
 }
 type DisclosureResponse struct {
 	Campo string `json:"campo"`
