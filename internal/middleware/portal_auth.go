@@ -17,38 +17,82 @@ const PortalIdleTimeout = 30 * time.Minute
 
 func PortalAuthMiddleware(uow repository.UnitOfWork) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		raw := strings.TrimSpace(c.Cookies(PortalCookieName))
-		if raw == "" {
+		if !validatePortalSession(c, uow) {
 			return fiber.NewError(fiber.StatusUnauthorized, "sesion invalida")
 		}
-		parts := strings.SplitN(raw, ".", 2)
-		if len(parts) != 2 {
-			return fiber.NewError(fiber.StatusUnauthorized, "sesion invalida")
-		}
-		sid, err := uuid.Parse(parts[0])
-		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "sesion invalida")
-		}
-		token := parts[1]
-		ctx := c.Context()
-		repos := uow.Repositories()
-		now := time.Now()
-		ses, err := repos.PortalSesiones().GetByID(ctx, sid)
-		if err != nil || ses.RevocadoEn != nil || !ses.VenceAbsoluto.After(now) || !ses.UltimaActividad.Add(PortalIdleTimeout).After(now) {
-			return fiber.NewError(fiber.StatusUnauthorized, "sesion invalida")
-		}
-		hash := sha256.Sum256([]byte(token))
-		if subtle.ConstantTimeCompare(hash[:], ses.TokenHash) != 1 {
-			return fiber.NewError(fiber.StatusUnauthorized, "sesion invalida")
-		}
-		if now.Sub(ses.UltimaActividad) > time.Minute {
-			_ = repos.PortalSesiones().Touch(ctx, ses.ID, now)
-		}
-		c.Locals(localPortalCuentaID, ses.CuentaID)
-		c.Locals(localPortalSessionID, ses.ID)
-		c.Locals(localPortalCSRFHash, ses.CSRFHash)
-		c.Locals(localActor, repository.ActorContext{ActorID: ses.CuentaID, RequestID: RequestID(c), IPOrigen: ipPtr(c.IP())})
 		return c.Next()
+	}
+}
+
+func validatePortalSession(c *fiber.Ctx, uow repository.UnitOfWork) bool {
+	raw := strings.TrimSpace(c.Cookies(PortalCookieName))
+	if raw == "" {
+		return false
+	}
+	parts := strings.SplitN(raw, ".", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	sid, err := uuid.Parse(parts[0])
+	if err != nil {
+		return false
+	}
+	token := parts[1]
+	ctx := c.Context()
+	repos := uow.Repositories()
+	now := time.Now()
+	ses, err := repos.PortalSesiones().GetByID(ctx, sid)
+	if err != nil || ses.RevocadoEn != nil || !ses.VenceAbsoluto.After(now) || !ses.UltimaActividad.Add(PortalIdleTimeout).After(now) {
+		return false
+	}
+	hash := sha256.Sum256([]byte(token))
+	if subtle.ConstantTimeCompare(hash[:], ses.TokenHash) != 1 {
+		return false
+	}
+	if now.Sub(ses.UltimaActividad) > time.Minute {
+		_ = repos.PortalSesiones().Touch(ctx, ses.ID, now)
+	}
+	c.Locals(localPortalCuentaID, ses.CuentaID)
+	c.Locals(localPortalSessionID, ses.ID)
+	c.Locals(localPortalCSRFHash, ses.CSRFHash)
+	c.Locals(localActor, repository.ActorContext{ActorID: ses.CuentaID, RequestID: RequestID(c), IPOrigen: ipPtr(c.IP())})
+	return true
+}
+
+// PortalOrStaffAuthMiddleware permite acceso autenticado de portal (cookie sai_portal_session)
+// o de personal con el permiso staffPermiso (Bearer o cookie sai_session).
+func PortalOrStaffAuthMiddleware(secret string, uow repository.UnitOfWork, staffPermiso string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		if _, hasBearer := bearerToken(c.Get(fiber.HeaderAuthorization)); hasBearer {
+			if !validateStaffAuth(c, secret, uow) {
+				return unauthorized(c)
+			}
+			if !hasPermiso(c, staffPermiso) {
+				return fiber.NewError(fiber.StatusForbidden, "permiso insuficiente")
+			}
+			return c.Next()
+		}
+
+		if strings.TrimSpace(c.Cookies(PortalCookieName)) != "" {
+			if validatePortalSession(c, uow) {
+				return c.Next()
+			}
+			if strings.TrimSpace(c.Cookies("sai_session")) == "" {
+				return fiber.NewError(fiber.StatusUnauthorized, "sesion invalida")
+			}
+		}
+
+		if strings.TrimSpace(c.Cookies("sai_session")) != "" {
+			if !validateStaffAuth(c, secret, uow) {
+				return unauthorized(c)
+			}
+			if !hasPermiso(c, staffPermiso) {
+				return fiber.NewError(fiber.StatusForbidden, "permiso insuficiente")
+			}
+			return c.Next()
+		}
+
+		return unauthorized(c)
 	}
 }
 
