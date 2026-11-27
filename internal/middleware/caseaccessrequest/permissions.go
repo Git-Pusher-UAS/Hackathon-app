@@ -14,16 +14,10 @@ const (
 	PermReview = "caseaccess.review"
 )
 
-// Permiso es un permiso que crea el seed con los roles que lo reciben.
-type Permiso struct {
-	Codigo, Descripcion string
-	Roles               []string
-}
-
 // Permisos los usa el seed.
-var Permisos = []Permiso{
-	{PermRequest, "Pedir acceso a un expediente que lleva otra área", []string{"TrabajoSocial", "Psicología", "Jurídico"}},
-	{PermReview, "Revisar y resolver solicitudes de acceso a expedientes", []string{"Coordinación"}},
+var Permisos = []middleware.PermisoSeed{
+	{Codigo: PermRequest, Descripcion: "Pedir acceso a un expediente que lleva otra área", Roles: []string{"TrabajoSocial", "Psicología", "Jurídico"}},
+	{Codigo: PermReview, Descripcion: "Revisar y resolver solicitudes de acceso a expedientes", Roles: []string{"Coordinación"}},
 }
 
 // Require exige un permiso del token (después de AuthMiddleware).
