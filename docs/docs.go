@@ -534,7 +534,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Obtiene una página de expedientes filtrable por estado y alias.",
+                "description": "Solo los expedientes asignados al actor, con las áreas que tienen asignación vigente. Sin búsqueda por nombre ni CURP, a propósito.",
                 "produces": [
                     "application/json"
                 ],
@@ -557,8 +557,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Estado del expediente",
-                        "name": "estado",
+                        "description": "abierto | en_seguimiento | cerrado",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "updatedAt desde (RFC 3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "updatedAt hasta (RFC 3339, exclusivo)",
+                        "name": "to",
                         "in": "query"
                     },
                     {
@@ -3275,6 +3287,13 @@ const docTemplate = `{
             "properties": {
                 "alias": {
                     "type": "string"
+                },
+                "areas": {
+                    "description": "Areas son los códigos de los departamentos con asignación vigente.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "closedAt": {
                     "type": "string"

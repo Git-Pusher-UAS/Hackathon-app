@@ -180,6 +180,7 @@ func (r *expedienteRepo) List(ctx context.Context, f repository.ExpedienteFilter
 	if f.Estado != nil {
 		q = q.Where("estado = ?", *f.Estado)
 	}
+	q = applyTimeRange(q, f.Actualizado, "actualizado_en")
 	if f.Alias != "" {
 		q = q.Where("alias ILIKE ?", "%"+f.Alias+"%")
 	}
