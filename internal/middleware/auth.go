@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"backend-hackathon/internal/auth"
+	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/models"
 	repository "backend-hackathon/internal/repository/repositories"
 
@@ -14,7 +15,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// AuthMiddleware valida el JWT y la sesión revocable asociada.
+// StaffCookie es la cookie HttpOnly con el JWT del personal.
+const StaffCookie = "sai_staff"
+
+// AuthMiddleware valida el JWT (Bearer o cookie sai_staff) y la sesión revocable asociada.
 //
 // Comprueba firma/expiración, que la sesión exista y no esté revocada ni vencida,
 // que el token coincida con su hash, que la cuenta siga activa y que la versión
@@ -22,6 +26,10 @@ import (
 func AuthMiddleware(secret string, uow repository.UnitOfWork) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		raw, ok := bearerToken(c.Get(fiber.HeaderAuthorization))
+		if !ok {
+			raw = strings.TrimSpace(c.Cookies(StaffCookie))
+			ok = raw != ""
+		}
 		if !ok {
 			return unauthorized(c)
 		}
@@ -99,7 +107,7 @@ func bearerToken(header string) (string, bool) {
 
 func unauthorized(c *fiber.Ctx) error {
 	c.Set(fiber.HeaderWWWAuthenticate, "Bearer")
-	return fiber.NewError(fiber.StatusUnauthorized, auth.ErrTokenInvalido.Error())
+	return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida o vencida")
 }
 
 func ipPtr(ip string) *string {
