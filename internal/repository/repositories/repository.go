@@ -131,4 +131,9 @@ type Repositories interface {
 	PortalDesafios() PortalDesafioRepository
 	PortalSesiones() PortalSesionRepository
 	PortalAlertas() PortalAlertaRepository
+
+	// capacitacion
+	Cursos() CursoRepository
+	Inscripciones() InscripcionRepository
+	Visitas() VisitaRepository
 }

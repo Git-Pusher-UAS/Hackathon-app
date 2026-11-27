@@ -20,9 +20,11 @@ import (
 	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
+	coursehandler "backend-hackathon/internal/handlers/course"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	notehandler "backend-hackathon/internal/handlers/note"
+	outreachhandler "backend-hackathon/internal/handlers/outreach"
 	portalhandler "backend-hackathon/internal/handlers/portal"
 	referralhandler "backend-hackathon/internal/handlers/referral"
 	userhandler "backend-hackathon/internal/handlers/user"
@@ -32,6 +34,8 @@ import (
 	auditlogmw "backend-hackathon/internal/middleware/auditlog"
 	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
+	coursemw "backend-hackathon/internal/middleware/course"
+	outreachmw "backend-hackathon/internal/middleware/outreach"
 	refmw "backend-hackathon/internal/middleware/referral"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
@@ -42,9 +46,11 @@ import (
 	carservice "backend-hackathon/internal/services/caseaccessrequest"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
+	courseservice "backend-hackathon/internal/services/course"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	noteservice "backend-hackathon/internal/services/note"
+	outreachservice "backend-hackathon/internal/services/outreach"
 	portalservice "backend-hackathon/internal/services/portal"
 	referralservice "backend-hackathon/internal/services/referral"
 	userservice "backend-hackathon/internal/services/user"
@@ -133,6 +139,8 @@ func main() {
 	auditAlertHandler := auditalerthandler.New(auditalertservice.New(uow))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
 	portalHandler := portalhandler.New(portalservice.New(uow))
+	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
+	outreachHandler := outreachhandler.New(outreachservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -187,6 +195,7 @@ func main() {
 	helpAlerts.Post("", portalHandler.CreateAlert)
 	helpAlerts.Post("/:id/trusted-contacts", portalHandler.NotifyTrustedContacts)
 	helpAlerts.Post("/:id/cancellation", portalHandler.CancelAlert)
+	api.Post("/courses/:id/enrollments", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), courseHandler.Enroll)
 
 	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
 
@@ -237,6 +246,17 @@ func main() {
 	apiContract.Get("/audit-alerts", auditlogmw.Require(), auditAlertHandler.List)
 	apiContract.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
 	apiContract.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
+
+	courses := apiContract.Group("/courses", coursemw.Require(coursemw.PermManage))
+	courses.Get("", courseHandler.List)
+	courses.Get("/:id", courseHandler.Get)
+	courses.Post("", csrf, courseHandler.Create)
+	courses.Get("/:id/attendance", courseHandler.Attendance)
+	courses.Put("/:id/attendance", csrf, courseHandler.SetAttendance)
+
+	outreach := apiContract.Group("/outreach-visits", outreachmw.Require(outreachmw.PermManage))
+	outreach.Get("", outreachHandler.List)
+	outreach.Post("", csrf, outreachHandler.Create)
 
 	cf := apiContract.Group("/case-files")
 	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
