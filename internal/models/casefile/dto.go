@@ -1,4 +1,4 @@
-// Package casefile contiene los DTO de /api/v1/case-files.
+// Package casefile contiene los DTO de /api/case-files.
 package casefile
 
 import (

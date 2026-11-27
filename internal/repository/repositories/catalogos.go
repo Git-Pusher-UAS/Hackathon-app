@@ -60,7 +60,7 @@ type InstitucionRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Institucion, error)
 	List(ctx context.Context, soloActivas bool) ([]models.Institucion, error)
 
-	// ListPublicables sirve GET /api/v1/directory: publicable = true y activo = true.
+	// ListPublicables sirve GET /api/directory: publicable = true y activo = true.
 	ListPublicables(ctx context.Context) ([]models.Institucion, error)
 
 	Create(ctx context.Context, inst *models.Institucion) error

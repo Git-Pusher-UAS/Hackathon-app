@@ -1,4 +1,4 @@
-// Package user agrupa middleware específico de las rutas /api/v1/users.
+// Package user agrupa middleware específico de las rutas /api/users.
 package user
 
 import (

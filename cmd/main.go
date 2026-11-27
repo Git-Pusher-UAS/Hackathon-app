@@ -103,9 +103,9 @@ func main() {
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			// /api/v1 usa el sobre de error del contrato; /api conserva el
+			// /api usa el sobre de error del contrato; el resto conserva el
 			// formato legado.
-			if strings.HasPrefix(c.Path(), "/api/v1/") {
+			if strings.HasPrefix(c.Path(), "/api/") {
 				return httpx.Write(c, err)
 			}
 			code := fiber.StatusInternalServerError
@@ -160,20 +160,20 @@ func main() {
 	protected.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
 	protected.Post("/auth/logout", authHandler.Logout)
 
-	// /api/v1: contrato nuevo. Comparte el mismo JWT y añade CSRF en escrituras.
-	v1 := app.Group("/api/v1", middleware.AuthMiddleware(cfg.JWT.Secret, uow), usermiddleware.NoStore)
-	v1.Get("/users/me", userHandler.Me)
-	v1.Get("/users/me/sessions", userHandler.ListMySessions)
-	v1.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, userHandler.RevokeMySession)
+	// Contrato de la API. Comparte el mismo JWT y añade CSRF en escrituras.
+	apiContract := app.Group("/api", middleware.AuthMiddleware(cfg.JWT.Secret, uow), usermiddleware.NoStore)
+	apiContract.Get("/users/me", userHandler.Me)
+	apiContract.Get("/users/me/sessions", userHandler.ListMySessions)
+	apiContract.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, userHandler.RevokeMySession)
 
-	admin := v1.Group("/users", middleware.RequirePermiso("admin"))
+	admin := apiContract.Group("/users", middleware.RequirePermiso("admin"))
 	admin.Get("", userHandler.List)
 	admin.Post("", usermiddleware.RequireCSRF, userHandler.Create)
 	admin.Patch("/:userId", usermiddleware.RequireCSRF, userHandler.Update)
 	admin.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, userHandler.RevokeAllSessions)
 	admin.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, userHandler.ResetMFA)
 	csrf := usermiddleware.RequireCSRF
-	cf := v1.Group("/case-files")
+	cf := apiContract.Group("/case-files")
 	cf.Post("/duplicate-checks", csrf, casemw.Require(casemw.PermWrite), caseHandler.DuplicateCheck)
 	cf.Post("", csrf, casemw.Require(casemw.PermWrite), caseHandler.Create)
 	cf.Get("", casemw.Require(casemw.PermRead), caseHandler.List)

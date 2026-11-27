@@ -28,7 +28,7 @@ type stubRepos struct {
 	sesiones *stubSesionRepo
 }
 
-func (r *stubRepos) Personal() repository.PersonalRepository     { return r.personal }
+func (r *stubRepos) Personal() repository.PersonalRepository       { return r.personal }
 func (r *stubRepos) Sesiones() repository.SesionPersonalRepository { return r.sesiones }
 
 type stubPersonalRepo struct {

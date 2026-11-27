@@ -53,17 +53,17 @@ type fakeRepos struct {
 	audit         *fakeAuditRepo
 }
 
-func (r *fakeRepos) Actores() repository.ActorRepository                       { return r.actores }
+func (r *fakeRepos) Actores() repository.ActorRepository                     { return r.actores }
 func (r *fakeRepos) Departamentos() repository.DepartamentoRepository        { return r.departamentos }
 func (r *fakeRepos) Personal() repository.PersonalRepository                 { return r.personal }
-func (r *fakeRepos) Roles() repository.RolRepository                           { return r.roles }
-func (r *fakeRepos) Permisos() repository.PermisoRepository                    { return r.permisos }
-func (r *fakeRepos) Sesiones() repository.SesionPersonalRepository             { return r.sesiones }
-func (r *fakeRepos) MFA() repository.MFAPersonalRepository                     { return r.mfa }
+func (r *fakeRepos) Roles() repository.RolRepository                         { return r.roles }
+func (r *fakeRepos) Permisos() repository.PermisoRepository                  { return r.permisos }
+func (r *fakeRepos) Sesiones() repository.SesionPersonalRepository           { return r.sesiones }
+func (r *fakeRepos) MFA() repository.MFAPersonalRepository                   { return r.mfa }
 func (r *fakeRepos) RecuperacionesMFA() repository.RecuperacionMFARepository { return r.recuperacion }
-func (r *fakeRepos) Operaciones() repository.OperacionRepository               { return r.operaciones }
-func (r *fakeRepos) ClavesRegistro() repository.ClaveRegistroRepository        { return r.claves }
-func (r *fakeRepos) EventosAuditoria() repository.EventoAuditoriaRepository    { return r.audit }
+func (r *fakeRepos) Operaciones() repository.OperacionRepository             { return r.operaciones }
+func (r *fakeRepos) ClavesRegistro() repository.ClaveRegistroRepository      { return r.claves }
+func (r *fakeRepos) EventosAuditoria() repository.EventoAuditoriaRepository  { return r.audit }
 
 type fakeActorRepo struct {
 	repository.ActorRepository

@@ -2,7 +2,7 @@
 
 Reference document mapping each API endpoint from `ENDPOINTS_SAI_MVP.md` to its corresponding folder under `internal/(handlers|middleware|models|services)/`.
 
-**Base path:** `/api/v1`
+**Base path:** `/api`
 
 ---
 
