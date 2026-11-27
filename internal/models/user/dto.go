@@ -63,13 +63,25 @@ type Page[T any] struct {
 	NextCursor *string `json:"nextCursor"`
 }
 
-// CreateRequest es el cuerpo de API-011.
+// CreateRequest es el cuerpo de API-011. TI no conoce la contraseña de nadie:
+// la persona la elige con el código de activación.
 type CreateRequest struct {
 	Usuario        string `json:"usuario"`
 	NombreLaboral  string `json:"nombreLaboral"`
 	Rol            string `json:"rol"`
 	DepartamentoID string `json:"departamentoId"`
-	Password       string `json:"password"`
+}
+
+// Activacion es el código de un solo uso que se muestra una sola vez.
+type Activacion struct {
+	Codigo    string    `json:"codigo" example:"K7P2-9QX4"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// CreateResponse es la respuesta 201 de API-011.
+type CreateResponse struct {
+	Cuenta     StaffSummary `json:"cuenta"`
+	Activacion Activacion   `json:"activacion"`
 }
 
 // UpdateRequest es el cuerpo de API-012. Los punteros distinguen campo omitido

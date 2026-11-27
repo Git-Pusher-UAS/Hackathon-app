@@ -15,6 +15,52 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/activations": {
+            "post": {
+                "description": "La persona elige su contraseña con el código que TI le entregó al crear la cuenta (POST /users). El código es de un solo uso y vence a las 72 h. Después entra con POST /auth/login y configura su segundo factor. Pública, sin CSRF. No revela si el usuario existe.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Activar cuenta",
+                "parameters": [
+                    {
+                        "description": "Usuario, código y contraseña nueva",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.ActivationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Contraseña fijada"
+                    },
+                    "401": {
+                        "description": "invalid_code",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "validation_failed (contraseña de 12 a 128 caracteres)",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "too_many_attempts",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/csrf-token": {
             "get": {
                 "security": [
@@ -1880,7 +1926,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Crea una cuenta de personal. Requiere permiso de administración.",
+                "description": "Crea una cuenta de personal sin contraseña. Devuelve un código de activación de un solo uso (72 h) que se muestra una sola vez: con él la persona elige su contraseña (POST /auth/activations) y después configura su segundo factor al entrar. Requiere permiso de administración.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1913,7 +1959,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.CreateResponse"
                         },
                         "headers": {
                             "ETag": {
@@ -3223,6 +3269,18 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_user.Activacion": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string",
+                    "example": "K7P2-9QX4"
+                },
+                "expiresAt": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_user.Actor": {
             "type": "object",
             "properties": {
@@ -3255,14 +3313,22 @@ const docTemplate = `{
                 "nombreLaboral": {
                     "type": "string"
                 },
-                "password": {
-                    "type": "string"
-                },
                 "rol": {
                     "type": "string"
                 },
                 "usuario": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.CreateResponse": {
+            "type": "object",
+            "properties": {
+                "activacion": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_user.Activacion"
+                },
+                "cuenta": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_user.StaffSummary"
                 }
             }
         },
@@ -3376,6 +3442,22 @@ const docTemplate = `{
                 },
                 "rol": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handlers.ActivationRequest": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string",
+                    "example": "K7P2-9QX4"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "usuario": {
+                    "type": "string",
+                    "example": "mperez"
                 }
             }
         },

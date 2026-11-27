@@ -168,14 +168,14 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // Create responde API-011.
 //
 // @Summary      Crear cuenta
-// @Description  Crea una cuenta de personal. Requiere permiso de administración.
+// @Description  Crea una cuenta de personal sin contraseña. Devuelve un código de activación de un solo uso (72 h) que se muestra una sola vez: con él la persona elige su contraseña (POST /auth/activations) y después configura su segundo factor al entrar. Requiere permiso de administración.
 // @Tags         users
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request       body    usermodels.CreateRequest  true  "Datos de la cuenta"
 // @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)"
-// @Success      201           {object}  usermodels.StaffSummary
+// @Success      201           {object}  usermodels.CreateResponse
 // @Header       201           {string}  ETag  "ETag de la versión creada"
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
@@ -199,7 +199,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	if err != nil {
 		return mapError(err)
 	}
-	c.Set(fiber.HeaderETag, httpx.FormatETag(result.VersionTag))
+	c.Set(fiber.HeaderETag, httpx.FormatETag(result.Cuenta.VersionTag))
 	return c.Status(fiber.StatusCreated).JSON(result)
 }
 

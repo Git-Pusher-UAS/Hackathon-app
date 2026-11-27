@@ -1,6 +1,17 @@
 # GENERADO: no editar a mano. Fuente: anotaciones swag -> docs/swagger.json -> go run ./cmd/openapi
 components:
   schemas:
+    ActivationRequest:
+      properties:
+        codigo:
+          example: K7P2-9QX4
+          type: string
+        password:
+          type: string
+        usuario:
+          example: mperez
+          type: string
+      type: object
     AuthCSRFResult:
       properties:
         csrfToken:
@@ -602,6 +613,14 @@ components:
         - SectorSector
         - SectorColonia
         - SectorSindicatura
+    UserActivacion:
+      properties:
+        codigo:
+          example: K7P2-9QX4
+          type: string
+        expiresAt:
+          type: string
+      type: object
     UserActor:
       properties:
         departmentId:
@@ -623,12 +642,17 @@ components:
           type: string
         nombreLaboral:
           type: string
-        password:
-          type: string
         rol:
           type: string
         usuario:
           type: string
+      type: object
+    UserCreateResponse:
+      properties:
+        activacion:
+          $ref: '#/components/schemas/UserActivacion'
+        cuenta:
+          $ref: '#/components/schemas/UserStaffSummary'
       type: object
     UserMFAResetRequest:
       properties:
@@ -726,6 +750,41 @@ info:
   version: "1.0"
 openapi: 3.0.3
 paths:
+  /auth/activations:
+    post:
+      description: La persona elige su contraseña con el código que TI le entregó al crear la cuenta (POST /users). El código es de un solo uso y vence a las 72 h. Después entra con POST /auth/login y configura su segundo factor. Pública, sin CSRF. No revela si el usuario existe.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+        description: Usuario, código y contraseña nueva
+        required: true
+        x-originalParamName: request
+      responses:
+        "204":
+          description: Contraseña fijada
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: invalid_code
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: validation_failed (contraseña de 12 a 128 caracteres)
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: too_many_attempts
+      summary: Activar cuenta
+      tags:
+        - auth
   /auth/csrf-token:
     get:
       description: Genera un token CSRF nuevo para la sesión e invalida el anterior. La pantalla lo pide al recargar con una sesión viva.
@@ -2193,7 +2252,7 @@ paths:
       tags:
         - users
     post:
-      description: Crea una cuenta de personal. Requiere permiso de administración.
+      description: 'Crea una cuenta de personal sin contraseña. Devuelve un código de activación de un solo uso (72 h) que se muestra una sola vez: con él la persona elige su contraseña (POST /auth/activations) y después configura su segundo factor al entrar. Requiere permiso de administración.'
       parameters:
         - description: Token CSRF de la sesión (GET /api/v1/auth/csrf-token)
           in: header
@@ -2214,7 +2273,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserStaffSummary'
+                $ref: '#/components/schemas/UserCreateResponse'
           description: Created
           headers:
             ETag:
