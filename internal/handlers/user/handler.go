@@ -1,4 +1,4 @@
-// Package user expone los handlers HTTP de /api/v1/users.
+// Package user expone los handlers HTTP de /api/users.
 package user
 
 import (
@@ -41,7 +41,7 @@ type MFAResetResponse struct {
 // @Success      200  {object}  usermodels.MeResponse
 // @Failure      401  {object}  httpx.ErrorResponse
 // @Failure      500  {object}  httpx.ErrorResponse
-// @Router       /v1/users/me [get]
+// @Router       /users/me [get]
 func (h *Handler) Me(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -72,7 +72,7 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 // @Failure      401     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /v1/users/me/sessions [get]
+// @Router       /users/me/sessions [get]
 func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -109,7 +109,7 @@ func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 // @Failure      404            {object}  httpx.ErrorResponse
 // @Failure      422            {object}  httpx.ErrorResponse
 // @Failure      500            {object}  httpx.ErrorResponse
-// @Router       /v1/users/me/sessions/{sessionId} [delete]
+// @Router       /users/me/sessions/{sessionId} [delete]
 func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -145,7 +145,7 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 // @Failure      403     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /v1/users [get]
+// @Router       /users [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -181,7 +181,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /v1/users [post]
+// @Router       /users [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -224,7 +224,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      428           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /v1/users/{userId} [patch]
+// @Router       /users/{userId} [patch]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -271,7 +271,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /v1/users/{userId}/session-revocations [post]
+// @Router       /users/{userId}/session-revocations [post]
 func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -294,6 +294,25 @@ func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 }
 
 // ResetMFA responde API-014.
+//
+// @Summary      Restablecer MFA de una cuenta
+// @Description  Invalida el MFA de la cuenta para que vuelva a enrolarse. Exige verificación presencial. Requiere permiso de administración.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId        path    string                     true  "ID de la cuenta"
+// @Param        request       body    usermodels.MFAResetRequest true  "Motivo y verificación presencial"
+// @Param        X-CSRF-Token  header  string                     true  "Token CSRF de la sesión"
+// @Success      202           {object}  object{resetId=string}
+// @Failure      400           {object}  httpx.ErrorResponse
+// @Failure      401           {object}  httpx.ErrorResponse
+// @Failure      403           {object}  httpx.ErrorResponse
+// @Failure      404           {object}  httpx.ErrorResponse
+// @Failure      409           {object}  httpx.ErrorResponse
+// @Failure      422           {object}  httpx.ErrorResponse
+// @Failure      500           {object}  httpx.ErrorResponse
+// @Router       /users/{userId}/mfa-resets [post]
 func (h *Handler) ResetMFA(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {

@@ -50,9 +50,11 @@ func (ResumenFila) TableName() string { return "analitica.v_resumen_mvp" }
 
 // analitica.v_mapa_mvp: nivel y conteo publicable por sector, sin puntos domiciliarios.
 type MapaCelda struct {
-	SectorID uuid.UUID `gorm:"column:sector_id"`
-	Nivel    *string   `gorm:"column:nivel"`
-	Conteo   *int      `gorm:"column:conteo"`
+	SectorID   uuid.UUID  `gorm:"column:sector_id"`
+	TipoCasoID *uuid.UUID `gorm:"column:tipo_caso_id"`
+	Periodo    time.Time  `gorm:"column:periodo"`
+	Nivel      *string    `gorm:"column:nivel"` // bajo | medio | alto; nil = suprimido
+	Conteo     *int       `gorm:"column:conteo"`
 }
 
 func (MapaCelda) TableName() string { return "analitica.v_mapa_mvp" }

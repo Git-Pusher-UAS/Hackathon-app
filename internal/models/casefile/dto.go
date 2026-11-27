@@ -20,6 +20,10 @@ type DuplicateCheckRequest struct {
 }
 type DuplicateCheckResponse struct {
 	Duplicate bool `json:"duplicate"`
+	// LinkToken solo viene si hay duplicado: token de un solo uso para
+	// POST /case-access-requests. Vence en LinkTokenExpiresAt.
+	LinkToken          *string    `json:"linkToken,omitempty"`
+	LinkTokenExpiresAt *time.Time `json:"linkTokenExpiresAt,omitempty"`
 }
 
 type ConsentInput struct {

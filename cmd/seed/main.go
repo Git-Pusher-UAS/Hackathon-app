@@ -8,6 +8,8 @@ import (
 
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
+	analyticsmw "backend-hackathon/internal/middleware/analytics"
+	auditmw "backend-hackathon/internal/middleware/auditlog"
 	casemw "backend-hackathon/internal/middleware/casefile"
 	"backend-hackathon/internal/models"
 	gormrepo "backend-hackathon/internal/repository/gorm"
@@ -120,6 +122,33 @@ func main() {
 			}
 		}
 	}
+	// Permisos de consulta: auditoría y analítica. El admin los recibe todos.
+	consultas := []struct {
+		Codigo, Descripcion string
+		Roles               []string
+	}{
+		{analyticsmw.PermRead, analyticsmw.Descripcion, []string{"Coordinación", "Dirección", "AdministraciónAnalítica"}},
+		{auditmw.PermRead, auditmw.Descripcion, []string{"Dirección", "AdministradorTI"}},
+	}
+	for _, p := range consultas {
+		perm, err := ensurePermiso(db, p.Codigo, p.Descripcion)
+		if err != nil {
+			log.Fatalf("permiso %s: %v", p.Codigo, err)
+		}
+		if err := ensureRolPermiso(db, rol.ID, perm.ID); err != nil {
+			log.Fatalf("rol_permiso admin/%s: %v", p.Codigo, err)
+		}
+		for _, codRol := range p.Roles {
+			r, err := ensureRol(db, codRol, codRol)
+			if err != nil {
+				log.Fatalf("rol %s: %v", codRol, err)
+			}
+			if err := ensureRolPermiso(db, r.ID, perm.ID); err != nil {
+				log.Fatalf("rol_permiso %s/%s: %v", codRol, p.Codigo, err)
+			}
+		}
+	}
+
 	usuario := strings.ToLower(strings.TrimSpace(cfg.InitialAdmin.Username))
 
 	var existente models.Personal

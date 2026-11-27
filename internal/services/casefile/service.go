@@ -25,12 +25,15 @@ const (
 	cursorScopeList     = "casefiles.list"
 	cursorScopeNotes    = "casefiles.notes"
 	cursorScopeTimeline = "casefiles.timeline"
+
+	// linkTokenTTL es la vigencia del token para solicitar acceso (API-018).
+	linkTokenTTL = 15 * time.Minute
 )
 
 var personaFields = []string{"nombre", "curp", "fechaNacimiento", "telefono", "domicilio"}
 
 type Service interface {
-	DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (bool, error)
+	DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (*casemodels.DuplicateCheckResponse, error)
 	Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Summary, error)
 	List(ctx context.Context, actor repository.ActorContext, q casemodels.ListQuery, page repository.PageRequest) (*casemodels.Page[casemodels.Summary], error)
 	Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Summary, error)
@@ -243,27 +246,50 @@ func (s *service) recordDecision(ctx context.Context, r repository.Repositories,
 
 // ---------------- API-016 ----------------
 
-func (s *service) DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (bool, error) {
+func (s *service) DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (*casemodels.DuplicateCheckResponse, error) {
 	if s.curpKey == "" {
-		return false, ErrCryptoUnavailable
+		return nil, ErrCryptoUnavailable
 	}
 	curp = normalizeCURP(curp)
 	if !curpRe.MatchString(curp) {
-		return false, vErr("curp inv\u00e1lida")
+		return nil, vErr("curp inválida")
 	}
-	dup := false
+	out := &casemodels.DuplicateCheckResponse{}
 	err := s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
-		_, err := r.IndicesCURP().BuscarPersona(ctx, []repository.IndiceCURPClave{{VersionHMAC: curpHMACVersion, ValorHMAC: s.curpHMAC(curp)}})
-		if err == nil {
-			dup = true
-			return nil
-		}
+		personaID, err := r.IndicesCURP().BuscarPersona(ctx, []repository.IndiceCURPClave{{VersionHMAC: curpHMACVersion, ValorHMAC: s.curpHMAC(curp)}})
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		out.Duplicate = true
+		e, err := r.Expedientes().GetByPersonaID(ctx, personaID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// Token de un solo uso para pedir acceso al expediente (API-018). Solo
+		// se guarda su hash; el expediente no se revela en la respuesta.
+		token, hash, err := security.NewOpaqueToken()
+		if err != nil {
+			return err
+		}
+		vence := s.now().Add(linkTokenTTL)
+		if err := r.TokensVinculacion().Create(ctx, &models.TokenVinculacion{ExpedienteID: e.ID,
+			SolicitanteID: actor.ActorID, TokenHash: hash, VenceEn: vence}); err != nil {
+			return err
+		}
+		vence = vence.UTC()
+		out.LinkToken, out.LinkTokenExpiresAt = &token, &vence
+		return s.audit(ctx, r, actor, "casefile.duplicate_check.link_token", "expediente", &e.ID)
 	})
-	return dup, err
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // ---------------- API-017 ----------------

@@ -5,11 +5,15 @@ import (
 	"log"
 
 	"backend-hackathon/internal/auth"
+	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
 	repository "backend-hackathon/internal/repository/repositories"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+// Los errores salen con el sobre del contrato (httpx.Write en el ErrorHandler).
+var _ httpx.ErrorResponse
 
 // AuthHandler expone login, logout, CSRF y MFA.
 type AuthHandler struct {
@@ -37,11 +41,11 @@ type LoginRequest struct {
 // @Produce      json
 // @Param        request  body      LoginRequest  true  "Credenciales de acceso"
 // @Success      200      {object}  auth.LoginResult
-// @Failure      400      {object}  ErrorResponse
-// @Failure      401      {object}  ErrorResponse
+// @Failure      400      {object}  httpx.ErrorResponse
+// @Failure      401      {object}  httpx.ErrorResponse
 // @Failure      403      {object}  auth.MFAChallengeResponse
-// @Failure      429      {object}  ErrorResponse
-// @Failure      500      {object}  ErrorResponse
+// @Failure      429      {object}  httpx.ErrorResponse
+// @Failure      500      {object}  httpx.ErrorResponse
 // @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req LoginRequest
@@ -71,8 +75,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Success      200  {object}  auth.UsuarioInfo
-// @Failure      401  {object}  ErrorResponse
-// @Failure      500  {object}  ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
 // @Router       /auth/me [get]
 func (h *AuthHandler) Me(c *fiber.Ctx) error {
 	personalID, ok := middleware.PersonalID(c)
@@ -99,9 +103,10 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 // @Tags         auth
 // @Produce      json
 // @Security     BearerAuth
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión (viene en csrf_token del login)"
 // @Success      204  "Sin contenido"
-// @Failure      401  {object}  ErrorResponse
-// @Failure      500  {object}  ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	personalID, ok := middleware.PersonalID(c)
@@ -136,8 +141,8 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Success      200  {object}  auth.CSRFResult
-// @Failure      401  {object}  ErrorResponse
-// @Failure      500  {object}  ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
 // @Router       /auth/csrf-token [get]
 func (h *AuthHandler) CSRFToken(c *fiber.Ctx) error {
 	sessionID, ok := middleware.SessionID(c)
@@ -161,10 +166,11 @@ func (h *AuthHandler) CSRFToken(c *fiber.Ctx) error {
 // @Tags         auth
 // @Produce      json
 // @Security     BearerAuth
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión (viene en csrf_token del login)"
 // @Success      201  {object}  auth.EnrollmentResult
-// @Failure      401  {object}  ErrorResponse
-// @Failure      409  {object}  ErrorResponse
-// @Failure      500  {object}  ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
 // @Router       /auth/mfa/enrollments [post]
 func (h *AuthHandler) EnrollMFA(c *fiber.Ctx) error {
 	personalID, ok := middleware.PersonalID(c)
@@ -196,11 +202,11 @@ type VerifyMFARequest struct {
 // @Produce      json
 // @Param        request  body      VerifyMFARequest  true  "Código y challenge opcional"
 // @Success      200      {object}  auth.VerifyMFAResult
-// @Failure      400      {object}  ErrorResponse
-// @Failure      401      {object}  ErrorResponse
-// @Failure      403      {object}  ErrorResponse
-// @Failure      429      {object}  ErrorResponse
-// @Failure      500      {object}  ErrorResponse
+// @Failure      400      {object}  httpx.ErrorResponse
+// @Failure      401      {object}  httpx.ErrorResponse
+// @Failure      403      {object}  httpx.ErrorResponse
+// @Failure      429      {object}  httpx.ErrorResponse
+// @Failure      500      {object}  httpx.ErrorResponse
 // @Router       /auth/mfa/verify [post]
 func (h *AuthHandler) VerifyMFA(c *fiber.Ctx) error {
 	var req VerifyMFARequest
