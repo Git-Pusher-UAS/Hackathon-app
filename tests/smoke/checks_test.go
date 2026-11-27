@@ -104,13 +104,13 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 		{
 			name:    "health sin JSON",
 			check:   CheckHealth,
-			handler: override("GET /health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) }),
+			handler: override("GET /health", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("ok")) }),
 		},
 		{
 			name:  "health con status incorrecto",
 			check: CheckHealth,
 			handler: override("GET /health", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte(`{"status":"degradado"}`))
+				_, _ = w.Write([]byte(`{"status":"degradado"}`))
 			}),
 		},
 		{
@@ -118,7 +118,7 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			check: CheckHealthLatency,
 			handler: override("GET /health", func(w http.ResponseWriter, r *http.Request) {
 				time.Sleep(50 * time.Millisecond)
-				w.Write([]byte(`{"status":"ok"}`))
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
 			}),
 			modify: func(t *Target) { t.MaxLatency = 10 * time.Millisecond },
 		},
@@ -126,14 +126,14 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			name:  "ruta inexistente responde 200 (catch-all)",
 			check: CheckUnknownRoute404,
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte(`{"status":"ok"}`))
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
 			}),
 		},
 		{
 			name:  "ruta protegida abierta sin token",
 			check: CheckProtectedWithoutToken,
 			handler: override("GET /me", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte(`{"id":"1"}`))
+				_, _ = w.Write([]byte(`{"id":"1"}`))
 			}),
 		},
 		{
@@ -145,7 +145,7 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			name:  "una de varias rutas protegidas está abierta",
 			check: CheckProtectedWithoutToken,
 			handler: override("GET /abierta", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte(`{}`))
+				_, _ = w.Write([]byte(`{}`))
 			}),
 			modify: func(t *Target) { t.ProtectedRoutes = []string{"/me", "/abierta"} },
 		},
@@ -154,7 +154,7 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			check: CheckProtectedWithForgedToken,
 			handler: override("GET /me", func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
-					w.Write([]byte(`{"id":"1"}`))
+					_, _ = w.Write([]byte(`{"id":"1"}`))
 					return
 				}
 				w.WriteHeader(http.StatusUnauthorized)
@@ -179,7 +179,7 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			check: CheckInvalidPayload,
 			handler: override("POST /register", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusUnprocessableEntity)
-				w.Write([]byte("mal"))
+				_, _ = w.Write([]byte("mal"))
 			}),
 		},
 		{
@@ -208,14 +208,14 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			name:  "paginación sin metadatos",
 			check: CheckPagination,
 			handler: override("GET /items", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte(`[1,2]`))
+				_, _ = w.Write([]byte(`[1,2]`))
 			}),
 		},
 		{
 			name:  "paginación ignora limit",
 			check: CheckPagination,
 			handler: override("GET /items", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte(`{"data":[1,2,3,4],"pagination":{"page":1,"limit":2,"total":4}}`))
+				_, _ = w.Write([]byte(`{"data":[1,2,3,4],"pagination":{"page":1,"limit":2,"total":4}}`))
 			}),
 		},
 	}
