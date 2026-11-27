@@ -260,7 +260,7 @@ func main() {
 	apiContract.Get("/analytics/summary", analyticsmw.Require(analyticsmw.PermRead), analyticsHandler.Summary)
 	apiContract.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
 	apiContract.Get("/surveys/results", surveymw.Require(surveymw.PermResults), surveyHandler.Results)
-	apiContract.Post("/jobs", csrf, middleware.RequirePermiso("admin"), jobHandler.Create)
+	apiContract.Post("/jobs", csrf, coursemw.Require(coursemw.PermManage), jobHandler.Create)
 
 	courses := apiContract.Group("/courses", coursemw.Require(coursemw.PermManage))
 	courses.Get("", courseHandler.List)

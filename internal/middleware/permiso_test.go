@@ -41,4 +41,20 @@ func TestRequirePermiso(t *testing.T) {
 			t.Fatalf("status = %d, esperado 200", resp.StatusCode)
 		}
 	})
+
+	t.Run("admin bypass otorga acceso a otro permiso", func(t *testing.T) {
+		app := fiber.New()
+		app.Use(func(c *fiber.Ctx) error {
+			c.Locals("permisos", []string{"admin"})
+			return c.Next()
+		})
+		app.Get("/courses", RequirePermiso("courses.manage"), func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+		resp, err := app.Test(httptest.NewRequest("GET", "/courses", nil))
+		if err != nil {
+			t.Fatalf("app.Test: %v", err)
+		}
+		if resp.StatusCode != fiber.StatusOK {
+			t.Fatalf("status = %d, esperado 200", resp.StatusCode)
+		}
+	})
 }

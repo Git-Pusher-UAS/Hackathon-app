@@ -8,7 +8,14 @@ import (
 
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
+	analyticsmw "backend-hackathon/internal/middleware/analytics"
+	auditlogmw "backend-hackathon/internal/middleware/auditlog"
+	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
+	coursemw "backend-hackathon/internal/middleware/course"
+	outreachmw "backend-hackathon/internal/middleware/outreach"
+	refmw "backend-hackathon/internal/middleware/referral"
+	surveymw "backend-hackathon/internal/middleware/survey"
 	"backend-hackathon/internal/models"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	repository "backend-hackathon/internal/repository/repositories"
@@ -74,52 +81,103 @@ func main() {
 		{"Dirección", "Dirección"},
 		{"AdministradorTI", "Administrador de TI"},
 		{"AdministraciónAnalítica", "Administración Analítica"},
+		{"Capacitación", "Capacitación"},
 	}
+	roles := map[string]*models.Rol{}
 	for _, item := range rolesSpec {
-		if _, err := ensureRol(db, item.Codigo, item.Nombre); err != nil {
+		r, err := ensureRol(db, item.Codigo, item.Nombre)
+		if err != nil {
 			log.Fatalf("rol %s: %v", item.Codigo, err)
 		}
+		roles[item.Codigo] = r
 	}
 
 	// El perfil de TI administra cuentas y sesiones.
-	adminTI, err := ensureRol(db, "AdministradorTI", "Administrador de TI")
-	if err != nil {
-		log.Fatalf("rol AdministradorTI: %v", err)
-	}
+	adminTI := roles["AdministradorTI"]
 	if err := ensureRolPermiso(db, adminTI.ID, permiso.ID); err != nil {
 		log.Fatalf("rol_permiso AdministradorTI: %v", err)
 	}
-	// Permisos de casefile: todos al admin; el resto seg\u00fan el rol.
-	porRol := map[string][]string{
-		"TrabajoSocial":     {casemw.PermRead, casemw.PermWrite, casemw.PermConsent, casemw.PermRefer},
-		"Psicolog\u00eda":   {casemw.PermRead, casemw.PermWrite, casemw.PermConsent, casemw.PermRefer},
-		"Jur\u00eddico":     {casemw.PermRead, casemw.PermWrite, casemw.PermRefer},
-		"Coordinaci\u00f3n": {casemw.PermRead, casemw.PermWrite, casemw.PermAssign, casemw.PermDisclose, casemw.PermConsent, casemw.PermRefer},
-		"Direcci\u00f3n":    {casemw.PermRead, casemw.PermAssign, casemw.PermDisclose},
+
+	// Permisos: admin recibe todos los permisos registrados; RequirePermiso
+	// también otorga bypass al permiso "admin". La matriz por rol se mantiene
+	// explícita en seed para claridad operativa.
+	type permisoSeed struct {
+		Codigo      string
+		Descripcion string
+		Roles       []string
 	}
+	all := make([]permisoSeed, 0, 32)
 	for _, p := range casemw.Permisos {
+		all = append(all, permisoSeed{Codigo: p.Codigo, Descripcion: p.Descripcion})
+	}
+	all = append(all,
+		permisoSeed{Codigo: refmw.PermRead, Descripcion: "Consultar canalizaciones", Roles: []string{"TrabajoSocial", "Psicología", "Jurídico", "Coordinación", "Dirección"}},
+		permisoSeed{Codigo: refmw.PermTransition, Descripcion: "Transicionar canalizaciones", Roles: []string{"TrabajoSocial", "Psicología", "Jurídico", "Coordinación"}},
+		permisoSeed{Codigo: carmw.PermRequest, Descripcion: "Solicitar acceso a expedientes", Roles: []string{"TrabajoSocial", "Psicología", "Jurídico"}},
+		permisoSeed{Codigo: carmw.PermReview, Descripcion: "Revisar solicitudes de acceso", Roles: []string{"Coordinación", "Dirección"}},
+		permisoSeed{Codigo: auditlogmw.PermRead, Descripcion: "Consultar bitácora de auditoría", Roles: []string{"Dirección", "AdministradorTI", "AdministraciónAnalítica"}},
+		permisoSeed{Codigo: analyticsmw.PermRead, Descripcion: "Consultar analítica agregada", Roles: []string{"Coordinación", "Dirección", "AdministraciónAnalítica"}},
+		permisoSeed{Codigo: analyticsmw.PermHeatmap, Descripcion: "Consultar mapa de calor", Roles: []string{"Coordinación", "Dirección", "AdministraciónAnalítica"}},
+		permisoSeed{Codigo: coursemw.PermManage, Descripcion: "Gestionar cursos y bolsa de trabajo", Roles: []string{"Capacitación"}},
+		permisoSeed{Codigo: outreachmw.PermManage, Descripcion: "Gestionar visitas de vinculación", Roles: []string{"Capacitación"}},
+		permisoSeed{Codigo: surveymw.PermResults, Descripcion: "Consultar resultados de encuestas", Roles: []string{"Coordinación", "Dirección", "AdministraciónAnalítica", "Capacitación"}},
+	)
+
+	// Matriz RBAC base de expedientes. casefile.disclose se asigna también a
+	// roles de atención (Trabajo social, Psicología, Jurídico) para "Mostrar dato".
+	// Coordinación y Dirección conservan lectura/gestión según su función; no se
+	// otorga acceso amplio a Administración fuera de analítica/auditoría asignada.
+	porRol := map[string][]string{
+		"TrabajoSocial":           {casemw.PermRead, casemw.PermWrite, casemw.PermConsent, casemw.PermRefer, casemw.PermDisclose},
+		"Psicología":              {casemw.PermRead, casemw.PermWrite, casemw.PermConsent, casemw.PermRefer, casemw.PermDisclose},
+		"Jurídico":                {casemw.PermRead, casemw.PermWrite, casemw.PermRefer, casemw.PermDisclose},
+		"Coordinación":            {casemw.PermRead, casemw.PermWrite, casemw.PermAssign, casemw.PermDisclose, casemw.PermConsent, casemw.PermRefer},
+		"Dirección":               {casemw.PermRead, casemw.PermAssign, casemw.PermDisclose},
+		"AdministraciónAnalítica": {},
+		"AdministradorTI":         {},
+		"Capacitación":            {},
+	}
+	for _, p := range all {
 		perm, err := ensurePermiso(db, p.Codigo, p.Descripcion)
 		if err != nil {
 			log.Fatalf("permiso %s: %v", p.Codigo, err)
 		}
-		if err := ensureRolPermiso(db, rol.ID, perm.ID); err != nil { // rol = admin
+		if err := ensureRolPermiso(db, rol.ID, perm.ID); err != nil { // rol admin
 			log.Fatalf("rol_permiso admin/%s: %v", p.Codigo, err)
 		}
-		for codRol, perms := range porRol {
-			for _, pc := range perms {
-				if pc != p.Codigo {
-					continue
-				}
-				r, err := ensureRol(db, codRol, codRol)
-				if err != nil {
-					log.Fatalf("rol %s: %v", codRol, err)
-				}
-				if err := ensureRolPermiso(db, r.ID, perm.ID); err != nil {
-					log.Fatalf("rol_permiso %s/%s: %v", codRol, p.Codigo, err)
-				}
+		if err := ensureRolPermiso(db, adminTI.ID, perm.ID); err != nil {
+			log.Fatalf("rol_permiso AdministradorTI/%s: %v", p.Codigo, err)
+		}
+		for _, codRol := range p.Roles {
+			porRol[codRol] = append(porRol[codRol], p.Codigo)
+		}
+	}
+	for codRol, perms := range porRol {
+		r, ok := roles[codRol]
+		if !ok {
+			var err error
+			r, err = ensureRol(db, codRol, codRol)
+			if err != nil {
+				log.Fatalf("rol %s: %v", codRol, err)
+			}
+		}
+		seen := map[string]bool{}
+		for _, pc := range perms {
+			if seen[pc] {
+				continue
+			}
+			seen[pc] = true
+			perm, err := ensurePermiso(db, pc, pc)
+			if err != nil {
+				log.Fatalf("permiso %s: %v", pc, err)
+			}
+			if err := ensureRolPermiso(db, r.ID, perm.ID); err != nil {
+				log.Fatalf("rol_permiso %s/%s: %v", codRol, pc, err)
 			}
 		}
 	}
+	log.Print("Matriz RBAC aplicada: admin bypass en RequirePermiso + permisos explícitos por seed; casefile.disclose asignado a atención; Capacitacion con courses.manage/outreach.manage/surveys.results")
+
 	usuario := strings.ToLower(strings.TrimSpace(cfg.InitialAdmin.Username))
 
 	var existente models.Personal
