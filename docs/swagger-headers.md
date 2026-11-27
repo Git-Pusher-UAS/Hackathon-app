@@ -12,7 +12,7 @@ Plantilla de anotaciones para copiar **encima del método handler**. No debe hab
 // @Tags         nombre-del-dominio
 // @Produce      json
 // @Success      200  {object}  MiResponse
-// @Failure      500  {object}  ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
 // @Router       /ruta [get]
 func (h *MiHandler) NombreHandler(c *fiber.Ctx) error {
 ```
@@ -29,8 +29,8 @@ func (h *MiHandler) NombreHandler(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        request  body      MiRequest  true  "Datos de entrada"
 // @Success      201      {object}  MiResponse
-// @Failure      400      {object}  ErrorResponse
-// @Failure      500      {object}  ErrorResponse
+// @Failure      400      {object}  httpx.ErrorResponse
+// @Failure      500      {object}  httpx.ErrorResponse
 // @Router       /ruta [post]
 func (h *MiHandler) NombreHandler(c *fiber.Ctx) error {
 ```
@@ -41,7 +41,7 @@ Añade `@Security BearerAuth` al bloque del endpoint:
 
 ```go
 // @Security     BearerAuth
-// @Failure      401  {object}  ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
 ```
 
 ## 4. Parámetros
@@ -59,13 +59,13 @@ Añade `@Security BearerAuth` al bloque del endpoint:
 // @Success 200 {object} MiResponse
 // @Success 200 {array}  models.Expediente
 // @Success 204 "Sin contenido"
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 403 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 409 {object} ErrorResponse
-// @Failure 429 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} httpx.ErrorResponse
+// @Failure 401 {object} httpx.ErrorResponse
+// @Failure 403 {object} httpx.ErrorResponse
+// @Failure 404 {object} httpx.ErrorResponse
+// @Failure 409 {object} httpx.ErrorResponse
+// @Failure 429 {object} httpx.ErrorResponse
+// @Failure 500 {object} httpx.ErrorResponse
 ```
 
 ## 6. Cabecera general de la API
@@ -77,7 +77,7 @@ Ya está definida en `cmd/main.go`; no se repite por endpoint:
 // @version         1.0
 // @description     Documentación de endpoints de la API.
 // @host            localhost:3000
-// @BasePath        /api
+// @BasePath        /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in              header
 // @name            Authorization
@@ -85,14 +85,19 @@ Ya está definida en `cmd/main.go`; no se repite por endpoint:
 
 ## 7. Reglas del proyecto
 
-- Rutas dentro de `api := app.Group("/api")`: usar ruta relativa, por ejemplo `@Router /auth/login [post]` (sin `/api`).
-- Rutas dentro de `protected`: añadir `@Security BearerAuth`.
-- `/health` está fuera de `/api`: se documenta como `@Router /health [get]` y se aclara en la descripción.
-- Usar los DTOs reales. Si el handler devuelve `fiber.Map`, crear un struct con tags `json` y `example`.
-- Para errores usar `{object} ErrorResponse`.
-- Después de agregar el endpoint, registrar la ruta en `cmd/main.go` y regenerar:
+- Todo el contrato vive bajo `/api/v1` (`@BasePath /api/v1`): usar ruta relativa, por ejemplo `@Router /case-files [get]` (sin `/api/v1`).
+- Rutas dentro de `priv` (protegidas): añadir `@Security BearerAuth`. Las escrituras (POST/PATCH/PUT/DELETE) llevan además `@Param X-CSRF-Token header string true "..."`.
+- `GET /health` se sirve en `/health` (healthchecks de Docker y CI) y en `/api/v1/health` (contrato).
+- Rutas públicas (login, verificación MFA, directorio institucional): se registran en `cmd/main.go` **antes** del grupo `priv`, porque ese grupo se monta como middleware sobre todo `/api/v1`.
+- Usar los DTOs reales en `@Success`, nunca `{object} object`: el front genera sus tipos a partir de ellos. Si el handler devuelve `fiber.Map`, crear un struct o usar `object{campo=tipo}`.
+- Para errores usar `{object} httpx.ErrorResponse` (sobre `{"error": {"code", "message", "requestId"}}`, el único formato de error de la API).
+- Si un DTO vive en un paquete nuevo de `internal/models/<modulo>`, agregar su nombre legible en `pkgNames` de `cmd/openapi/main.go`.
+- Después de agregar o cambiar un endpoint, registrar la ruta en `cmd/main.go` y regenerar Swagger **y** el contrato:
 
 ```bash
 swag init -g cmd/main.go -d . --parseDependency --parseInternal
-go build ./cmd/main.go
+go run ./cmd/openapi          # escribe api/openapi.yaml (OpenAPI 3)
+go run ./cmd/openapi -check   # verifica que api/openapi.yaml está al día
 ```
+
+`api/openapi.yaml` es el contrato que el front sincroniza con `make sync-contract REF=contract-vN`. No se edita a mano.

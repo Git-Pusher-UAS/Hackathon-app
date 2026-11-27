@@ -1,0 +1,2339 @@
+# GENERADO: no editar a mano. Fuente: anotaciones swag -> docs/swagger.json -> go run ./cmd/openapi
+components:
+  schemas:
+    AuthCSRFResult:
+      properties:
+        csrfToken:
+          type: string
+      type: object
+    AuthChallenge:
+      properties:
+        challengeId:
+          type: string
+        expiresAt:
+          type: string
+        next:
+          enum:
+            - totp
+            - enroll
+          type: string
+      type: object
+    AuthEnrollmentResult:
+      properties:
+        enrollmentId:
+          type: string
+        otpauthUri:
+          type: string
+      type: object
+    AuthSession:
+      properties:
+        csrfToken:
+          type: string
+        expiresAt:
+          type: string
+        idleExpiresAt:
+          type: string
+        usuario:
+          $ref: '#/components/schemas/AuthUsuarioInfo'
+      type: object
+    AuthUsuarioInfo:
+      properties:
+        departamentoId:
+          type: string
+        id:
+          type: string
+        nombreLaboral:
+          type: string
+        permisos:
+          items:
+            type: string
+          type: array
+        requiereCambioPassword:
+          type: boolean
+        rol:
+          type: string
+        usuario:
+          type: string
+      type: object
+    CasefileAssignRequest:
+      properties:
+        departamentoId:
+          type: string
+        motivo:
+          type: string
+        personalId:
+          type: string
+      type: object
+    CasefileAssignmentView:
+      properties:
+        departamentoId:
+          type: string
+        fin:
+          type: string
+        id:
+          type: string
+        inicio:
+          type: string
+        personalId:
+          type: string
+      type: object
+    CasefileConsentInput:
+      properties:
+        capturadoEn:
+          type: string
+        decision:
+          $ref: '#/components/schemas/DecisionConsentimiento'
+        modalidad:
+          $ref: '#/components/schemas/ModalidadConsentimiento'
+        propositoIds:
+          items:
+            type: string
+          type: array
+      type: object
+    CasefileConsentView:
+      properties:
+        consentId:
+          type: string
+        decididoEn:
+          type: string
+        decision:
+          $ref: '#/components/schemas/DecisionConsentimiento'
+        propositoId:
+          type: string
+        revocado:
+          type: boolean
+        revocadoEn:
+          type: string
+        vigente:
+          type: boolean
+      type: object
+    CasefileCreateRequest:
+      properties:
+        alias:
+          type: string
+        consentimiento:
+          $ref: '#/components/schemas/CasefileConsentInput'
+        curp:
+          type: string
+        domicilio:
+          type: string
+        fechaNacimiento:
+          description: YYYY-MM-DD
+          type: string
+        institucionOrigenId:
+          type: string
+        nombre:
+          type: string
+        origenContacto:
+          $ref: '#/components/schemas/OrigenContacto'
+        sectorId:
+          type: string
+        telefono:
+          type: string
+        tipoCasoId:
+          type: string
+      type: object
+    CasefileDisclosureRequest:
+      properties:
+        campo:
+          description: nombre|curp|fechaNacimiento|telefono|domicilio
+          type: string
+      type: object
+    CasefileDisclosureResponse:
+      properties:
+        campo:
+          type: string
+        valor:
+          type: string
+      type: object
+    CasefileDuplicateCheckRequest:
+      properties:
+        curp:
+          type: string
+      type: object
+    CasefileDuplicateCheckResponse:
+      properties:
+        duplicate:
+          type: boolean
+      type: object
+    CasefileNoteCreateRequest:
+      properties:
+        corrigeNotaId:
+          type: string
+        ocurridoEn:
+          type: string
+        texto:
+          type: string
+      type: object
+    CasefileNoteView:
+      properties:
+        autorId:
+          type: string
+        corrigeNotaId:
+          type: string
+        createdAt:
+          type: string
+        episodioId:
+          type: string
+        id:
+          type: string
+        ocurridoEn:
+          type: string
+        texto:
+          type: string
+      type: object
+    CasefilePageNoteView:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CasefileNoteView'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    CasefilePageSummary:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CasefileSummary'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    CasefilePageTimelineItem:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CasefileTimelineItem'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    CasefileReferralCreateRequest:
+      properties:
+        destinoId:
+          type: string
+        resumen:
+          type: string
+      type: object
+    CasefileReferralView:
+      properties:
+        createdAt:
+          type: string
+        destinoId:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoCanalizacion'
+        expedienteId:
+          type: string
+        id:
+          type: string
+        origenId:
+          type: string
+        versionTag:
+          type: string
+      type: object
+    CasefileRevokeConsentRequest:
+      properties:
+        motivo:
+          type: string
+        propositoIds:
+          items:
+            type: string
+          type: array
+      type: object
+    CasefileSummary:
+      properties:
+        alias:
+          type: string
+        closedAt:
+          type: string
+        createdAt:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoExpediente'
+        id:
+          type: string
+        origenContacto:
+          $ref: '#/components/schemas/OrigenContacto'
+        tipoCasoId:
+          type: string
+        updatedAt:
+          type: string
+        versionTag:
+          type: string
+      type: object
+    CasefileTimelineItem:
+      properties:
+        actorId:
+          type: string
+        departamentoId:
+          type: string
+        id:
+          type: string
+        ocurridoEn:
+          type: string
+        resumen:
+          type: string
+        tipo:
+          type: string
+      type: object
+    CasefileUpdateRequest:
+      properties:
+        alias:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoExpediente'
+        motivo:
+          type: string
+        tipoCasoId:
+          type: string
+      type: object
+    DecisionConsentimiento:
+      enum:
+        - aceptado
+        - rechazado
+      type: string
+      x-enum-varnames:
+        - DecisionAceptado
+        - DecisionRechazado
+    EnrollMFARequest:
+      properties:
+        challengeId:
+          type: string
+      type: object
+    ErrorDetail:
+      properties:
+        code:
+          example: validation_failed
+          type: string
+        fields:
+          additionalProperties:
+            type: string
+          description: 'Fields solo viene en 422: campo -> código (p. ej. "formato_invalido").'
+          type: object
+        message:
+          example: alias debe tener entre 1 y 100 caracteres
+          type: string
+        requestId:
+          example: 6f1c2f7e-6f3f-4f0e-9f3a-2b1d4c5e6f70
+          type: string
+      type: object
+    ErrorResponse:
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+      type: object
+    EstadoCanalizacion:
+      enum:
+        - pendiente
+        - aceptada
+        - rechazada
+        - cancelada
+        - completada
+      type: string
+      x-enum-varnames:
+        - CanalizacionPendiente
+        - CanalizacionAceptada
+        - CanalizacionRechazada
+        - CanalizacionCancelada
+        - CanalizacionCompletada
+    EstadoExpediente:
+      enum:
+        - abierto
+        - en_seguimiento
+        - cerrado
+      type: string
+      x-enum-varnames:
+        - ExpedienteAbierto
+        - ExpedienteEnSeguimiento
+        - ExpedienteCerrado
+    EstadoPersonal:
+      enum:
+        - activo
+        - suspendido
+      type: string
+      x-enum-varnames:
+        - PersonalActivo
+        - PersonalSuspendido
+    HealthResponse:
+      properties:
+        status:
+          example: OK
+          type: string
+        time:
+          example: "2026-01-02T15:04:05Z"
+          type: string
+      type: object
+    LoginRequest:
+      properties:
+        password:
+          example: ••••••••••••
+          type: string
+        usuario:
+          example: lramos
+          type: string
+      type: object
+    ModalidadConsentimiento:
+      enum:
+        - presencial
+        - digital
+      type: string
+      x-enum-varnames:
+        - ModalidadPresencial
+        - ModalidadDigital
+    OrigenContacto:
+      enum:
+        - presencial
+        - institucion
+        - linea_atencion
+        - patrulla_genero
+        - emergencia_referida
+      type: string
+      x-enum-varnames:
+        - OrigenPresencial
+        - OrigenInstitucion
+        - OrigenLineaAtencion
+        - OrigenPatrullaGenero
+        - OrigenEmergenciaReferida
+    StatusDatabase:
+      properties:
+        error:
+          example: 'dial tcp: connection refused'
+          type: string
+        latency_ms:
+          example: 3
+          type: integer
+        status:
+          example: ok
+          type: string
+      type: object
+    StatusResponse:
+      properties:
+        database:
+          $ref: '#/components/schemas/StatusDatabase'
+        service:
+          example: backend-hackathon
+          type: string
+        status:
+          example: ok
+          type: string
+        uptime_seconds:
+          example: 120
+          type: integer
+        version:
+          example: dev
+          type: string
+      type: object
+    UserActor:
+      properties:
+        departmentId:
+          type: string
+        displayName:
+          type: string
+        id:
+          type: string
+        permissions:
+          items:
+            type: string
+          type: array
+        rol:
+          type: string
+      type: object
+    UserCreateRequest:
+      properties:
+        departamentoId:
+          type: string
+        nombreLaboral:
+          type: string
+        password:
+          type: string
+        rol:
+          type: string
+        usuario:
+          type: string
+      type: object
+    UserMFAResetRequest:
+      properties:
+        motivo:
+          type: string
+        verificacionPresencial:
+          type: boolean
+      type: object
+    UserMeResponse:
+      properties:
+        actor:
+          $ref: '#/components/schemas/UserActor'
+        expiresAt:
+          type: string
+        idleExpiresAt:
+          type: string
+      type: object
+    UserPageSessionSummary:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserSessionSummary'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    UserPageStaffSummary:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserStaffSummary'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    UserRevokeSessionsRequest:
+      properties:
+        motivo:
+          type: string
+      type: object
+    UserSessionSummary:
+      properties:
+        createdAt:
+          type: string
+        current:
+          type: boolean
+        deviceLabel:
+          type: string
+        expiresAt:
+          type: string
+        id:
+          type: string
+        lastActivityAt:
+          type: string
+      type: object
+    UserStaffSummary:
+      properties:
+        departamentoId:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoPersonal'
+        id:
+          type: string
+        nombreLaboral:
+          type: string
+        rol:
+          type: string
+        usuario:
+          type: string
+        versionTag:
+          type: string
+      type: object
+    UserUpdateRequest:
+      properties:
+        departamentoId:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoPersonal'
+        rol:
+          type: string
+      type: object
+    VerifyMFARequest:
+      properties:
+        challengeId:
+          type: string
+        code:
+          example: "123456"
+          type: string
+        enrollmentId:
+          type: string
+      type: object
+  securitySchemes:
+    BearerAuth:
+      bearerFormat: JWT
+      description: JWT de POST /auth/login. Las escrituras exigen además X-CSRF-Token (csrf_token del login o GET /auth/csrf-token).
+      scheme: bearer
+      type: http
+info:
+  contact: {}
+  description: Documentación de endpoints de la API.
+  title: SAI API
+  version: "1.0"
+openapi: 3.0.3
+paths:
+  /auth/csrf-token:
+    get:
+      description: Genera un token CSRF nuevo para la sesión e invalida el anterior. La pantalla lo pide al recargar con una sesión viva.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthCSRFResult'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+      security:
+        - BearerAuth: []
+      summary: Obtener token CSRF
+      tags:
+        - auth
+  /auth/login:
+    post:
+      description: 'Valida usuario y contraseña con límite de 5 fallos en 15 min. Responde siempre 202 con un reto: next=totp si la cuenta ya tiene segundo factor, next=enroll si debe configurarlo. Nadie entra sin segundo factor. Pública, sin CSRF.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        description: Credenciales
+        required: true
+        x-originalParamName: request
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthChallenge'
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: invalid_credentials (no revela si el usuario existe)
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: account_suspended
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: too_many_attempts, con Retry-After
+      summary: Iniciar sesión (paso 1)
+      tags:
+        - auth
+  /auth/logout:
+    post:
+      description: Revoca la sesión actual y expira la cookie sai_staff (Max-Age=0). Es idempotente.
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Sin contenido
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: csrf_invalid
+      security:
+        - BearerAuth: []
+      summary: Cerrar sesión
+      tags:
+        - auth
+  /auth/me:
+    get:
+      description: Misma información que el campo usuario de la sesión. El frontend usa GET /users/me.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUsuarioInfo'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+      security:
+        - BearerAuth: []
+      summary: Cuenta autenticada (legado)
+      tags:
+        - auth
+  /auth/mfa/enrollments:
+    post:
+      description: Con el challengeId de un login con next=enroll genera el secreto TOTP. otpauthUri se muestra una sola vez; después se confirma con POST /auth/mfa/verify enviando enrollmentId. Pública, sin CSRF.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollMFARequest'
+        description: Reto del login
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthEnrollmentResult'
+          description: Created
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: mfa_already_enrolled
+        "410":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: challenge_expired
+      summary: Configurar segundo factor
+      tags:
+        - auth
+  /auth/mfa/verify:
+    post:
+      description: Valida el código del reto. Si el reto es de enrolamiento, enrollmentId es obligatorio y activa el segundo factor. Responde la sesión y pone la cookie sai_staff (HttpOnly, Secure, SameSite=Strict, Path=/api). El csrfToken se guarda solo en memoria. Pública, sin CSRF.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyMFARequest'
+        description: Reto y código
+        required: true
+        x-originalParamName: request
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+          description: OK
+          headers:
+            Set-Cookie:
+              description: sai_staff=<jwt>; HttpOnly; Secure; SameSite=Strict; Path=/api
+              schema:
+                type: string
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: invalid_code
+        "410":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: challenge_expired
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: too_many_attempts
+      summary: Verificar segundo factor (paso 2)
+      tags:
+        - auth
+  /case-files:
+    get:
+      description: Obtiene una página de expedientes filtrable por estado y alias.
+      parameters:
+        - description: Tamaño de página (1-100, default 20)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor de paginación
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - description: Estado del expediente
+          in: query
+          name: estado
+          schema:
+            type: string
+        - description: Alias de búsqueda
+          in: query
+          name: alias
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefilePageSummary'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Listar expedientes
+      tags:
+        - case-files
+    post:
+      description: Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.
+      parameters:
+        - description: UUID de operación idempotente
+          in: header
+          name: X-Operation-Id
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileCreateRequest'
+        description: Datos del expediente
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileSummary'
+          description: Created
+          headers:
+            ETag:
+              description: Versión actual del recurso
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Service Unavailable
+      security:
+        - BearerAuth: []
+      summary: Crear expediente
+      tags:
+        - case-files
+  /case-files/{recordId}:
+    get:
+      description: Devuelve los datos de un expediente por recordId y su cabecera ETag.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileSummary'
+          description: OK
+          headers:
+            ETag:
+              description: Versión actual del recurso
+              schema:
+                type: string
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Obtener expediente
+      tags:
+        - case-files
+    patch:
+      description: Actualiza un expediente requiriendo la cabecera If-Match con la versión esperada.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: ETag / versión actual del recurso
+          in: header
+          name: If-Match
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileUpdateRequest'
+        description: Campos a actualizar
+        required: true
+        x-originalParamName: request
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileSummary'
+          description: OK
+          headers:
+            ETag:
+              description: Nueva versión del recurso
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "412":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Precondition Failed
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Actualizar expediente
+      tags:
+        - case-files
+  /case-files/{recordId}/assignments:
+    post:
+      description: Crea una asignación activa sobre el expediente indicado.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileAssignRequest'
+        description: Datos de asignación
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileAssignmentView'
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Asignar personal al expediente
+      tags:
+        - case-files-assignments
+  /case-files/{recordId}/assignments/{assignmentId}/revocations:
+    post:
+      description: Revoca una asignación específica dentro de un expediente.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: UUID de la asignación
+          in: path
+          name: assignmentId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: No Content
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Revocar asignación
+      tags:
+        - case-files-assignments
+  /case-files/{recordId}/consents:
+    get:
+      description: Devuelve los consentimientos asociados a un expediente bajo la clave items.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/CasefileConsentView'
+                    type: array
+                type: object
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Listar consentimientos
+      tags:
+        - case-files-consents
+    post:
+      description: Guarda un consentimiento con cabecera X-Operation-Id opcional.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: UUID de operación idempotente (opcional)
+          in: header
+          name: X-Operation-Id
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileConsentInput'
+        description: Datos del consentimiento
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/CasefileConsentView'
+                    type: array
+                type: object
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Registrar consentimiento
+      tags:
+        - case-files-consents
+  /case-files/{recordId}/consents/{consentId}/revocations:
+    post:
+      description: Revoca finalidades opcionales de una decisión de consentimiento. Devuelve el estado vigente de todas las finalidades.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: UUID del consentimiento
+          in: path
+          name: consentId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileRevokeConsentRequest'
+        description: Motivo o datos de revocación
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                properties:
+                  items:
+                    items:
+                      $ref: '#/components/schemas/CasefileConsentView'
+                    type: array
+                type: object
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Revocar consentimiento
+      tags:
+        - case-files-consents
+  /case-files/{recordId}/departments/{departmentId}/notes:
+    get:
+      description: Obtiene notas paginadas de un expediente para un departamento dado.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: UUID del departamento
+          in: path
+          name: departmentId
+          required: true
+          schema:
+            type: string
+        - description: Tamaño de página (1-100, default 20)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor de paginación
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - description: UUID del episodio (opcional)
+          in: query
+          name: episodeId
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefilePageNoteView'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Listar notas por departamento
+      tags:
+        - case-files-notes
+    post:
+      description: Registra una nota en un expediente y departamento usando X-Operation-Id.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: UUID del departamento
+          in: path
+          name: departmentId
+          required: true
+          schema:
+            type: string
+        - description: UUID de operación idempotente
+          in: header
+          name: X-Operation-Id
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileNoteCreateRequest'
+        description: Contenido de la nota
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileNoteView'
+          description: Created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Crear nota
+      tags:
+        - case-files-notes
+  /case-files/{recordId}/disclosures:
+    post:
+      description: Solicita la divulgación o consulta de un campo específico del expediente.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileDisclosureRequest'
+        description: Campo a revelar
+        required: true
+        x-originalParamName: request
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileDisclosureResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Service Unavailable
+      security:
+        - BearerAuth: []
+      summary: Revelar campo del expediente
+      tags:
+        - case-files
+  /case-files/{recordId}/referrals:
+    post:
+      description: Registra una canalización para el expediente requiriendo X-Operation-Id y devuelve ETag.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: UUID de operación idempotente
+          in: header
+          name: X-Operation-Id
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileReferralCreateRequest'
+        description: Datos de la canalización
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileReferralView'
+          description: Created
+          headers:
+            ETag:
+              description: Versión actual del recurso
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Crear canalización
+      tags:
+        - case-files-referrals
+  /case-files/{recordId}/timeline:
+    get:
+      description: Lista eventos del expediente filtrables por tipos, rango de fechas RFC3339 y paginación.
+      parameters:
+        - description: UUID del expediente
+          in: path
+          name: recordId
+          required: true
+          schema:
+            type: string
+        - description: Tamaño de página (1-100, default 20)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor de paginación
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - description: Tipos de evento separados por coma
+          in: query
+          name: tipos
+          schema:
+            type: string
+        - description: Fecha inicial en formato RFC3339
+          in: query
+          name: desde
+          schema:
+            type: string
+        - description: Fecha final en formato RFC3339
+          in: query
+          name: hasta
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefilePageTimelineItem'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Línea de tiempo del expediente
+      tags:
+        - case-files
+  /case-files/duplicate-checks:
+    post:
+      description: Consulta si ya existe una persona con ese CURP. Si existe, devuelve además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests. El CURP viaja solo en el cuerpo, nunca en la URL.
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasefileDuplicateCheckRequest'
+        description: CURP a verificar
+        required: true
+        x-originalParamName: request
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasefileDuplicateCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Verificar duplicado por CURP
+      tags:
+        - case-files
+  /health:
+    get:
+      description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+          description: OK
+      summary: Liveness probe
+      tags:
+        - health
+  /status:
+    get:
+      description: Comprueba la conexión con la base de datos y devuelve el estado del servicio.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+          description: OK
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+          description: Service Unavailable
+      summary: Readiness probe
+      tags:
+        - status
+  /users:
+    get:
+      description: Lista las cuentas de personal. Requiere permiso de administración.
+      parameters:
+        - description: Búsqueda por usuario o nombre laboral
+          in: query
+          name: q
+          schema:
+            type: string
+        - description: Tamaño de página (1-100)
+          in: query
+          name: limit
+          schema:
+            default: 20
+            type: integer
+        - description: Cursor opaco de paginación
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPageStaffSummary'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Listar cuentas
+      tags:
+        - users
+    post:
+      description: Crea una cuenta de personal. Requiere permiso de administración.
+      parameters:
+        - description: Token CSRF de la sesión (GET /api/v1/auth/csrf-token)
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+        description: Datos de la cuenta
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStaffSummary'
+          description: Created
+          headers:
+            ETag:
+              description: ETag de la versión creada
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Crear cuenta
+      tags:
+        - users
+  /users/{userId}:
+    patch:
+      description: Actualiza rol, departamento o estado de una cuenta. Requiere el ETag actual en If-Match.
+      parameters:
+        - description: ID de la cuenta
+          in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión (GET /api/v1/auth/csrf-token)
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+        - description: ETag de la versión actual (versionTag)
+          in: header
+          name: If-Match
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+        description: Campos a actualizar
+        required: true
+        x-originalParamName: request
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStaffSummary'
+          description: OK
+          headers:
+            ETag:
+              description: Nuevo ETag de la versión
+              schema:
+                type: string
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "412":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Precondition Failed
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "428":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Precondition Required
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Actualizar cuenta
+      tags:
+        - users
+  /users/{userId}/mfa-resets:
+    post:
+      description: Invalida el segundo factor de la cuenta; en su próximo acceso el login responde next=enroll. Exige verificación presencial. Requiere permiso de administración.
+      parameters:
+        - description: ID de la cuenta
+          in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserMFAResetRequest'
+        description: Motivo y verificación presencial
+        required: true
+        x-originalParamName: request
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                properties:
+                  resetId:
+                    type: string
+                type: object
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Restablecer MFA de una cuenta
+      tags:
+        - users
+  /users/{userId}/session-revocations:
+    post:
+      description: Revoca todas las sesiones de una cuenta. Requiere permiso de administración.
+      parameters:
+        - description: ID de la cuenta
+          in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión (GET /api/v1/auth/csrf-token)
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRevokeSessionsRequest'
+        description: Motivo de la revocación
+        required: true
+        x-originalParamName: request
+      responses:
+        "204":
+          description: Sin contenido
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Revocar sesiones de una cuenta
+      tags:
+        - users
+  /users/me:
+    get:
+      description: Devuelve la cuenta autenticada, sus permisos y los vencimientos de la sesión.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMeResponse'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Cuenta autenticada
+      tags:
+        - users
+  /users/me/sessions:
+    get:
+      description: Devuelve las sesiones de la cuenta autenticada en orden de actividad reciente.
+      parameters:
+        - description: Tamaño de página (1-100)
+          in: query
+          name: limit
+          schema:
+            default: 20
+            type: integer
+        - description: Cursor opaco de paginación
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPageSessionSummary'
+          description: OK
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Listar sesiones propias
+      tags:
+        - users
+  /users/me/sessions/{sessionId}:
+    delete:
+      description: Revoca una sesión de la cuenta autenticada. No permite revocar la sesión actual.
+      parameters:
+        - description: ID de la sesión
+          in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión (GET /api/v1/auth/csrf-token)
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Sin contenido
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+        - BearerAuth: []
+      summary: Revocar sesión propia
+      tags:
+        - users
+servers:
+  - description: Base path del contrato
+    url: /api/v1

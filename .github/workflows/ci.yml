@@ -50,6 +50,8 @@ jobs:
           go-version-file: go.mod
       - name: go vet
         run: go vet ./... && go vet -tags smoke ./tests/smoke/
+      - name: Contrato api/openapi.yaml al día con docs/swagger.json
+        run: go run ./cmd/openapi -check
       - name: golangci-lint (incluye gofmt, ver .golangci.yml)
         uses: golangci/golangci-lint-action@v8
         with:
