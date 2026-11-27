@@ -24,7 +24,9 @@ type PersonalFilter struct {
 	Estado         *models.EstadoPersonal
 	RolID          *uuid.UUID
 	DepartamentoID *uuid.UUID
-	Busqueda       string // coincidencia por usuario o nombre laboral
+	// DepartamentoIDs limita a varios departamentos (vacío = todos).
+	DepartamentoIDs []uuid.UUID
+	Busqueda        string // usuario o nombre laboral, sin distinguir acentos
 }
 
 // A12 · identidad.personal
@@ -105,6 +107,8 @@ type MFAPersonalRepository interface {
 // A15 · identidad.sesiones_personal
 type SesionPersonalRepository interface {
 	Create(ctx context.Context, s *models.SesionPersonal) error
+	// UltimoAcceso devuelve la última actividad de sesión de cada titular.
+	UltimoAcceso(ctx context.Context, titularIDs []uuid.UUID) (map[uuid.UUID]time.Time, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*models.SesionPersonal, error)
 	GetByTokenHash(ctx context.Context, tokenHash []byte) (*models.SesionPersonal, error)
 

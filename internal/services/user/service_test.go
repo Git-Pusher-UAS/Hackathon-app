@@ -53,17 +53,17 @@ type fakeRepos struct {
 	audit         *fakeAuditRepo
 }
 
-func (r *fakeRepos) Actores() repository.ActorRepository                       { return r.actores }
+func (r *fakeRepos) Actores() repository.ActorRepository                     { return r.actores }
 func (r *fakeRepos) Departamentos() repository.DepartamentoRepository        { return r.departamentos }
 func (r *fakeRepos) Personal() repository.PersonalRepository                 { return r.personal }
-func (r *fakeRepos) Roles() repository.RolRepository                           { return r.roles }
-func (r *fakeRepos) Permisos() repository.PermisoRepository                    { return r.permisos }
-func (r *fakeRepos) Sesiones() repository.SesionPersonalRepository             { return r.sesiones }
-func (r *fakeRepos) MFA() repository.MFAPersonalRepository                     { return r.mfa }
+func (r *fakeRepos) Roles() repository.RolRepository                         { return r.roles }
+func (r *fakeRepos) Permisos() repository.PermisoRepository                  { return r.permisos }
+func (r *fakeRepos) Sesiones() repository.SesionPersonalRepository           { return r.sesiones }
+func (r *fakeRepos) MFA() repository.MFAPersonalRepository                   { return r.mfa }
 func (r *fakeRepos) RecuperacionesMFA() repository.RecuperacionMFARepository { return r.recuperacion }
-func (r *fakeRepos) Operaciones() repository.OperacionRepository               { return r.operaciones }
-func (r *fakeRepos) ClavesRegistro() repository.ClaveRegistroRepository        { return r.claves }
-func (r *fakeRepos) EventosAuditoria() repository.EventoAuditoriaRepository    { return r.audit }
+func (r *fakeRepos) Operaciones() repository.OperacionRepository             { return r.operaciones }
+func (r *fakeRepos) ClavesRegistro() repository.ClaveRegistroRepository      { return r.claves }
+func (r *fakeRepos) EventosAuditoria() repository.EventoAuditoriaRepository  { return r.audit }
 
 type fakeActorRepo struct {
 	repository.ActorRepository
@@ -94,6 +94,14 @@ func (r *fakeActorRepo) SetActivo(_ context.Context, id uuid.UUID, activo bool) 
 type fakeDepartamentoRepo struct {
 	repository.DepartamentoRepository
 	items map[uuid.UUID]*models.Departamento
+}
+
+func (r *fakeDepartamentoRepo) List(_ context.Context, _ bool) ([]models.Departamento, error) {
+	out := make([]models.Departamento, 0, len(r.items))
+	for _, d := range r.items {
+		out = append(out, *d)
+	}
+	return out, nil
 }
 
 func (r *fakeDepartamentoRepo) GetByID(_ context.Context, id uuid.UUID) (*models.Departamento, error) {
@@ -277,6 +285,18 @@ func (r *fakeClaveRegistroRepo) GetByID(_ context.Context, id uuid.UUID) (*model
 	}
 	cp := *c
 	return &cp, nil
+}
+
+func (r *fakeSesionRepo) UltimoAcceso(_ context.Context, ids []uuid.UUID) (map[uuid.UUID]time.Time, error) {
+	out := map[uuid.UUID]time.Time{}
+	for _, s := range r.items {
+		for _, id := range ids {
+			if s.TitularID == id && s.UltimaActividad.After(out[id]) {
+				out[id] = s.UltimaActividad
+			}
+		}
+	}
+	return out, nil
 }
 
 type fakeSesionRepo struct {
@@ -669,23 +689,48 @@ func TestListUsers(t *testing.T) {
 		}, nil
 	}
 
-	inCursor := httpx.EncodeCursor(svc.secret, actorID, cursorScopeUsers, httpx.FilterHash("ana"), "prev-u")
-	page, err := svc.List(context.Background(), actorID, "  ana  ", repository.PageRequest{Limit: 10, Cursor: inCursor})
+	inCursor := httpx.EncodeCursor(svc.secret, actorID, cursorScopeUsers, httpx.FilterHash("ana", "", "", "false"), "prev-u")
+	page, err := svc.List(context.Background(), actorID, usermodels.ListQuery{Q: "  ana  "}, repository.PageRequest{Limit: 10, Cursor: inCursor})
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
 	if gotSearch != "ana" {
 		t.Fatalf("search = %q, esperado ana", gotSearch)
 	}
-	if len(page.Items) != 1 || page.Items[0].Rol != "TrabajoSocial" || page.Items[0].VersionTag == "" {
+	if len(page.Items) != 1 || page.Items[0].Rol != "TrabajoSocial" || page.Items[0].VersionTag == "" || page.Items[0].UltimoAcceso == nil {
 		t.Fatalf("items inesperados: %+v", page.Items)
 	}
 	if page.NextCursor == nil {
 		t.Fatal("esperado NextCursor")
 	}
 
-	if _, err := svc.List(context.Background(), actorID, "otro", repository.PageRequest{Limit: 10, Cursor: inCursor}); err == nil {
+	if _, err := svc.List(context.Background(), actorID, usermodels.ListQuery{Q: "otro"}, repository.PageRequest{Limit: 10, Cursor: inCursor}); err == nil {
 		t.Fatal("esperado error por cursor con filtro distinto")
+	}
+}
+
+func TestListUsersSoloAtencion(t *testing.T) {
+	now := time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC)
+	svc, repos, actorID, _ := newTestFixture(now)
+	asistencial, admin := uuid.New(), uuid.New()
+	repos.departamentos.items = map[uuid.UUID]*models.Departamento{
+		asistencial: {ID: asistencial, Nombre: "Psicología", Asistencial: true, Activo: true},
+		admin:       {ID: admin, Nombre: "Sistemas", Asistencial: false, Activo: true},
+	}
+	var got repository.PersonalFilter
+	repos.personal.listFn = func(f repository.PersonalFilter, _ repository.PageRequest) (repository.Page[models.Personal], error) {
+		got = f
+		return repository.Page[models.Personal]{}, nil
+	}
+	// Aunque pida suspendidos, Coordinación solo ve personal activo de atención.
+	if _, err := svc.List(context.Background(), actorID, usermodels.ListQuery{Status: "suspendido", SoloAtencion: true}, repository.PageRequest{Limit: 10}); err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if got.Estado == nil || *got.Estado != models.PersonalActivo || len(got.DepartamentoIDs) != 1 || got.DepartamentoIDs[0] != asistencial {
+		t.Fatalf("filtro = %+v", got)
+	}
+	if _, err := svc.List(context.Background(), actorID, usermodels.ListQuery{Status: "borrado"}, repository.PageRequest{Limit: 10}); err == nil {
+		t.Fatal("status inválido debía fallar")
 	}
 }
 

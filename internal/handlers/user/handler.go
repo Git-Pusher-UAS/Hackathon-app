@@ -4,10 +4,12 @@ package user
 import (
 	"errors"
 	"log"
+	"slices"
 	"strconv"
 
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	usermw "backend-hackathon/internal/middleware/user"
 	usermodels "backend-hackathon/internal/models/user"
 	repository "backend-hackathon/internal/repository/repositories"
 	userservice "backend-hackathon/internal/services/user"
@@ -128,11 +130,13 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 // List responde API-010.
 //
 // @Summary      Listar cuentas
-// @Description  Lista las cuentas de personal. Requiere permiso de administración.
+// @Description  Lista las cuentas de personal con ultimoAcceso. Requiere admin, o users.read_attention (Coordinación): en ese caso solo devuelve personal activo de áreas de atención, para asignar expedientes.
 // @Tags         users
 // @Produce      json
 // @Security     BearerAuth
-// @Param        q       query   string  false  "Búsqueda por usuario o nombre laboral"
+// @Param        q       query   string  false  "Usuario o nombre, sin distinguir acentos"
+// @Param        role    query   string  false  "Código de rol, p. ej. Psicología"
+// @Param        status  query   string  false  "activo | suspendido"
 // @Param        limit   query   int     false  "Tamaño de página (1-100)"  default(20)
 // @Param        cursor  query   string  false  "Cursor opaco de paginación"
 // @Success      200     {object}  usermodels.Page[usermodels.StaffSummary]
@@ -151,7 +155,10 @@ func (h *Handler) List(c *fiber.Ctx) error {
 		return err
 	}
 
-	result, err := h.service.List(c.Context(), actorID, c.Query("q"), page)
+	q := usermodels.ListQuery{Q: c.Query("q"), Role: c.Query("role"), Status: c.Query("status")}
+	// Sin admin, users.read_attention solo ve personal de atención activo.
+	q.SoloAtencion = !slices.Contains(middleware.Permisos(c), usermw.PermAdmin)
+	result, err := h.service.List(c.Context(), actorID, q, page)
 	if err != nil {
 		return mapError(err)
 	}

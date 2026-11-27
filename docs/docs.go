@@ -1800,7 +1800,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lista las cuentas de personal. Requiere permiso de administración.",
+                "description": "Lista las cuentas de personal con ultimoAcceso. Requiere admin, o users.read_attention (Coordinación): en ese caso solo devuelve personal activo de áreas de atención, para asignar expedientes.",
                 "produces": [
                     "application/json"
                 ],
@@ -1811,8 +1811,20 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Búsqueda por usuario o nombre laboral",
+                        "description": "Usuario o nombre, sin distinguir acentos",
                         "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Código de rol, p. ej. Psicología",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "activo | suspendido",
+                        "name": "status",
                         "in": "query"
                     },
                     {
@@ -3340,6 +3352,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "rol": {
+                    "type": "string"
+                },
+                "ultimoAcceso": {
                     "type": "string"
                 },
                 "usuario": {

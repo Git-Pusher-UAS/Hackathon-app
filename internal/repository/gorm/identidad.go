@@ -67,9 +67,12 @@ func (r *personalRepo) List(ctx context.Context, f repository.PersonalFilter, pa
 	if f.DepartamentoID != nil {
 		q = q.Where("departamento_id = ?", *f.DepartamentoID)
 	}
+	if len(f.DepartamentoIDs) > 0 {
+		q = q.Where("departamento_id IN ?", f.DepartamentoIDs)
+	}
 	if f.Busqueda != "" {
-		like := "%" + escapeLike(f.Busqueda) + "%"
-		q = q.Where(`usuario ILIKE ? ESCAPE '\' OR nombre_laboral ILIKE ? ESCAPE '\'`, like, like)
+		like := "%" + escapeLike(sinAcentos(f.Busqueda)) + "%"
+		q = q.Where("("+unaccent("usuario")+" ILIKE ? ESCAPE '\\' OR "+unaccent("nombre_laboral")+" ILIKE ? ESCAPE '\\')", like, like)
 	}
 
 	limit := pageLimit(page)
@@ -85,6 +88,16 @@ func (r *personalRepo) List(ctx context.Context, f repository.PersonalFilter, pa
 	)
 	return repository.Page[models.Personal]{Items: rows, NextCursor: next}, nil
 }
+
+// unaccent quita acentos en SQL sin depender de la extensión unaccent.
+func unaccent(col string) string {
+	return "translate(lower(" + col + "), 'áéíóúüñ', 'aeiouun')"
+}
+
+var acentos = strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u", "ñ", "n",
+	"Á", "a", "É", "e", "Í", "i", "Ó", "o", "Ú", "u", "Ü", "u", "Ñ", "n")
+
+func sinAcentos(s string) string { return strings.ToLower(acentos.Replace(s)) }
 
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
@@ -344,6 +357,27 @@ func (r *mfaRepo) DeletePendiente(ctx context.Context, personalID uuid.UUID) err
 const sessionIdleTimeout = 15 * time.Minute
 
 type sesionRepo struct{ db *gorm.DB }
+
+func (r *sesionRepo) UltimoAcceso(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]time.Time, error) {
+	out := make(map[uuid.UUID]time.Time, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		TitularID uuid.UUID
+		Ultimo    time.Time
+	}
+	err := r.db.WithContext(ctx).Model(&models.SesionPersonal{}).
+		Select("titular_id, max(ultima_actividad) AS ultimo").
+		Where("titular_id IN ?", ids).Group("titular_id").Scan(&rows).Error
+	if err != nil {
+		return nil, translate(err)
+	}
+	for _, x := range rows {
+		out[x.TitularID] = x.Ultimo.UTC()
+	}
+	return out, nil
+}
 
 func (r *sesionRepo) Create(ctx context.Context, s *models.SesionPersonal) error {
 	return translate(r.db.WithContext(ctx).Create(s).Error)

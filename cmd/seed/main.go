@@ -9,6 +9,7 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	casemw "backend-hackathon/internal/middleware/casefile"
+	usermw "backend-hackathon/internal/middleware/user"
 	"backend-hackathon/internal/models"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	repository "backend-hackathon/internal/repository/repositories"
@@ -120,6 +121,21 @@ func main() {
 			}
 		}
 	}
+	// Coordinación lista al personal de atención para asignar expedientes.
+	readAttention, err := ensurePermiso(db, usermw.PermReadAttention, usermw.DescripcionReadAttention)
+	if err != nil {
+		log.Fatalf("permiso %s: %v", usermw.PermReadAttention, err)
+	}
+	for _, codRol := range []string{"admin", "Coordinación"} {
+		r, err := ensureRol(db, codRol, codRol)
+		if err != nil {
+			log.Fatalf("rol %s: %v", codRol, err)
+		}
+		if err := ensureRolPermiso(db, r.ID, readAttention.ID); err != nil {
+			log.Fatalf("rol_permiso %s/%s: %v", codRol, usermw.PermReadAttention, err)
+		}
+	}
+
 	usuario := strings.ToLower(strings.TrimSpace(cfg.InitialAdmin.Username))
 
 	var existente models.Personal
