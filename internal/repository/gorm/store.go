@@ -151,6 +151,8 @@ func (s *store) EventosAyuda() repository.EventoLocalAyudaRepository {
 
 // ---- analitica (vistas) ----
 
-func (s *store) Resumen() repository.ResumenRepository         { return &resumenRepo{db: s.db} }
-func (s *store) Mapa() repository.MapaRepository               { return &mapaRepo{db: s.db} }
-func (s *store) Indicadores() repository.IndicadoresRepository { return &indicadoresRepo{db: s.db} }
+func (s *store) Resumen() repository.ResumenRepository           { return &resumenRepo{db: s.db} }
+func (s *store) Mapa() repository.MapaRepository                 { return &mapaRepo{db: s.db} }
+func (s *store) Indicadores() repository.IndicadoresRepository   { return &indicadoresRepo{db: s.db} }
+func (s *store) Cursos() repository.CursoRepository              { return &cursoRepo{db: s.db} }
+func (s *store) Inscripciones() repository.InscripcionRepository { return &inscripcionRepo{db: s.db} }

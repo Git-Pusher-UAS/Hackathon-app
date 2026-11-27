@@ -124,4 +124,8 @@ type Repositories interface {
 	Resumen() ResumenRepository
 	Mapa() MapaRepository
 	Indicadores() IndicadoresRepository
+
+	// capacitacion
+	Cursos() CursoRepository
+	Inscripciones() InscripcionRepository
 }
