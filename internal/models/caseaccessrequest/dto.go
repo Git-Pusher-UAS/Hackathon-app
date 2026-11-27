@@ -15,6 +15,11 @@ type CreateRequest struct {
 	Motivo    string `json:"motivo" example:"La persona acudió hoy y pide atención psicológica"`
 }
 
+// RejectRequest es el cuerpo de POST /case-access-requests/{id}/rejection.
+type RejectRequest struct {
+	Motivo string `json:"motivo" example:"La atención la lleva otra área"`
+}
+
 // Created es la solicitud recién creada.
 type Created struct {
 	RequestID uuid.UUID                         `json:"requestId"`
