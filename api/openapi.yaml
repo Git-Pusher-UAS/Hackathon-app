@@ -164,8 +164,19 @@ components:
       type: object
     CasefileDuplicateCheckResponse:
       properties:
-        duplicate:
+        department:
+          description: |-
+            Solo si exists: el área que lleva el caso y un token de un solo uso
+            (30 min) para POST /case-access-requests sin volver a enviar la CURP.
+          example: Trabajo social
+          type: string
+        exists:
           type: boolean
+        linkExpiresAt:
+          type: string
+        linkToken:
+          example: lt_9f...
+          type: string
       type: object
     CasefileNoteCreateRequest:
       properties:
@@ -1983,7 +1994,7 @@ paths:
         - case-files
   /case-files/duplicate-checks:
     post:
-      description: Consulta si ya existe una persona con ese CURP. Si existe, devuelve además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests. El CURP viaja solo en el cuerpo, nunca en la URL.
+      description: Consulta si ya existe una persona con ese CURP. Si existe, devuelve el área que lleva el caso y un linkToken de un solo uso (30 minutos) para pedir acceso con POST /case-access-requests sin volver a enviar la CURP. La CURP viaja solo en el cuerpo, nunca en la URL.
       parameters:
         - description: Token CSRF de la sesión
           in: header

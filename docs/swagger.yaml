@@ -246,8 +246,19 @@ definitions:
     type: object
   backend-hackathon_internal_models_casefile.DuplicateCheckResponse:
     properties:
-      duplicate:
+      department:
+        description: |-
+          Solo si exists: el área que lleva el caso y un token de un solo uso
+          (30 min) para POST /case-access-requests sin volver a enviar la CURP.
+        example: Trabajo social
+        type: string
+      exists:
         type: boolean
+      linkExpiresAt:
+        type: string
+      linkToken:
+        example: lt_9f...
+        type: string
     type: object
   backend-hackathon_internal_models_casefile.NoteCreateRequest:
     properties:
@@ -1777,8 +1788,9 @@ paths:
       consumes:
       - application/json
       description: Consulta si ya existe una persona con ese CURP. Si existe, devuelve
-        además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests.
-        El CURP viaja solo en el cuerpo, nunca en la URL.
+        el área que lleva el caso y un linkToken de un solo uso (30 minutos) para
+        pedir acceso con POST /case-access-requests sin volver a enviar la CURP. La
+        CURP viaja solo en el cuerpo, nunca en la URL.
       parameters:
       - description: CURP a verificar
         in: body
