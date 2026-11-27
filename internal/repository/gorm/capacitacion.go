@@ -88,3 +88,29 @@ func (r *inscripcionRepo) SetPresente(ctx context.Context, cursoID, id uuid.UUID
 	}
 	return nil
 }
+
+// ---------------- capacitacion.visitas ----------------
+
+type visitaRepo struct{ db *gorm.DB }
+
+func (r *visitaRepo) Create(ctx context.Context, v *models.Visita) error {
+	return translate(r.db.WithContext(ctx).Create(v).Error)
+}
+
+func (r *visitaRepo) List(ctx context.Context, estado *models.EstadoVisita, page repository.PageRequest) (repository.Page[models.Visita], error) {
+	q := r.db.WithContext(ctx).Model(&models.Visita{})
+	if estado != nil {
+		q = q.Where("estado = ?", *estado)
+	}
+	limit := pageLimit(page)
+	q = applyPage(q, page, "fecha", "id", false)
+	var rows []models.Visita
+	if err := q.Find(&rows).Error; err != nil {
+		return repository.Page[models.Visita]{}, translate(err)
+	}
+	rows, next := cutPage(rows, limit,
+		func(m models.Visita) time.Time { return m.Fecha },
+		func(m models.Visita) uuid.UUID { return m.ID },
+	)
+	return repository.Page[models.Visita]{Items: rows, NextCursor: next}, nil
+}

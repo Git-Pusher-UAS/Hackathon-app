@@ -88,6 +88,7 @@ func Tables() []any {
 		// capacitacion
 		&models.Curso{},
 		&models.Inscripcion{},
+		&models.Visita{},
 	}
 }
 
