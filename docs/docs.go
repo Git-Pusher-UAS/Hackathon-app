@@ -15,8 +15,277 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/case-files": {
+        "/auth/csrf-token": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Genera un token CSRF nuevo para la sesión e invalida el anterior. La pantalla lo pide al recargar con una sesión viva.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Obtener token CSRF",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_auth.CSRFResult"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Valida usuario y contraseña con límite de 5 fallos en 15 min. Responde siempre 202 con un reto: next=totp si la cuenta ya tiene segundo factor, next=enroll si debe configurarlo. Nadie entra sin segundo factor. Pública, sin CSRF.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Iniciar sesión (paso 1)",
+                "parameters": [
+                    {
+                        "description": "Credenciales",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_auth.Challenge"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid_credentials (no revela si el usuario existe)",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "account_suspended",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "too_many_attempts, con Retry-After",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoca la sesión actual y expira la cookie sai_staff (Max-Age=0). Es idempotente.",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Cerrar sesión",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Sin contenido"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "csrf_invalid",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Misma información que el campo usuario de la sesión. El frontend usa GET /users/me.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Cuenta autenticada (legado)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_auth.UsuarioInfo"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/mfa/enrollments": {
+            "post": {
+                "description": "Con el challengeId de un login con next=enroll genera el secreto TOTP. otpauthUri se muestra una sola vez; después se confirma con POST /auth/mfa/verify enviando enrollmentId. Pública, sin CSRF.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Configurar segundo factor",
+                "parameters": [
+                    {
+                        "description": "Reto del login",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.EnrollMFARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_auth.EnrollmentResult"
+                        }
+                    },
+                    "409": {
+                        "description": "mfa_already_enrolled",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "challenge_expired",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/mfa/verify": {
+            "post": {
+                "description": "Valida el código del reto. Si el reto es de enrolamiento, enrollmentId es obligatorio y activa el segundo factor. Responde la sesión y pone la cookie sai_staff (HttpOnly, Secure, SameSite=Strict, Path=/api). El csrfToken se guarda solo en memoria. Pública, sin CSRF.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verificar segundo factor (paso 2)",
+                "parameters": [
+                    {
+                        "description": "Reto y código",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.VerifyMFARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_auth.Session"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "sai_staff=\u003cjwt\u003e; HttpOnly; Secure; SameSite=Strict; Path=/api"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "invalid_code",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "410": {
+                        "description": "challenge_expired",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "too_many_attempts",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/case-files": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Obtiene una página de expedientes filtrable por estado y alias.",
                 "produces": [
                     "application/json"
@@ -55,7 +324,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_Summary"
                         }
                     },
                     "401": {
@@ -79,6 +348,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea un expediente nuevo requiriendo X-Operation-Id para idempotencia.",
                 "consumes": [
                     "application/json"
@@ -106,13 +380,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.CreateRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
                         },
                         "headers": {
                             "ETag": {
@@ -160,9 +441,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/duplicate-check": {
+        "/case-files/duplicate-checks": {
             "post": {
-                "description": "Consulta si ya existe un expediente registrado con el CURP proporcionado.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Consulta si ya existe una persona con ese CURP. Si existe, devuelve además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests. El CURP viaja solo en el cuerpo, nunca en la URL.",
                 "consumes": [
                     "application/json"
                 ],
@@ -182,6 +468,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.DuplicateCheckRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -218,8 +511,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}": {
+        "/case-files/{recordId}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve los datos de un expediente por recordId y su cabecera ETag.",
                 "produces": [
                     "application/json"
@@ -241,7 +539,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
                         },
                         "headers": {
                             "ETag": {
@@ -277,6 +575,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Actualiza un expediente requiriendo la cabecera If-Match con la versión esperada.",
                 "consumes": [
                     "application/json"
@@ -311,13 +614,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.UpdateRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
                         },
                         "headers": {
                             "ETag": {
@@ -371,8 +681,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/assignments": {
+        "/case-files/{recordId}/assignments": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Crea una asignación activa sobre el expediente indicado.",
                 "consumes": [
                     "application/json"
@@ -400,13 +715,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.AssignRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.AssignmentView"
                         }
                     },
                     "400": {
@@ -448,8 +770,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/assignments/{assignmentId}": {
-            "delete": {
+        "/case-files/{recordId}/assignments/{assignmentId}/revocations": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Revoca una asignación específica dentro de un expediente.",
                 "produces": [
                     "application/json"
@@ -471,6 +798,13 @@ const docTemplate = `{
                         "description": "UUID de la asignación",
                         "name": "assignmentId",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -514,8 +848,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/consents": {
+        "/case-files/{recordId}/consents": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Devuelve los consentimientos asociados a un expediente bajo la clave items.",
                 "produces": [
                     "application/json"
@@ -538,7 +877,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "properties": {
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
+                                    }
+                                }
+                            }
                         }
                     },
                     "401": {
@@ -568,6 +914,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Guarda un consentimiento con cabecera X-Operation-Id opcional.",
                 "consumes": [
                     "application/json"
@@ -601,6 +952,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentInput"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -608,7 +966,14 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "properties": {
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
+                                    }
+                                }
+                            }
                         }
                     },
                     "400": {
@@ -650,9 +1015,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/consents/{consentId}/revoke": {
+        "/case-files/{recordId}/consents/{consentId}/revocations": {
             "post": {
-                "description": "Registra la revocación de un consentimiento identificado por consentId.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoca finalidades opcionales de una decisión de consentimiento. Devuelve el estado vigente de todas las finalidades.",
                 "consumes": [
                     "application/json"
                 ],
@@ -686,6 +1056,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.RevokeConsentRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -693,7 +1070,14 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "properties": {
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
+                                    }
+                                }
+                            }
                         }
                     },
                     "400": {
@@ -735,8 +1119,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/departments/{departmentId}/notes": {
+        "/case-files/{recordId}/departments/{departmentId}/notes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Obtiene notas paginadas de un expediente para un departamento dado.",
                 "produces": [
                     "application/json"
@@ -783,7 +1172,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_NoteView"
                         }
                     },
                     "401": {
@@ -813,6 +1202,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Registra una nota en un expediente y departamento usando X-Operation-Id.",
                 "consumes": [
                     "application/json"
@@ -854,13 +1248,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.NoteCreateRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.NoteView"
                         }
                     },
                     "400": {
@@ -902,8 +1303,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/disclose": {
+        "/case-files/{recordId}/disclosures": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Solicita la divulgación o consulta de un campo específico del expediente.",
                 "consumes": [
                     "application/json"
@@ -931,13 +1337,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.DisclosureRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.DisclosureResponse"
                         }
                     },
                     "400": {
@@ -985,8 +1398,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/referrals": {
+        "/case-files/{recordId}/referrals": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Registra una canalización para el expediente requiriendo X-Operation-Id y devuelve ETag.",
                 "consumes": [
                     "application/json"
@@ -1021,13 +1439,20 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ReferralCreateRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ReferralView"
                         },
                         "headers": {
                             "ETag": {
@@ -1075,8 +1500,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/case-files/{recordId}/timeline": {
+        "/case-files/{recordId}/timeline": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Lista eventos del expediente filtrables por tipos, rango de fechas RFC3339 y paginación.",
                 "produces": [
                     "application/json"
@@ -1128,7 +1558,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_TimelineItem"
                         }
                     },
                     "401": {
@@ -1153,285 +1583,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/csrf-token": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Genera un token CSRF nuevo para la sesión autenticada e invalida el anterior.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Obtener token CSRF",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.CSRFResult"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/login": {
-            "post": {
-                "description": "Valida usuario y contraseña, aplica rate limit y crea una sesión revocable. Si la cuenta tiene MFA activo devuelve un challenge_token.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Iniciar sesión",
-                "parameters": [
-                    {
-                        "description": "Credenciales de acceso",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.LoginResult"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.MFAChallengeResponse"
-                        }
-                    },
-                    "429": {
-                        "description": "Too Many Requests",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/logout": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Revoca la sesión asociada al token actual. Es idempotente.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Cerrar sesión",
-                "responses": {
-                    "204": {
-                        "description": "Sin contenido"
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Devuelve la cuenta del portador del token y sus permisos efectivos.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Cuenta autenticada",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.UsuarioInfo"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/mfa/enrollments": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Genera el secreto TOTP y la URL otpauth para escanear con una app autenticadora.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Iniciar enrolamiento MFA",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.EnrollmentResult"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/mfa/verify": {
-            "post": {
-                "description": "Con Bearer confirma el enrolamiento; con challenge_token completa el login y devuelve la sesión.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Verificar código MFA",
-                "parameters": [
-                    {
-                        "description": "Código y challenge opcional",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.VerifyMFARequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_auth.VerifyMFAResult"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "429": {
-                        "description": "Too Many Requests",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/internal_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -1483,7 +1634,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users": {
+        "/users": {
             "get": {
                 "security": [
                     {
@@ -1581,7 +1732,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "description": "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)",
                         "name": "X-CSRF-Token",
                         "in": "header",
                         "required": true
@@ -1639,7 +1790,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/me": {
+        "/users/me": {
             "get": {
                 "security": [
                     {
@@ -1676,7 +1827,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/me/sessions": {
+        "/users/me/sessions": {
             "get": {
                 "security": [
                     {
@@ -1734,7 +1885,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/me/sessions/{sessionId}": {
+        "/users/me/sessions/{sessionId}": {
             "delete": {
                 "security": [
                     {
@@ -1759,7 +1910,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "description": "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)",
                         "name": "X-CSRF-Token",
                         "in": "header",
                         "required": true
@@ -1802,7 +1953,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/{userId}": {
+        "/users/{userId}": {
             "patch": {
                 "security": [
                     {
@@ -1839,7 +1990,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "description": "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)",
                         "name": "X-CSRF-Token",
                         "in": "header",
                         "required": true
@@ -1922,7 +2073,101 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/users/{userId}/session-revocations": {
+        "/users/{userId}/mfa-resets": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invalida el segundo factor de la cuenta; en su próximo acceso el login responde next=enroll. Exige verificación presencial. Requiere permiso de administración.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Restablecer MFA de una cuenta",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID de la cuenta",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Motivo y verificación presencial",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_user.MFAResetRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "resetId": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{userId}/session-revocations": {
             "post": {
                 "security": [
                     {
@@ -1959,7 +2204,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Token CSRF de la sesión (GET /api/auth/csrf-token)",
+                        "description": "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)",
                         "name": "X-CSRF-Token",
                         "in": "header",
                         "required": true
@@ -2013,35 +2258,50 @@ const docTemplate = `{
         "backend-hackathon_internal_auth.CSRFResult": {
             "type": "object",
             "properties": {
-                "csrf_token": {
+                "csrfToken": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_auth.Challenge": {
+            "type": "object",
+            "properties": {
+                "challengeId": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "next": {
+                    "type": "string",
+                    "enum": [
+                        "totp",
+                        "enroll"
+                    ]
                 }
             }
         },
         "backend-hackathon_internal_auth.EnrollmentResult": {
             "type": "object",
             "properties": {
-                "otpauth_url": {
+                "enrollmentId": {
                     "type": "string"
                 },
-                "secret": {
+                "otpauthUri": {
                     "type": "string"
                 }
             }
         },
-        "backend-hackathon_internal_auth.LoginResult": {
+        "backend-hackathon_internal_auth.Session": {
             "type": "object",
             "properties": {
-                "csrf_token": {
+                "csrfToken": {
                     "type": "string"
                 },
-                "expires_in": {
-                    "type": "integer"
-                },
-                "token": {
+                "expiresAt": {
                     "type": "string"
                 },
-                "token_type": {
+                "idleExpiresAt": {
                     "type": "string"
                 },
                 "usuario": {
@@ -2049,25 +2309,16 @@ const docTemplate = `{
                 }
             }
         },
-        "backend-hackathon_internal_auth.MFAChallengeResponse": {
-            "type": "object",
-            "properties": {
-                "challenge_token": {
-                    "type": "string"
-                },
-                "error": {
-                    "type": "string",
-                    "example": "mfa_requerido"
-                }
-            }
-        },
         "backend-hackathon_internal_auth.UsuarioInfo": {
             "type": "object",
             "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
-                "nombre_laboral": {
+                "nombreLaboral": {
                     "type": "string"
                 },
                 "permisos": {
@@ -2076,7 +2327,7 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "requiere_cambio_password": {
+                "requiereCambioPassword": {
                     "type": "boolean"
                 },
                 "rol": {
@@ -2087,23 +2338,19 @@ const docTemplate = `{
                 }
             }
         },
-        "backend-hackathon_internal_auth.VerifyMFAResult": {
-            "type": "object",
-            "properties": {
-                "activado": {
-                    "type": "boolean"
-                },
-                "login": {
-                    "$ref": "#/definitions/backend-hackathon_internal_auth.LoginResult"
-                }
-            }
-        },
         "backend-hackathon_internal_httpx.ErrorDetail": {
             "type": "object",
             "properties": {
                 "code": {
                     "type": "string",
-                    "example": "VALIDATION_ERROR"
+                    "example": "validation_failed"
+                },
+                "fields": {
+                    "description": "Fields solo viene en 422: campo -\u003e código (p. ej. \"formato_invalido\").",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "message": {
                     "type": "string",
@@ -2132,6 +2379,23 @@ const docTemplate = `{
             "x-enum-varnames": [
                 "DecisionAceptado",
                 "DecisionRechazado"
+            ]
+        },
+        "backend-hackathon_internal_models.EstadoCanalizacion": {
+            "type": "string",
+            "enum": [
+                "pendiente",
+                "aceptada",
+                "rechazada",
+                "cancelada",
+                "completada"
+            ],
+            "x-enum-varnames": [
+                "CanalizacionPendiente",
+                "CanalizacionAceptada",
+                "CanalizacionRechazada",
+                "CanalizacionCancelada",
+                "CanalizacionCompletada"
             ]
         },
         "backend-hackathon_internal_models.EstadoExpediente": {
@@ -2200,6 +2464,26 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_casefile.AssignmentView": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "fin": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inicio": {
+                    "type": "string"
+                },
+                "personalId": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_casefile.ConsentInput": {
             "type": "object",
             "properties": {
@@ -2217,6 +2501,32 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.ConsentView": {
+            "type": "object",
+            "properties": {
+                "consentId": {
+                    "type": "string"
+                },
+                "decididoEn": {
+                    "type": "string"
+                },
+                "decision": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.DecisionConsentimiento"
+                },
+                "propositoId": {
+                    "type": "string"
+                },
+                "revocado": {
+                    "type": "boolean"
+                },
+                "revocadoEn": {
+                    "type": "string"
+                },
+                "vigente": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2268,6 +2578,17 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_casefile.DisclosureResponse": {
+            "type": "object",
+            "properties": {
+                "campo": {
+                    "type": "string"
+                },
+                "valor": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_casefile.DuplicateCheckRequest": {
             "type": "object",
             "properties": {
@@ -2298,6 +2619,74 @@ const docTemplate = `{
                 }
             }
         },
+        "backend-hackathon_internal_models_casefile.NoteView": {
+            "type": "object",
+            "properties": {
+                "autorId": {
+                    "type": "string"
+                },
+                "corrigeNotaId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "episodioId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ocurridoEn": {
+                    "type": "string"
+                },
+                "texto": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_NoteView": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.NoteView"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_Summary": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_TimelineItem": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.TimelineItem"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
         "backend-hackathon_internal_models_casefile.ReferralCreateRequest": {
             "type": "object",
             "properties": {
@@ -2305,6 +2694,32 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "resumen": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.ReferralView": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "destinoId": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoCanalizacion"
+                },
+                "expedienteId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "origenId": {
+                    "type": "string"
+                },
+                "versionTag": {
                     "type": "string"
                 }
             }
@@ -2320,6 +2735,61 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.Summary": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "closedAt": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoExpediente"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "origenContacto": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.OrigenContacto"
+                },
+                "tipoCasoId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "versionTag": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_casefile.TimelineItem": {
+            "type": "object",
+            "properties": {
+                "actorId": {
+                    "type": "string"
+                },
+                "departamentoId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ocurridoEn": {
+                    "type": "string"
+                },
+                "resumen": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "type": "string"
                 }
             }
         },
@@ -2380,6 +2850,17 @@ const docTemplate = `{
                 },
                 "usuario": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_user.MFAResetRequest": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string"
+                },
+                "verificacionPresencial": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2496,12 +2977,11 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.ErrorResponse": {
+        "internal_handlers.EnrollMFARequest": {
             "type": "object",
             "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "error interno"
+                "challengeId": {
+                    "type": "string"
                 }
             }
         },
@@ -2523,11 +3003,11 @@ const docTemplate = `{
             "properties": {
                 "password": {
                     "type": "string",
-                    "example": "admin123"
+                    "example": "••••••••••••"
                 },
                 "usuario": {
                     "type": "string",
-                    "example": "admin"
+                    "example": "lramos"
                 }
             }
         },
@@ -2575,12 +3055,15 @@ const docTemplate = `{
         "internal_handlers.VerifyMFARequest": {
             "type": "object",
             "properties": {
-                "challenge_token": {
+                "challengeId": {
                     "type": "string"
                 },
                 "code": {
                     "type": "string",
                     "example": "123456"
+                },
+                "enrollmentId": {
+                    "type": "string"
                 }
             }
         }
@@ -2598,7 +3081,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:3000",
-	BasePath:         "/api",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "SAI API",
 	Description:      "Documentación de endpoints de la API.",
