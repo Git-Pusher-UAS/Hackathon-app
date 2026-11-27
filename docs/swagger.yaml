@@ -517,6 +517,25 @@ definitions:
           type: string
         type: array
     type: object
+  backend-hackathon_internal_models_institutionalcontact.Contact:
+    properties:
+      descripcion:
+        example: Si estás en peligro inmediato
+        type: string
+      horario:
+        example: 24 horas
+        type: string
+      id:
+        type: string
+      nombre:
+        example: Emergencias
+        type: string
+      prioritario:
+        type: boolean
+      telefono:
+        example: "911"
+        type: string
+    type: object
   backend-hackathon_internal_models_user.Actor:
     properties:
       departmentId:
@@ -1784,6 +1803,33 @@ paths:
       summary: Liveness probe
       tags:
       - health
+  /institutional-contacts:
+    get:
+      description: Contactos de ayuda publicables, primero los prioritarios. Público
+        (sin sesión). Arreglo directo, cacheable 1 h con ETag.
+      parameters:
+      - description: ETag de una respuesta anterior
+        in: header
+        name: If-None-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            ETag:
+              description: Versión del directorio
+              type: string
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_institutionalcontact.Contact'
+            type: array
+        "304":
+          description: Sin cambios
+      summary: Directorio institucional
+      tags:
+      - institutional-contacts
   /status:
     get:
       description: Comprueba la conexión con la base de datos y devuelve el estado

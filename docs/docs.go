@@ -1656,6 +1656,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/institutional-contacts": {
+            "get": {
+                "description": "Contactos de ayuda publicables, primero los prioritarios. Público (sin sesión). Arreglo directo, cacheable 1 h con ETag.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "institutional-contacts"
+                ],
+                "summary": "Directorio institucional",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ETag de una respuesta anterior",
+                        "name": "If-None-Match",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_institutionalcontact.Contact"
+                            }
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Versión del directorio"
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Sin cambios"
+                    }
+                }
+            }
+        },
         "/status": {
             "get": {
                 "description": "Comprueba la conexión con la base de datos y devuelve el estado del servicio.",
@@ -3075,6 +3115,33 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_institutionalcontact.Contact": {
+            "type": "object",
+            "properties": {
+                "descripcion": {
+                    "type": "string",
+                    "example": "Si estás en peligro inmediato"
+                },
+                "horario": {
+                    "type": "string",
+                    "example": "24 horas"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string",
+                    "example": "Emergencias"
+                },
+                "prioritario": {
+                    "type": "boolean"
+                },
+                "telefono": {
+                    "type": "string",
+                    "example": "911"
                 }
             }
         },
