@@ -2074,6 +2074,81 @@
                 }
             }
         },
+        "/referrals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "incoming: canalizaciones a las áreas del actor; outgoing: las que emitieron sus áreas. Con recordId se usa en la pestaña Canalizaciones del expediente. Cada elemento trae versionTag para If-Match y el motivo del último rechazo o cancelación. Requiere referral.read.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "referrals"
+                ],
+                "summary": "Bandeja de canalizaciones",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "incoming (por defecto) | outgoing",
+                        "name": "direction",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Estados separados por coma: pendiente,aceptada,rechazada,completada,cancelada",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1..100 (20 por defecto)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor opaco",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_referral.Page"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/status": {
             "get": {
                 "description": "Comprueba la conexión con la base de datos y devuelve el estado del servicio.",
@@ -3857,6 +3932,84 @@
                         "conflict",
                         "retryable"
                     ]
+                }
+            }
+        },
+        "backend-hackathon_internal_models_referral.Destino": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "institucionId": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_referral.Origen": {
+            "type": "object",
+            "properties": {
+                "departamentoId": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_referral.Page": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_referral.View"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_referral.View": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "destino": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_referral.Destino"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoCanalizacion"
+                },
+                "expedienteId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "motivo": {
+                    "description": "del último rechazo o cancelación",
+                    "type": "string"
+                },
+                "origen": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_referral.Origen"
+                },
+                "resumen": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.TipoCanalizacion"
+                },
+                "versionTag": {
+                    "type": "string"
                 }
             }
         },

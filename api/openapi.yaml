@@ -790,6 +790,57 @@ components:
         - OrigenLineaAtencion
         - OrigenPatrullaGenero
         - OrigenEmergenciaReferida
+    ReferralDestino:
+      properties:
+        departamentoId:
+          type: string
+        institucionId:
+          type: string
+        nombre:
+          type: string
+      type: object
+    ReferralOrigen:
+      properties:
+        departamentoId:
+          type: string
+        nombre:
+          type: string
+      type: object
+    ReferralPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ReferralView'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    ReferralView:
+      properties:
+        alias:
+          type: string
+        createdAt:
+          type: string
+        destino:
+          $ref: '#/components/schemas/ReferralDestino'
+        estado:
+          $ref: '#/components/schemas/EstadoCanalizacion'
+        expedienteId:
+          type: string
+        id:
+          type: string
+        motivo:
+          description: del último rechazo o cancelación
+          type: string
+        origen:
+          $ref: '#/components/schemas/ReferralOrigen'
+        resumen:
+          type: string
+        tipo:
+          $ref: '#/components/schemas/TipoCanalizacion'
+        versionTag:
+          type: string
+      type: object
     StatusDatabase:
       properties:
         error:
@@ -2606,6 +2657,65 @@ paths:
       summary: Sincronizar notas offline
       tags:
         - notes
+  /referrals:
+    get:
+      description: 'incoming: canalizaciones a las áreas del actor; outgoing: las que emitieron sus áreas. Con recordId se usa en la pestaña Canalizaciones del expediente. Cada elemento trae versionTag para If-Match y el motivo del último rechazo o cancelación. Requiere referral.read.'
+      parameters:
+        - description: incoming (por defecto) | outgoing
+          in: query
+          name: direction
+          schema:
+            type: string
+        - description: 'Estados separados por coma: pendiente,aceptada,rechazada,completada,cancelada'
+          in: query
+          name: status
+          schema:
+            type: string
+        - description: UUID del expediente
+          in: query
+          name: recordId
+          schema:
+            type: string
+        - description: 1..100 (20 por defecto)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor opaco
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralPage'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Service Unavailable
+      security:
+        - BearerAuth: []
+      summary: Bandeja de canalizaciones
+      tags:
+        - referrals
   /status:
     get:
       description: Comprueba la conexión con la base de datos y devuelve el estado del servicio.
