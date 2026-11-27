@@ -700,6 +700,16 @@ components:
             type: string
           type: array
       type: object
+    CourseAsistencia:
+      properties:
+        alias:
+          example: Participante 01
+          type: string
+        enrollmentId:
+          type: string
+        presente:
+          type: boolean
+      type: object
     CourseCreateRequest:
       properties:
         cupo:
@@ -761,6 +771,13 @@ components:
         titulo:
           example: Finanzas para tu negocio
           type: string
+      type: object
+    CourseMarcaAsistencia:
+      properties:
+        enrollmentId:
+          type: string
+        presente:
+          type: boolean
       type: object
     CoursePage:
       properties:
@@ -2969,6 +2986,81 @@ paths:
       security:
         - BearerAuth: []
       summary: Obtener curso
+      tags:
+        - courses
+  /courses/{id}/attendance:
+    get:
+      description: Arreglo directo de inscripciones con alias y presente. Nunca nombre ni teléfono. Requiere courses.manage.
+      parameters:
+        - description: UUID del curso
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/CourseAsistencia'
+                type: array
+          description: OK
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+      security:
+        - BearerAuth: []
+      summary: Lista de asistencia
+      tags:
+        - courses
+    put:
+      description: 'Marca presente o ausente cada inscripción, todo o nada: si una inscripción no es del curso responde 422 y no cambia ninguna. Requiere courses.manage.'
+      parameters:
+        - description: UUID del curso
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: '#/components/schemas/CourseMarcaAsistencia'
+              type: array
+        description: Marcas de asistencia
+        required: true
+        x-originalParamName: request
+      responses:
+        "204":
+          description: Guardada
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Pasar lista
       tags:
         - courses
   /health:
