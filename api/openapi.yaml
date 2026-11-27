@@ -360,8 +360,18 @@ components:
     CasefileReferralCreateRequest:
       properties:
         destinoId:
+          description: departamento (interna)
+          type: string
+        institucionId:
+          description: institución (externa)
           type: string
         resumen:
+          type: string
+        tipo:
+          description: interna por defecto
+          enum:
+            - interna
+            - externa
           type: string
       type: object
     CasefileReferralView:
@@ -376,8 +386,12 @@ components:
           type: string
         id:
           type: string
+        institucionId:
+          type: string
         origenId:
           type: string
+        tipo:
+          $ref: '#/components/schemas/TipoCanalizacion'
         versionTag:
           type: string
       type: object
@@ -805,6 +819,20 @@ components:
           example: dev
           type: string
       type: object
+    TipoCanalizacion:
+      enum:
+        - interna
+        - externa
+      type: string
+      x-enum-comments:
+        CanalizacionExternaTipo: a una institución de catalogos.instituciones
+        CanalizacionInternaTipo: a otro departamento
+      x-enum-descriptions:
+        - a otro departamento
+        - a una institución de catalogos.instituciones
+      x-enum-varnames:
+        - CanalizacionInternaTipo
+        - CanalizacionExternaTipo
     TipoSector:
       enum:
         - sector
@@ -2187,7 +2215,7 @@ paths:
         - case-files
   /case-files/{recordId}/referrals:
     post:
-      description: Registra una canalización para el expediente con Idempotency-Key y devuelve ETag.
+      description: 'Canalización interna {tipo: interna, destinoId, resumen} a otro departamento, o externa {tipo: externa, institucionId, resumen} a una institución de /catalogs.institucionesDestino. La externa nace pendiente y se completa a mano. Con Idempotency-Key; devuelve ETag.'
       parameters:
         - description: UUID del expediente
           in: path

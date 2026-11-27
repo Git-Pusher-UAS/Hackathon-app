@@ -1648,7 +1648,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Registra una canalización para el expediente con Idempotency-Key y devuelve ETag.",
+                "description": "Canalización interna {tipo: interna, destinoId, resumen} a otro departamento, o externa {tipo: externa, institucionId, resumen} a una institución de /catalogs.institucionesDestino. La externa nace pendiente y se completa a mano. Con Idempotency-Key; devuelve ETag.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2923,6 +2923,25 @@ const docTemplate = `{
                 "OrigenEmergenciaReferida"
             ]
         },
+        "backend-hackathon_internal_models.TipoCanalizacion": {
+            "type": "string",
+            "enum": [
+                "interna",
+                "externa"
+            ],
+            "x-enum-comments": {
+                "CanalizacionExternaTipo": "a una institución de catalogos.instituciones",
+                "CanalizacionInternaTipo": "a otro departamento"
+            },
+            "x-enum-descriptions": [
+                "a otro departamento",
+                "a una institución de catalogos.instituciones"
+            ],
+            "x-enum-varnames": [
+                "CanalizacionInternaTipo",
+                "CanalizacionExternaTipo"
+            ]
+        },
         "backend-hackathon_internal_models.TipoSector": {
             "type": "string",
             "enum": [
@@ -3375,10 +3394,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "destinoId": {
+                    "description": "departamento (interna)",
+                    "type": "string"
+                },
+                "institucionId": {
+                    "description": "institución (externa)",
                     "type": "string"
                 },
                 "resumen": {
                     "type": "string"
+                },
+                "tipo": {
+                    "description": "interna por defecto",
+                    "type": "string",
+                    "enum": [
+                        "interna",
+                        "externa"
+                    ]
                 }
             }
         },
@@ -3400,8 +3432,14 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "institucionId": {
+                    "type": "string"
+                },
                 "origenId": {
                     "type": "string"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.TipoCanalizacion"
                 },
                 "versionTag": {
                     "type": "string"

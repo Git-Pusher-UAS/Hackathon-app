@@ -12,7 +12,9 @@ type CanalizacionInterna struct {
 	ID                  uuid.UUID          `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	ExpedienteID        uuid.UUID          `gorm:"type:uuid;not null"`
 	OrigenID            uuid.UUID          `gorm:"type:uuid;not null"`
-	DestinoID           uuid.UUID          `gorm:"type:uuid;not null"`
+	Tipo                TipoCanalizacion   `gorm:"type:varchar(10);not null;default:interna"`
+	DestinoID           *uuid.UUID         `gorm:"type:uuid"` // departamento destino (interna)
+	InstitucionID       *uuid.UUID         `gorm:"type:uuid"` // institución destino (externa)
 	EmitidaPor          uuid.UUID          `gorm:"type:uuid;not null"`
 	ResumenCifrado      []byte             `gorm:"type:bytea;not null"`
 	Estado              EstadoCanalizacion `gorm:"type:varchar(20);not null"`

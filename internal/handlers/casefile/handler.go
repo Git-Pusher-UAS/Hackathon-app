@@ -718,7 +718,7 @@ func (h *Handler) RevokeConsent(c *fiber.Ctx) error {
 // CreateReferral crea una canalización de forma idempotente sobre el expediente.
 //
 // @Summary      Crear canalización
-// @Description  Registra una canalización para el expediente con Idempotency-Key y devuelve ETag.
+// @Description  Canalización interna {tipo: interna, destinoId, resumen} a otro departamento, o externa {tipo: externa, institucionId, resumen} a una institución de /catalogs.institucionesDestino. La externa nace pendiente y se completa a mano. Con Idempotency-Key; devuelve ETag.
 // @Tags         case-files-referrals
 // @Security     BearerAuth
 // @Accept       json

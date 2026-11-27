@@ -170,15 +170,19 @@ type RevokeConsentRequest struct {
 
 // API-033
 type ReferralCreateRequest struct {
-	DestinoID string `json:"destinoId"`
-	Resumen   string `json:"resumen"`
+	Tipo          string  `json:"tipo,omitempty" enums:"interna,externa"` // interna por defecto
+	DestinoID     *string `json:"destinoId,omitempty"`                    // departamento (interna)
+	InstitucionID *string `json:"institucionId,omitempty"`                // institución (externa)
+	Resumen       string  `json:"resumen"`
 }
 type ReferralView struct {
-	ID           uuid.UUID                 `json:"id"`
-	ExpedienteID uuid.UUID                 `json:"expedienteId"`
-	OrigenID     uuid.UUID                 `json:"origenId"`
-	DestinoID    uuid.UUID                 `json:"destinoId"`
-	Estado       models.EstadoCanalizacion `json:"estado"`
-	VersionTag   string                    `json:"versionTag"`
-	CreatedAt    time.Time                 `json:"createdAt"`
+	ID            uuid.UUID                 `json:"id"`
+	ExpedienteID  uuid.UUID                 `json:"expedienteId"`
+	OrigenID      uuid.UUID                 `json:"origenId"`
+	Tipo          models.TipoCanalizacion   `json:"tipo"`
+	DestinoID     *uuid.UUID                `json:"destinoId"`
+	InstitucionID *uuid.UUID                `json:"institucionId"`
+	Estado        models.EstadoCanalizacion `json:"estado"`
+	VersionTag    string                    `json:"versionTag"`
+	CreatedAt     time.Time                 `json:"createdAt"`
 }
