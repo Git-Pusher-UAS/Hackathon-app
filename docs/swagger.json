@@ -1650,6 +1650,77 @@
                 }
             }
         },
+        "/help-events": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "El personal abrió el marcador telefónico hacia un contacto del directorio. Con Idempotency-Key: repetir la clave no duplica el evento. Si viene operationId en el cuerpo, debe ser igual a la clave.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "help-events"
+                ],
+                "summary": "Registrar evento de ayuda",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de la operación",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Evento",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_helpevent.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Registrado"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "idempotency_mismatch",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "validation_failed con fields",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/institutional-contacts": {
             "get": {
                 "description": "Contactos de ayuda publicables, primero los prioritarios. Público (sin sesión). Arreglo directo, cacheable 1 h con ETag.",
@@ -3109,6 +3180,25 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_helpevent.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "accion": {
+                    "type": "string",
+                    "example": "dialer_opened"
+                },
+                "contactId": {
+                    "type": "string"
+                },
+                "ocurridoEn": {
+                    "type": "string",
+                    "example": "2026-11-26T17:42:00Z"
+                },
+                "operationId": {
+                    "type": "string"
                 }
             }
         },

@@ -517,6 +517,19 @@ definitions:
           type: string
         type: array
     type: object
+  backend-hackathon_internal_models_helpevent.CreateRequest:
+    properties:
+      accion:
+        example: dialer_opened
+        type: string
+      contactId:
+        type: string
+      ocurridoEn:
+        example: "2026-11-26T17:42:00Z"
+        type: string
+      operationId:
+        type: string
+    type: object
   backend-hackathon_internal_models_institutionalcontact.Contact:
     properties:
       descripcion:
@@ -1803,6 +1816,54 @@ paths:
       summary: Liveness probe
       tags:
       - health
+  /help-events:
+    post:
+      consumes:
+      - application/json
+      description: 'El personal abrió el marcador telefónico hacia un contacto del
+        directorio. Con Idempotency-Key: repetir la clave no duplica el evento. Si
+        viene operationId en el cuerpo, debe ser igual a la clave.'
+      parameters:
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: UUID de la operación
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Evento
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_helpevent.CreateRequest'
+      responses:
+        "204":
+          description: Registrado
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: idempotency_mismatch
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: validation_failed con fields
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Registrar evento de ayuda
+      tags:
+      - help-events
   /institutional-contacts:
     get:
       description: Contactos de ayuda publicables, primero los prioritarios. Público

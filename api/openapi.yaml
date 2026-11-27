@@ -500,6 +500,19 @@ components:
           example: "2026-01-02T15:04:05Z"
           type: string
       type: object
+    HelpEventCreateRequest:
+      properties:
+        accion:
+          example: dialer_opened
+          type: string
+        contactId:
+          type: string
+        ocurridoEn:
+          example: "2026-11-26T17:42:00Z"
+          type: string
+        operationId:
+          type: string
+      type: object
     InstitutionalContactContact:
       properties:
         descripcion:
@@ -2017,6 +2030,62 @@ paths:
       summary: Liveness probe
       tags:
         - health
+  /help-events:
+    post:
+      description: 'El personal abrió el marcador telefónico hacia un contacto del directorio. Con Idempotency-Key: repetir la clave no duplica el evento. Si viene operationId en el cuerpo, debe ser igual a la clave.'
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+        - description: UUID de la operación
+          in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelpEventCreateRequest'
+        description: Evento
+        required: true
+        x-originalParamName: request
+      responses:
+        "204":
+          description: Registrado
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: idempotency_mismatch
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: validation_failed con fields
+      security:
+        - BearerAuth: []
+      summary: Registrar evento de ayuda
+      tags:
+        - help-events
   /institutional-contacts:
     get:
       description: Contactos de ayuda publicables, primero los prioritarios. Público (sin sesión). Arreglo directo, cacheable 1 h con ETag.
