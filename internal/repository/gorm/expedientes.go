@@ -418,6 +418,14 @@ func (r *notaRepo) EsPrevia(ctx context.Context, corrigeNotaID, expedienteID, de
 	return n > 0, nil
 }
 
+func (r *notaRepo) TieneCorreccion(ctx context.Context, notaID uuid.UUID) (bool, error) {
+	var n int64
+	if err := r.db.WithContext(ctx).Model(&models.Nota{}).Where("corrige_nota_id = ?", notaID).Count(&n).Error; err != nil {
+		return false, translate(err)
+	}
+	return n > 0, nil
+}
+
 // ---------------- A23 · expedientes.v_timeline_autorizado ----------------
 
 type timelineRepo struct{ db *gorm.DB }

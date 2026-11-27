@@ -146,6 +146,7 @@ type NoteView struct {
 	ID            uuid.UUID  `json:"id"`
 	EpisodioID    uuid.UUID  `json:"episodioId"`
 	AutorID       uuid.UUID  `json:"autorId"`
+	Autor         string     `json:"autor" example:"Ana Castro"` // nombre laboral
 	Texto         string     `json:"texto"`
 	OcurridoEn    time.Time  `json:"ocurridoEn"`
 	CorrigeNotaID *uuid.UUID `json:"corrigeNotaId"`

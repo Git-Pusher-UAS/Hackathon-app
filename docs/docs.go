@@ -3227,6 +3227,11 @@ const docTemplate = `{
         "backend-hackathon_internal_models_casefile.NoteView": {
             "type": "object",
             "properties": {
+                "autor": {
+                    "description": "nombre laboral",
+                    "type": "string",
+                    "example": "Ana Castro"
+                },
                 "autorId": {
                     "type": "string"
                 },

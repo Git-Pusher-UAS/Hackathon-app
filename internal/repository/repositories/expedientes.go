@@ -145,6 +145,9 @@ type NotaRepository interface {
 	// EsPrevia verifica que la nota a corregir existe, es del mismo expediente y
 	// departamento y es anterior a la nueva (no auto-referencia ni ciclos).
 	EsPrevia(ctx context.Context, corrigeNotaID, expedienteID, departamentoID uuid.UUID) (bool, error)
+
+	// TieneCorreccion indica si ya existe una nota que corrige a notaID.
+	TieneCorreccion(ctx context.Context, notaID uuid.UUID) (bool, error)
 }
 
 // TimelineFilter para API-023.

@@ -388,6 +388,10 @@ definitions:
     type: object
   backend-hackathon_internal_models_casefile.NoteView:
     properties:
+      autor:
+        description: nombre laboral
+        example: Ana Castro
+        type: string
       autorId:
         type: string
       corrigeNotaId:
