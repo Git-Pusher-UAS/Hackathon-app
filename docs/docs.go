@@ -1136,14 +1136,9 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "items": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
-                                    }
-                                }
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
                             }
                         }
                     },
@@ -1225,14 +1220,9 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "items": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
-                                    }
-                                }
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
                             }
                         }
                     },
@@ -1326,19 +1316,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "items": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/definitions/backend-hackathon_internal_models_casefile.ConsentView"
-                                    }
-                                }
-                            }
-                        }
+                    "204": {
+                        "description": "Revocada; la decisión original se conserva en el historial"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1359,7 +1338,7 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "purpose_mandatory o already_revoked",
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
                         }
