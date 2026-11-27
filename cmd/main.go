@@ -23,6 +23,7 @@ import (
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	notehandler "backend-hackathon/internal/handlers/note"
+	portalhandler "backend-hackathon/internal/handlers/portal"
 	referralhandler "backend-hackathon/internal/handlers/referral"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
@@ -44,6 +45,7 @@ import (
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	noteservice "backend-hackathon/internal/services/note"
+	portalservice "backend-hackathon/internal/services/portal"
 	referralservice "backend-hackathon/internal/services/referral"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
@@ -130,6 +132,7 @@ func main() {
 	auditLogHandler := auditloghandler.New(auditlogservice.New(uow))
 	auditAlertHandler := auditalerthandler.New(auditalertservice.New(uow))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
+	portalHandler := portalhandler.New(portalservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -172,6 +175,18 @@ func main() {
 	api := app.Group("/api")
 	api.Get("/status", statusHandler.Status)
 	api.Get("/institutional-contacts", icHandler.List)
+
+	portal := api.Group("/portal")
+	portal.Post("/auth/login", portalHandler.Login)
+	portal.Post("/auth/verify", portalHandler.Verify)
+	portal.Post("/accounts", portalHandler.CreateAccount)
+	portalProtected := portal.Group("", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF())
+	portalProtected.Get("/me", portalHandler.Me)
+	portalProtected.Patch("/me", portalHandler.PatchMe)
+	helpAlerts := api.Group("/help-alerts", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF())
+	helpAlerts.Post("", portalHandler.CreateAlert)
+	helpAlerts.Post("/:id/trusted-contacts", portalHandler.NotifyTrustedContacts)
+	helpAlerts.Post("/:id/cancellation", portalHandler.CancelAlert)
 
 	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
 
