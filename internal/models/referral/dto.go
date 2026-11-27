@@ -1,5 +1,5 @@
-// Package referral define los DTOs de la bandeja de canalizaciones (API-032)
-// y de sus transiciones (API-034).
+// Package referral define los DTOs de la bandeja de canalizaciones (§8.2) y
+// de sus transiciones (§8.3).
 package referral
 
 import (
@@ -12,36 +12,36 @@ import (
 
 // Direcciones de la bandeja.
 const (
-	DirectionIncoming = "incoming" // el departamento del actor es el destino
-	DirectionOutgoing = "outgoing" // el departamento del actor es el origen
+	DirectionIncoming = "incoming" // a las áreas del actor
+	DirectionOutgoing = "outgoing" // de las áreas del actor
 )
 
-// Acciones de transición.
-const (
-	ActionAccept   = "accept"
-	ActionReject   = "reject"
-	ActionComplete = "complete"
-	ActionCancel   = "cancel"
-)
-
-// Ref es un departamento con nombre visible.
-type Ref struct {
-	ID     uuid.UUID `json:"id"`
-	Nombre string    `json:"nombre"`
+// Origen es el departamento que canalizó.
+type Origen struct {
+	DepartamentoID uuid.UUID `json:"departamentoId"`
+	Nombre         string    `json:"nombre"`
 }
 
-// View es una canalización interna.
+// Destino es un departamento (interna) o una institución (externa).
+type Destino struct {
+	DepartamentoID *uuid.UUID `json:"departamentoId"`
+	InstitucionID  *uuid.UUID `json:"institucionId"`
+	Nombre         string     `json:"nombre"`
+}
+
+// View es una canalización.
 type View struct {
 	ID           uuid.UUID                 `json:"id"`
 	ExpedienteID uuid.UUID                 `json:"expedienteId"`
 	Alias        string                    `json:"alias"`
-	Origen       Ref                       `json:"origen"`
-	Destino      Ref                       `json:"destino"`
+	Tipo         models.TipoCanalizacion   `json:"tipo"`
+	Origen       Origen                    `json:"origen"`
+	Destino      Destino                   `json:"destino"`
 	Resumen      string                    `json:"resumen"`
 	Estado       models.EstadoCanalizacion `json:"estado"`
-	VersionTag   string                    `json:"versionTag"`
+	Motivo       *string                   `json:"motivo"` // del último rechazo o cancelación
 	CreatedAt    time.Time                 `json:"createdAt"`
-	UpdatedAt    time.Time                 `json:"updatedAt"`
+	VersionTag   string                    `json:"versionTag"`
 }
 
 // Page es la página de la bandeja.
@@ -55,15 +55,4 @@ type ListQuery struct {
 	Direction string
 	Estados   []models.EstadoCanalizacion
 	RecordID  *uuid.UUID
-}
-
-// TransitionRequest cambia el estado. Motivo es obligatorio en reject y cancel.
-//
-//	accept:   pendiente → aceptada   (departamento destino; asigna al actor)
-//	reject:   pendiente → rechazada  (departamento destino)
-//	complete: aceptada  → completada (departamento destino)
-//	cancel:   pendiente → cancelada  (departamento origen)
-type TransitionRequest struct {
-	Action string  `json:"action" example:"accept" enums:"accept,reject,complete,cancel"`
-	Motivo *string `json:"motivo,omitempty"`
 }
