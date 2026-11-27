@@ -49,6 +49,23 @@ type CreateRequest struct {
 	Consentimiento      ConsentInput          `json:"consentimiento"`
 }
 
+// Ocultos son los datos sensibles ya enmascarados; null si el dato no existe.
+// El valor completo solo se obtiene con POST /case-files/{id}/disclosures.
+type Ocultos struct {
+	CURP      *string `json:"curp" example:"••••••••••••••••07"`
+	Telefono  *string `json:"telefono" example:"•• •••• 81"`
+	Domicilio *string `json:"domicilio" example:"Col. •••••"`
+	Nombre    *string `json:"nombre" example:"N•••• A•••••"`
+}
+
+// Detail es el expediente de §5.4: el resumen más sector, edad y datos ocultos.
+type Detail struct {
+	Summary
+	Sector  string  `json:"sector" example:"Sector 12"`
+	Edad    *int    `json:"edad" example:"36"`
+	Ocultos Ocultos `json:"ocultos"`
+}
+
 type Summary struct {
 	ID             uuid.UUID               `json:"id"`
 	Alias          string                  `json:"alias"`
