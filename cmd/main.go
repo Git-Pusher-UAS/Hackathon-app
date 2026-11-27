@@ -181,8 +181,9 @@ func main() {
 	priv.Get("/users/me/sessions", userHandler.ListMySessions)
 	priv.Delete("/users/me/sessions/:sessionId", userHandler.RevokeMySession)
 
+	// Coordinación lista solo personal de atención activo (users.read_attention).
+	priv.Get("/users", usermiddleware.RequireAny(usermiddleware.PermAdmin, usermiddleware.PermReadAttention), userHandler.List)
 	admin := priv.Group("/users", middleware.RequirePermiso("admin"))
-	admin.Get("", userHandler.List)
 	admin.Post("", userHandler.Create)
 	admin.Patch("/:userId", userHandler.Update)
 	admin.Post("/:userId/session-revocations", userHandler.RevokeAllSessions)

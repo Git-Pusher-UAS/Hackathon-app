@@ -26,7 +26,7 @@ type stubUserService struct {
 	meFn                func(ctx context.Context, actorID, sessionID uuid.UUID) (*usermodels.MeResponse, error)
 	listMySessionsFn    func(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)
 	revokeMySessionFn   func(ctx context.Context, actor repository.ActorContext, actorID, sessionID uuid.UUID) error
-	listFn              func(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
+	listFn              func(ctx context.Context, actorID uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
 	createFn            func(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
 	updateFn            func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	revokeAllSessionsFn func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
@@ -45,7 +45,7 @@ func (s *stubUserService) RevokeMySession(ctx context.Context, actor repository.
 	return s.revokeMySessionFn(ctx, actor, actorID, sessionID)
 }
 
-func (s *stubUserService) List(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
+func (s *stubUserService) List(ctx context.Context, actorID uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
 	return s.listFn(ctx, actorID, q, page)
 }
 
@@ -327,15 +327,16 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 
 	t.Run("GET /users forwards query and page", func(t *testing.T) {
 		svc := &stubUserService{
-			listFn: func(_ context.Context, gotActor uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
-				if gotActor != actorID || q != "ana" || page.Limit != 10 {
-					t.Fatalf("args = (%v, %q, %+v)", gotActor, q, page)
+			listFn: func(_ context.Context, gotActor uuid.UUID, q usermodels.ListQuery, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
+				want := usermodels.ListQuery{Q: "ana", Role: "Psicología", Status: "activo"}
+				if gotActor != actorID || q != want || page.Limit != 10 {
+					t.Fatalf("args = (%v, %+v, %+v)", gotActor, q, page)
 				}
 				return &usermodels.Page[usermodels.StaffSummary]{Items: []usermodels.StaffSummary{}}, nil
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		resp, err := app.Test(httptest.NewRequest("GET", "/api/v1/users?q=ana&limit=10", nil))
+		resp, err := app.Test(httptest.NewRequest("GET", "/api/v1/users?q=ana&role=Psicolog%C3%ADa&status=activo&limit=10", nil))
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
 		}
