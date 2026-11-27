@@ -1,0 +1,159 @@
+# CI del backend en Go.
+#   lint  -> gofmt + go vet + golangci-lint
+#   test  -> pruebas unitarias con -race y cobertura mínima
+#   smoke -> Postgres + migrate + seed + API, login del admin y tests/smoke (build tag "smoke")
+#   load  -> k6 con umbrales, solo en push a develop/main
+#
+# Las variables replican las claves de .env (ver .env.example). Los secretos se
+# generan al azar en cada ejecución: nunca se usan los valores reales del .env.
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feat/**']
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COVERAGE_MIN: '0' # TODO: subirlo a la cobertura real medida por el job "test"
+  # Server
+  PORT: '3000'
+  CORS_ORIGIN: http://localhost:3000
+  # Database (servicio postgres del job)
+  DB_HOST: localhost
+  DB_PORT: '5432'
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  DB_NAME: sai
+  DB_SSLMODE: disable
+  # JWT
+  JWT_EXPIRES_IN: 12h
+  # Admin inicial creado por cmd/seed; smoke y k6 hacen login con él
+  INITIAL_ADMIN_USERNAME: ci_admin
+  INITIAL_ADMIN_EMAIL: ci_admin@test.local
+  INITIAL_ADMIN_PASSWORD: CiAdmin_Passw0rd!
+  # Smoke / carga
+  SMOKE_BASE_URL: http://localhost:3000
+  BASE_URL: http://localhost:3000
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l cmd internal tests)
+          if [ -n "$unformatted" ]; then
+            echo "::error::Archivos sin gofmt: $unformatted"
+            gofmt -d cmd internal tests
+            exit 1
+          fi
+      - name: go vet
+        run: go vet ./... && go vet -tags smoke ./tests/smoke/
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          # En PRs solo reporta problemas nuevos; el código existente no bloquea.
+          only-new-issues: ${{ github.event_name == 'pull_request' }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Pruebas unitarias
+        run: go test -race -coverprofile=coverage.out ./...
+      - name: Verificar cobertura mínima
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ { sub("%", "", $3); print $3 }')
+          echo "Cobertura total: ${total}% (mínimo ${COVERAGE_MIN}%)"
+          echo "### Cobertura: ${total}%" >> "$GITHUB_STEP_SUMMARY"
+          awk -v t="$total" -v m="$COVERAGE_MIN" 'BEGIN { exit (t + 0 < m + 0) }' \
+            || { echo "::error::Cobertura ${total}% por debajo del mínimo ${COVERAGE_MIN}%"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  smoke:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sai
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Generar secretos de prueba
+        run: bash .github/scripts/ci-secrets.sh >> "$GITHUB_ENV"
+      - name: Migrar y sembrar base de datos
+        run: bash .github/scripts/db-setup.sh
+      - name: Compilar y levantar API
+        run: bash .github/scripts/start-server.sh
+      - name: Login del admin inicial
+        run: bash .github/scripts/login.sh >> "$GITHUB_ENV"
+      - name: Smoke tests
+        run: go test -tags smoke ./tests/smoke/ -v -count=1
+      - name: Log de la API
+        if: failure()
+        run: cat server.log || true
+
+  load:
+    needs: smoke
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sai
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LOAD_USUARIO: ci_admin
+      LOAD_PASSWORD: CiAdmin_Passw0rd!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Preparar secretos, base de datos y API
+        run: |
+          set -a; eval "$(bash .github/scripts/ci-secrets.sh)"; set +a
+          bash .github/scripts/db-setup.sh
+          bash .github/scripts/start-server.sh
+      - uses: grafana/setup-k6-action@v1
+      - name: Prueba de carga
+        run: k6 run tests/load/k6_load_test.js
+      - name: Log de la API
+        if: failure()
+        run: cat server.log || true
