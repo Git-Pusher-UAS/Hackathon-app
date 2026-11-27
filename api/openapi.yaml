@@ -296,6 +296,10 @@ components:
       type: object
     CasefileNoteView:
       properties:
+        autor:
+          description: nombre laboral
+          example: Ana Castro
+          type: string
         autorId:
           type: string
         corrigeNotaId:
