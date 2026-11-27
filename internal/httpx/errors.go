@@ -20,6 +20,8 @@ type Error struct {
 	Fields map[string]string
 	// RetryAfter, en segundos, se envía como encabezado Retry-After (429).
 	RetryAfter int
+	// Extra agrega campos junto a "error" en el cuerpo (p. ej. linkToken en 409 person_exists).
+	Extra map[string]any
 }
 
 func (e *Error) Error() string { return e.Message }
@@ -68,7 +70,13 @@ func Write(c *fiber.Ctx, err error) error {
 	if len(mapped.Fields) > 0 {
 		detail["fields"] = mapped.Fields
 	}
-	return c.Status(mapped.Status).JSON(fiber.Map{"error": detail})
+	body := fiber.Map{"error": detail}
+	for k, v := range mapped.Extra {
+		if k != "error" {
+			body[k] = v
+		}
+	}
+	return c.Status(mapped.Status).JSON(body)
 }
 
 // RequestID devuelve el id de correlación de Fiber o uno nuevo si falta.

@@ -87,6 +87,7 @@ func mapError(err error) error {
 		return he
 	}
 	var ve *svc.ValidationError
+	var dupErr *svc.DuplicatePersonError
 	if errors.As(err, &ve) {
 		return httpx.E(fiber.StatusUnprocessableEntity, "validation_failed", ve.Msg)
 	}
@@ -99,6 +100,10 @@ func mapError(err error) error {
 		return httpx.E(fiber.StatusPreconditionRequired, "precondition_required", "If-Match requerido")
 	case errors.Is(err, svc.ErrCryptoUnavailable):
 		return httpx.E(fiber.StatusServiceUnavailable, "encryption_unavailable", "cifrado no configurado")
+	case errors.As(err, &dupErr):
+		e := httpx.E(fiber.StatusConflict, "person_exists", "la persona ya tiene expediente")
+		e.Extra = map[string]any{"linkToken": dupErr.LinkToken, "linkExpiresAt": dupErr.LinkExpiresAt, "department": dupErr.Department}
+		return e
 	case errors.Is(err, svc.ErrDuplicatePerson):
 		return httpx.E(fiber.StatusConflict, "person_exists", "la persona ya tiene expediente")
 	case errors.Is(err, svc.ErrNoPrivacyNotice):
@@ -172,11 +177,12 @@ func (h *Handler) DuplicateCheck(c *fiber.Ctx) error {
 // @Param        Idempotency-Key  header    string                 true  "UUID de operación idempotente"
 // @Param        request         body      casemodels.CreateRequest  true  "Datos del expediente"
 // @Param        X-CSRF-Token  header  string  true  "Token CSRF de la sesión"
-// @Success      201             {object}  casemodels.Summary
+// @Success      201             {object}  casemodels.Detail
+// @Header       201             {string}  Location                "/api/v1/case-files/{id}"
 // @Header       201             {string}  ETag                    "Versión actual del recurso"
 // @Failure      400             {object}  httpx.ErrorResponse
 // @Failure      401             {object}  httpx.ErrorResponse
-// @Failure      409             {object}  httpx.ErrorResponse
+// @Failure      409             {object}  httpx.ErrorResponse  "person_exists, con linkToken, linkExpiresAt y department junto a error"
 // @Failure      422             {object}  httpx.ErrorResponse
 // @Failure      500             {object}  httpx.ErrorResponse
 // @Failure      503             {object}  httpx.ErrorResponse
@@ -199,6 +205,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		return mapError(err)
 	}
 	c.Set(fiber.HeaderETag, httpx.FormatETag(res.VersionTag))
+	c.Set(fiber.HeaderLocation, "/api/v1/case-files/"+res.ID.String())
 	return c.Status(fiber.StatusCreated).JSON(res)
 }
 

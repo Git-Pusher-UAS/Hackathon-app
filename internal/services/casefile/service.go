@@ -34,7 +34,7 @@ var personaFields = []string{"nombre", "curp", "fechaNacimiento", "telefono", "d
 
 type Service interface {
 	DuplicateCheck(ctx context.Context, actor repository.ActorContext, curp string) (*casemodels.DuplicateCheckResponse, error)
-	Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Summary, error)
+	Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Detail, error)
 	List(ctx context.Context, actor repository.ActorContext, q casemodels.ListQuery, page repository.PageRequest) (*casemodels.Page[casemodels.Summary], error)
 	Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Detail, error)
 	Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Detail, error)
@@ -353,7 +353,7 @@ func (s *service) linkToken(ctx context.Context, r repository.Repositories, acto
 
 // ---------------- API-017 ----------------
 
-func (s *service) Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Summary, error) {
+func (s *service) Create(ctx context.Context, actor repository.ActorContext, opID uuid.UUID, in casemodels.CreateRequest) (*casemodels.Detail, error) {
 	if s.keyring == nil || s.curpKey == "" {
 		return nil, ErrCryptoUnavailable
 	}
@@ -362,16 +362,12 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, opI
 		return nil, err
 	}
 
-	var out casemodels.Summary
+	var out *casemodels.Detail
 	err = s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
 		// Reintento idempotente: misma operaci\u00f3n => mismo expediente.
 		if prev, err := r.Expedientes().GetByOperacionID(ctx, opID); err == nil {
-			tipo, err := activeTipo(ctx, r, prev.ID)
-			if err != nil {
-				return err
-			}
-			out = s.summary(prev, tipo)
-			return nil
+			out, err = s.detail(ctx, r, prev)
+			return err
 		} else if !errors.Is(err, repository.ErrNotFound) {
 			return err
 		}
@@ -481,13 +477,19 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, opI
 		if err := s.audit(ctx, r, actor, "casefile.create", "expediente", &exp.ID); err != nil {
 			return err
 		}
-		out = s.summary(exp, &tipoID)
-		return nil
+		out, err = s.detail(ctx, r, exp)
+		return err
 	})
+	if errors.Is(err, ErrDuplicatePerson) {
+		// La transacción del alta se revirtió; el token sale en una nueva.
+		if dup, derr := s.DuplicateCheck(ctx, actor, in.CURP); derr == nil && dup.Exists {
+			return nil, &DuplicatePersonError{LinkToken: dup.LinkToken, LinkExpiresAt: dup.LinkExpiresAt, Department: dup.Department}
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
-	return &out, nil
+	return out, nil
 }
 
 // ---------------- API-020 / API-021 ----------------

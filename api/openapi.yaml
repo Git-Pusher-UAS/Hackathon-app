@@ -1380,11 +1380,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CasefileSummary'
+                $ref: '#/components/schemas/CasefileDetail'
           description: Created
           headers:
             ETag:
               description: Versión actual del recurso
+              schema:
+                type: string
+            Location:
+              description: /api/v1/case-files/{id}
               schema:
                 type: string
         "400":
@@ -1404,7 +1408,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-          description: Conflict
+          description: person_exists, con linkToken, linkExpiresAt y department junto a error
         "422":
           content:
             application/json:

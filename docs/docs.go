@@ -653,12 +653,16 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Summary"
+                            "$ref": "#/definitions/backend-hackathon_internal_models_casefile.Detail"
                         },
                         "headers": {
                             "ETag": {
                                 "type": "string",
                                 "description": "Versión actual del recurso"
+                            },
+                            "Location": {
+                                "type": "string",
+                                "description": "/api/v1/case-files/{id}"
                             }
                         }
                     },
@@ -675,7 +679,7 @@ const docTemplate = `{
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "person_exists, con linkToken, linkExpiresAt y department junto a error",
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
                         }
