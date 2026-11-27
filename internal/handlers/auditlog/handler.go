@@ -22,6 +22,26 @@ func New(service svc.Service) *Handler { return &Handler{service: service} }
 
 var _ almodels.Entry
 
+// List consulta la bitácora de auditoría.
+//
+// @Summary      Listar bitácora de auditoría
+// @Description  Devuelve eventos de auditoría filtrados. La consulta queda registrada en la bitácora.
+// @Tags         audit-logs
+// @Produce      json
+// @Security     BearerAuth
+// @Param        actorId   query  string  false  "ID del actor"
+// @Param        recordId  query  string  false  "ID del expediente"
+// @Param        action    query  string  false  "Acción"
+// @Param        from      query  string  false  "Fecha/hora inicial (RFC3339 o YYYY-MM-DD)"
+// @Param        to        query  string  false  "Fecha/hora final (RFC3339 o YYYY-MM-DD)"
+// @Param        limit     query  int     false  "1..200"
+// @Param        cursor    query  string  false  "Cursor opaco"
+// @Success      200  {array}   almodels.Entry
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /audit-logs [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {

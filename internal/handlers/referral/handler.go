@@ -54,6 +54,24 @@ func MapError(err error) error {
 	}
 }
 
+// List devuelve la bandeja de canalizaciones.
+//
+// @Summary      Listar canalizaciones
+// @Description  Devuelve canalizaciones por dirección, estado y expediente.
+// @Tags         referrals
+// @Produce      json
+// @Security     BearerAuth
+// @Param        direction  query  string  false  "incoming | outgoing"
+// @Param        status     query  string  false  "Estados separados por coma"
+// @Param        recordId   query  string  false  "ID o alias del expediente"
+// @Param        limit      query  int     false  "1..100"
+// @Param        cursor     query  string  false  "Cursor opaco"
+// @Success      200  {array}   refmodels.View
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /referrals [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -93,6 +111,30 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Transition aplica una transición de estado a una canalización.
+//
+// @Summary      Transicionar canalización
+// @Description  Aplica una transición con control de concurrencia optimista.
+// @Tags         referrals
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        referralId    path    string                      true  "ID de la canalización"
+// @Param        If-Match      header  string                      true  "ETag/versionTag actual"
+// @Param        X-CSRF-Token  header  string                      true  "Token CSRF"
+// @Param        request       body    refmodels.TransitionRequest true  "Acción y motivo"
+// @Success      200  {object}  refmodels.View
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse
+// @Failure      412  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      428  {object}  httpx.ErrorResponse
+// @Failure      503  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /referrals/{referralId}/transitions [post]
 func (h *Handler) Transition(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {

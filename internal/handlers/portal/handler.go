@@ -46,6 +46,20 @@ func mapError(err error) error {
 	}
 }
 
+// Login inicia sesión del portal de usuaria.
+//
+// @Summary      Login portal
+// @Description  Inicia desafío OTP por identificador (CURP o nombre).
+// @Tags         portal
+// @Accept       json
+// @Produce      json
+// @Param        request  body  pmodels.LoginRequest  true  "Identificador"
+// @Success      200  {object}  pmodels.ChallengeResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /portal/auth/login [post]
 func (h *Handler) Login(c *fiber.Ctx) error {
 	var req pmodels.LoginRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
@@ -58,6 +72,20 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// CreateAccount registra una cuenta de usuaria.
+//
+// @Summary      Crear cuenta portal
+// @Description  Crea cuenta de usuaria y devuelve desafío OTP.
+// @Tags         portal
+// @Accept       json
+// @Produce      json
+// @Param        request  body  pmodels.CreateAccountRequest  true  "Datos de cuenta"
+// @Success      201  {object}  pmodels.ChallengeResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /portal/accounts [post]
 func (h *Handler) CreateAccount(c *fiber.Ctx) error {
 	var req pmodels.CreateAccountRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
@@ -70,6 +98,21 @@ func (h *Handler) CreateAccount(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(res)
 }
 
+// Verify verifica OTP del portal.
+//
+// @Summary      Verificar OTP portal
+// @Description  Verifica el desafío OTP y establece cookie de sesión portal.
+// @Tags         portal
+// @Accept       json
+// @Produce      json
+// @Param        request  body  pmodels.VerifyRequest  true  "Challenge y código"
+// @Success      200  {object}  pmodels.VerifyResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      410  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /portal/auth/verify [post]
 func (h *Handler) Verify(c *fiber.Ctx) error {
 	var req pmodels.VerifyRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
@@ -83,6 +126,16 @@ func (h *Handler) Verify(c *fiber.Ctx) error {
 	return c.JSON(res.Response)
 }
 
+// Me devuelve la cuenta portal autenticada.
+//
+// @Summary      Cuenta portal
+// @Description  Devuelve la cuenta portal autenticada.
+// @Tags         portal
+// @Produce      json
+// @Success      200  {object}  pmodels.MeResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /portal/me [get]
 func (h *Handler) Me(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -95,6 +148,22 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// PatchMe actualiza preferencias de la cuenta portal.
+//
+// @Summary      Actualizar cuenta portal
+// @Description  Actualiza preferencias de la usuaria.
+// @Tags         portal
+// @Accept       json
+// @Produce      json
+// @Param        X-CSRF-Token  header  string                 true  "Token CSRF portal"
+// @Param        request       body    pmodels.PatchMeRequest true  "Campos a actualizar"
+// @Success      200  {object}  pmodels.MeResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /portal/me [patch]
 func (h *Handler) PatchMe(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -111,6 +180,22 @@ func (h *Handler) PatchMe(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// CreateAlert crea una alerta de ayuda.
+//
+// @Summary      Crear alerta de ayuda
+// @Description  Crea alerta de ayuda idempotente por operationId.
+// @Tags         help-alerts
+// @Accept       json
+// @Produce      json
+// @Param        X-CSRF-Token  header  string                      true  "Token CSRF portal"
+// @Param        request       body    pmodels.CreateAlertRequest  true  "Datos de alerta"
+// @Success      201  {object}  pmodels.AlertResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /help-alerts [post]
 func (h *Handler) CreateAlert(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -127,6 +212,21 @@ func (h *Handler) CreateAlert(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(res)
 }
 
+// NotifyTrustedContacts notifica contactos de confianza.
+//
+// @Summary      Notificar contactos de confianza
+// @Description  Marca contactos avisados para una alerta activa.
+// @Tags         help-alerts
+// @Produce      json
+// @Param        id            path    string  true  "ID de alerta"
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF portal"
+// @Success      200  {object}  pmodels.AlertResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /help-alerts/{id}/trusted-contacts [post]
 func (h *Handler) NotifyTrustedContacts(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -143,6 +243,24 @@ func (h *Handler) NotifyTrustedContacts(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// CancelAlert cancela una alerta de ayuda.
+//
+// @Summary      Cancelar alerta de ayuda
+// @Description  Cancela una alerta con motivo.
+// @Tags         help-alerts
+// @Accept       json
+// @Produce      json
+// @Param        id            path    string                      true  "ID de alerta"
+// @Param        X-CSRF-Token  header  string                      true  "Token CSRF portal"
+// @Param        request       body    pmodels.CancelAlertRequest  true  "Motivo"
+// @Success      200  {object}  pmodels.AlertResponse
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /help-alerts/{id}/cancellation [post]
 func (h *Handler) CancelAlert(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {

@@ -32,6 +32,18 @@ func mapError(err error) error {
 	}
 }
 
+// Pending lista encuestas pendientes de la usuaria.
+//
+// @Summary      Listar encuestas pendientes
+// @Description  Devuelve encuestas pendientes con títulos neutros.
+// @Tags         surveys
+// @Produce      json
+// @Param        X-CSRF-Token  header  string  false  "Token CSRF portal"
+// @Success      200  {array}   smodels.Encuesta
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /surveys/pending [get]
 func (h *Handler) Pending(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -44,6 +56,20 @@ func (h *Handler) Pending(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Get devuelve una encuesta.
+//
+// @Summary      Obtener encuesta
+// @Description  Devuelve una encuesta con preguntas.
+// @Tags         surveys
+// @Produce      json
+// @Param        id  path  string  true  "ID de la encuesta"
+// @Success      200  {object}  smodels.Encuesta
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /surveys/{id} [get]
 func (h *Handler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -56,6 +82,25 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Submit envía respuestas de encuesta.
+//
+// @Summary      Enviar respuestas de encuesta
+// @Description  Guarda respuestas desvinculadas de identidad; idempotente por operationId.
+// @Tags         surveys
+// @Accept       json
+// @Produce      json
+// @Param        id            path    string                 true  "ID de la encuesta"
+// @Param        X-CSRF-Token  header  string                 true  "Token CSRF portal"
+// @Param        request       body    smodels.SubmitRequest  true  "Respuestas y operationId"
+// @Success      204  "Sin contenido"
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /surveys/{id}/responses [post]
 func (h *Handler) Submit(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -75,6 +120,18 @@ func (h *Handler) Submit(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// Results devuelve resultados agregados de encuestas.
+//
+// @Summary      Resultados de encuestas
+// @Description  Devuelve agregados con supresión cuando respuestas < 5.
+// @Tags         surveys
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {array}   smodels.Resultado
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /surveys/results [get]
 func (h *Handler) Results(c *fiber.Ctx) error {
 	res, err := h.service.Results(c.Context())
 	if err != nil {

@@ -45,6 +45,22 @@ func actorOf(c *fiber.Ctx) (repository.ActorContext, error) {
 	return a, nil
 }
 
+// List lista cursos.
+//
+// @Summary      Listar cursos
+// @Description  Lista cursos, charlas y conferencias.
+// @Tags         courses
+// @Produce      json
+// @Security     BearerAuth
+// @Param        type    query  string  false  "curso | charla | conferencia"
+// @Param        limit   query  int     false  "1..100"
+// @Param        cursor  query  string  false  "Cursor opaco"
+// @Success      200  {array}   cmodels.Curso
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /courses [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -73,6 +89,21 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Get obtiene un curso.
+//
+// @Summary      Obtener curso
+// @Description  Devuelve el detalle de un curso.
+// @Tags         courses
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "ID del curso"
+// @Success      200  {object}  cmodels.Curso
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /courses/{id} [get]
 func (h *Handler) Get(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -85,6 +116,23 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// Create crea un curso.
+//
+// @Summary      Crear curso
+// @Description  Crea un curso, charla o conferencia.
+// @Tags         courses
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        X-CSRF-Token  header  string                true  "Token CSRF"
+// @Param        request       body    cmodels.CreateRequest  true  "Datos del curso"
+// @Success      201  {object}  cmodels.Curso
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /courses [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {
@@ -102,6 +150,22 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(res)
 }
 
+// Enroll inscribe a la usuaria portal en un curso.
+//
+// @Summary      Inscribirse a curso
+// @Description  Inscribe a la usuaria autenticada del portal. Valida cupo y duplicados.
+// @Tags         courses
+// @Produce      json
+// @Param        id            path    string  true  "ID del curso"
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF portal"
+// @Success      204  "Sin contenido"
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /courses/{id}/enrollments [post]
 func (h *Handler) Enroll(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
 	if !ok {
@@ -117,6 +181,21 @@ func (h *Handler) Enroll(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// Attendance devuelve la lista de asistencia anonimizada.
+//
+// @Summary      Listar asistencia
+// @Description  Devuelve asistencia anonimizada con alias; nunca nombre real ni CURP.
+// @Tags         courses
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "ID del curso"
+// @Success      200  {array}   cmodels.Asistencia
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /courses/{id}/attendance [get]
 func (h *Handler) Attendance(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -129,6 +208,25 @@ func (h *Handler) Attendance(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// SetAttendance actualiza la asistencia.
+//
+// @Summary      Actualizar asistencia
+// @Description  Marca asistencia por inscripción; todo o nada.
+// @Tags         courses
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id            path    string                     true  "ID del curso"
+// @Param        X-CSRF-Token  header  string                     true  "Token CSRF"
+// @Param        request       body    []cmodels.MarcaAsistencia  true  "Marcas de asistencia"
+// @Success      204  "Sin contenido"
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /courses/{id}/attendance [put]
 func (h *Handler) SetAttendance(c *fiber.Ctx) error {
 	actor, err := actorOf(c)
 	if err != nil {

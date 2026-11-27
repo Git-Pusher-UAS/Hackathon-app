@@ -145,7 +145,7 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 // @Failure      403     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /users [get]
+// @Router       /users/staff [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -181,7 +181,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /users [post]
+// @Router       /users/staff [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -224,7 +224,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      428           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /users/{userId} [patch]
+// @Router       /users/staff/{userId} [patch]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -271,7 +271,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /users/{userId}/session-revocations [post]
+// @Router       /users/staff/{userId}/session-revocations [post]
 func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -294,6 +294,25 @@ func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 }
 
 // ResetMFA responde API-014.
+//
+// @Summary      Reiniciar MFA
+// @Description  Reinicia MFA de una cuenta con verificación presencial. Requiere permiso de administración.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId        path    string                    true  "ID de la cuenta"
+// @Param        request       body    usermodels.MFAResetRequest true  "Motivo y verificación presencial"
+// @Param        X-CSRF-Token  header  string                    true  "Token CSRF"
+// @Success      202           {object}  map[string]string
+// @Failure      400           {object}  httpx.ErrorResponse
+// @Failure      401           {object}  httpx.ErrorResponse
+// @Failure      403           {object}  httpx.ErrorResponse
+// @Failure      404           {object}  httpx.ErrorResponse
+// @Failure      422           {object}  httpx.ErrorResponse
+// @Failure      503           {object}  httpx.ErrorResponse
+// @Failure      500           {object}  httpx.ErrorResponse
+// @Router       /users/staff/{userId}/mfa-resets [post]
 func (h *Handler) ResetMFA(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -316,6 +335,19 @@ func (h *Handler) ResetMFA(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{"resetId": resetID})
 }
 
+// RevokeOthers revoca todas las sesiones propias excepto la actual.
+//
+// @Summary      Revocar otras sesiones propias
+// @Description  Revoca todas las sesiones activas de la cuenta autenticada excepto la sesión actual.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        X-CSRF-Token  header  string  true  "Token CSRF"
+// @Success      204  "Sin contenido"
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /users/me/sessions/revoke-others [post]
 func (h *Handler) RevokeOthers(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -335,6 +367,22 @@ func (h *Handler) RevokeOthers(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// Get devuelve una cuenta de personal.
+//
+// @Summary      Obtener cuenta de personal
+// @Description  Devuelve el detalle de una cuenta de personal. Requiere permiso de administración.
+// @Tags         users
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId  path  string  true  "ID de la cuenta"
+// @Success      200  {object}  usermodels.StaffSummary
+// @Header       200  {string}  ETag  "ETag de la versión actual"
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /users/staff/{userId} [get]
 func (h *Handler) Get(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -352,6 +400,26 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// ForceLogout revoca todas las sesiones de una cuenta.
+//
+// @Summary      Forzar cierre de sesión
+// @Description  Revoca todas las sesiones activas de una cuenta de personal. Requiere permiso de administración.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId        path    string                          true   "ID de la cuenta"
+// @Param        request       body    usermodels.RevokeSessionsRequest false  "Motivo (opcional)"
+// @Param        X-CSRF-Token  header  string                          true   "Token CSRF"
+// @Success      204  "Sin contenido"
+// @Failure      400  {object}  httpx.ErrorResponse
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      403  {object}  httpx.ErrorResponse
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      503  {object}  httpx.ErrorResponse
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /users/staff/{userId}/force-logout [post]
 func (h *Handler) ForceLogout(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
