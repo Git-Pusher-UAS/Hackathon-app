@@ -17,7 +17,6 @@ import (
 
 type discloseState struct {
 	persona *models.Persona
-	detalle []string
 }
 
 var discloseStates = map[*dupRepos]*discloseState{}
