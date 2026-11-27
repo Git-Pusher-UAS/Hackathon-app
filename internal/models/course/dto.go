@@ -16,6 +16,7 @@ type Curso struct {
 	Lugar       string           `json:"lugar"`
 	Cupo        int              `json:"cupo"`
 	Inscritas   int              `json:"inscritas"`
+	Inscrita    *bool            `json:"inscrita,omitempty"`
 }
 
 type CreateRequest struct {

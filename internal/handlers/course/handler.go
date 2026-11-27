@@ -45,6 +45,14 @@ func actorOf(c *fiber.Ctx) (repository.ActorContext, error) {
 	return a, nil
 }
 
+func optionalPortalID(c *fiber.Ctx) *uuid.UUID {
+	id, ok := middleware.PortalCuentaID(c)
+	if !ok {
+		return nil
+	}
+	return &id
+}
+
 // List lista cursos.
 //
 // @Summary      Listar cursos
@@ -82,7 +90,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 		}
 		limit = n
 	}
-	res, err := h.service.List(c.Context(), actor, tipo, repository.PageRequest{Limit: limit, Cursor: c.Query("cursor")})
+	res, err := h.service.List(c.Context(), actor, tipo, repository.PageRequest{Limit: limit, Cursor: c.Query("cursor")}, optionalPortalID(c))
 	if err != nil {
 		return mapError(err)
 	}
@@ -109,7 +117,7 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 	if err != nil {
 		return httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "id invalido")
 	}
-	res, err := h.service.Get(c.Context(), id)
+	res, err := h.service.Get(c.Context(), id, optionalPortalID(c))
 	if err != nil {
 		return mapError(err)
 	}

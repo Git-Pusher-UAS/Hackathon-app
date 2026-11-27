@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -50,11 +51,15 @@ type Service interface {
 }
 
 type service struct {
-	uow repository.UnitOfWork
-	now func() time.Time
+	uow     repository.UnitOfWork
+	now     func() time.Time
+	devMode bool
+	logf    func(string, ...any)
 }
 
-func New(uow repository.UnitOfWork) Service { return &service{uow: uow, now: time.Now} }
+func New(uow repository.UnitOfWork, devMode bool) Service {
+	return &service{uow: uow, now: time.Now, devMode: devMode, logf: log.Printf}
+}
 
 func normalizeCURP(s string) string { return strings.ToUpper(strings.TrimSpace(s)) }
 func normalizeName(s string) string { return strings.Join(strings.Fields(strings.TrimSpace(s)), " ") }
@@ -107,7 +112,9 @@ func (s *service) createChallenge(ctx context.Context, r repository.Repositories
 	if err := r.PortalDesafios().Create(ctx, d); err != nil {
 		return nil, err
 	}
-	_ = code // OTP delivery out of scope; challenge stored for verification
+	if s.devMode {
+		s.logf("[DEV OTP] portal challenge=%s telefono=%s code=%s", d.ID, maskPhone(telefono), code)
+	}
 	return &pmodels.ChallengeResponse{ChallengeID: d.ID, TelefonoMascara: maskPhone(telefono)}, nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -48,11 +49,15 @@ type Service interface {
 }
 
 type service struct {
-	uow repository.UnitOfWork
-	now func() time.Time
+	uow     repository.UnitOfWork
+	now     func() time.Time
+	devMode bool
+	logf    func(string, ...any)
 }
 
-func New(uow repository.UnitOfWork) Service { return &service{uow: uow, now: time.Now} }
+func New(uow repository.UnitOfWork, devMode bool) Service {
+	return &service{uow: uow, now: time.Now, devMode: devMode, logf: log.Printf}
+}
 
 func randomDigits(n int) (string, error) {
 	b := make([]byte, n)
@@ -112,7 +117,9 @@ func (s *service) createChallenge(ctx context.Context, r repository.Repositories
 	if err := r.EmpleadorDesafios().Create(ctx, d); err != nil {
 		return nil, err
 	}
-	_ = code
+	if s.devMode {
+		s.logf("[DEV OTP] employer challenge=%s correo=%s telefono=%s code=%s", d.ID, e.Correo, maskPhone(e.Telefono), code)
+	}
 	return &emodels.ChallengeResponse{ChallengeID: d.ID, TelefonoMascara: maskPhone(e.Telefono)}, nil
 }
 

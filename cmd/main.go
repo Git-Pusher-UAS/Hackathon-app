@@ -146,12 +146,12 @@ func main() {
 	auditLogHandler := auditloghandler.New(auditlogservice.New(uow))
 	auditAlertHandler := auditalerthandler.New(auditalertservice.New(uow))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
-	portalHandler := portalhandler.New(portalservice.New(uow))
+	portalHandler := portalhandler.New(portalservice.New(uow, cfg.IsDev()))
 	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
 	outreachHandler := outreachhandler.New(outreachservice.New(uow))
 	jobHandler := jobhandler.New(jobservice.New(uow))
 	surveyHandler := surveyhandler.New(surveyservice.New(uow))
-	employerHandler := employerhandler.New(employerservice.New(uow))
+	employerHandler := employerhandler.New(employerservice.New(uow, cfg.IsDev()))
 	bolsaExtra := bolsaextrahandler.New(uow)
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
@@ -214,6 +214,9 @@ func main() {
 	helpAlerts.Post("", portalHandler.CreateAlert)
 	helpAlerts.Post("/:id/trusted-contacts", portalHandler.NotifyTrustedContacts)
 	helpAlerts.Post("/:id/cancellation", portalHandler.CancelAlert)
+	courseReadAuth := middleware.PortalOrStaffAuthMiddleware(cfg.JWT.Secret, uow, coursemw.PermManage)
+	api.Get("/courses", courseReadAuth, usermiddleware.NoStore, courseHandler.List)
+	api.Get("/courses/:id", courseReadAuth, usermiddleware.NoStore, courseHandler.Get)
 	api.Post("/courses/:id/enrollments", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), courseHandler.Enroll)
 	api.Get("/surveys/pending", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), surveyHandler.Pending)
 	api.Get("/surveys/:id", middleware.PortalAuthMiddleware(uow), middleware.PortalCSRF(), surveyHandler.Get)
@@ -312,8 +315,6 @@ func main() {
 	admin.Post("/applications/:id/contact-release", csrf, bolsaExtra.AdminContactRelease)
 
 	courses := apiContract.Group("/courses", coursemw.Require(coursemw.PermManage))
-	courses.Get("", courseHandler.List)
-	courses.Get("/:id", courseHandler.Get)
 	courses.Post("", csrf, courseHandler.Create)
 	courses.Get("/:id/attendance", courseHandler.Attendance)
 	courses.Put("/:id/attendance", csrf, courseHandler.SetAttendance)

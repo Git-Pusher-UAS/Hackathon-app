@@ -66,6 +66,21 @@ func (r *inscripcionRepo) Create(ctx context.Context, i *models.Inscripcion) err
 func (r *inscripcionRepo) GetByCursoAndUsuaria(ctx context.Context, cursoID, usuariaID uuid.UUID) (*models.Inscripcion, error) {
 	return first[models.Inscripcion](ctx, r.db, "curso_id = ? AND usuaria_id = ?", cursoID, usuariaID)
 }
+func (r *inscripcionRepo) ExistsMany(ctx context.Context, cursoIDs []uuid.UUID, usuariaID uuid.UUID) (map[uuid.UUID]bool, error) {
+	out := map[uuid.UUID]bool{}
+	if len(cursoIDs) == 0 {
+		return out, nil
+	}
+	var ids []uuid.UUID
+	err := r.db.WithContext(ctx).Model(&models.Inscripcion{}).Where("curso_id IN ? AND usuaria_id = ?", cursoIDs, usuariaID).Pluck("curso_id", &ids).Error
+	if err != nil {
+		return nil, translate(err)
+	}
+	for _, id := range ids {
+		out[id] = true
+	}
+	return out, nil
+}
 func (r *inscripcionRepo) ListByCurso(ctx context.Context, cursoID uuid.UUID) ([]models.Inscripcion, error) {
 	return findAll[models.Inscripcion](ctx, r.db, func(q *gorm.DB) *gorm.DB { return q.Where("curso_id = ?", cursoID).Order("alias ASC, id ASC") })
 }

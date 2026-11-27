@@ -21,72 +21,79 @@ import (
 // de permisos no haya cambiado. Deja el actor en Locals para los handlers.
 func AuthMiddleware(secret string, uow repository.UnitOfWork) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		raw, ok := bearerToken(c.Get(fiber.HeaderAuthorization))
-		if !ok {
-			raw = strings.TrimSpace(c.Cookies("sai_session"))
-			ok = raw != ""
-		}
-		if !ok {
+		if !validateStaffAuth(c, secret, uow) {
 			return unauthorized(c)
 		}
-
-		claims, err := auth.ParseToken(secret, raw)
-		if err != nil {
-			return unauthorized(c)
-		}
-
-		personalID, err := uuid.Parse(claims.Subject)
-		if err != nil {
-			return unauthorized(c)
-		}
-
-		ctx := c.Context()
-		repos := uow.Repositories()
-		now := time.Now()
-
-		sesion, err := repos.Sesiones().GetByID(ctx, claims.SessionID)
-		if err != nil || sesion.RevocadoEn != nil || !sesion.VenceAbsoluto.After(now) || !sesion.UltimaActividad.Add(auth.IdleTimeout).After(now) {
-			return unauthorized(c)
-		}
-		if sesion.TitularID != personalID {
-			return unauthorized(c)
-		}
-
-		hash := sha256.Sum256([]byte(raw))
-		if subtle.ConstantTimeCompare(hash[:], sesion.TokenHash) != 1 {
-			return unauthorized(c)
-		}
-
-		personal, err := repos.Personal().GetByID(ctx, personalID)
-		if err != nil || personal.Estado != models.PersonalActivo {
-			return unauthorized(c)
-		}
-		if personal.BloqueadoHasta != nil && personal.BloqueadoHasta.After(now) {
-			return unauthorized(c)
-		}
-		if personal.VersionPermisos != claims.PermVersion {
-			return unauthorized(c)
-		}
-
-		// Actualiza ultima_actividad sin escribir en cada petición.
-		if now.Sub(sesion.UltimaActividad) > time.Minute {
-			_ = repos.Sesiones().Touch(ctx, sesion.ID, now)
-		}
-
-		c.Locals(localPersonalID, personalID)
-		c.Locals(localActorID, claims.ActorID)
-		c.Locals(localSessionID, sesion.ID)
-		c.Locals(localRol, claims.Rol)
-		c.Locals(localPermisos, claims.Permisos)
-		c.Locals(localCSRFHash, sesion.CSRFHash)
-		c.Locals(localActor, repository.ActorContext{
-			ActorID:   claims.ActorID,
-			RequestID: RequestID(c),
-			IPOrigen:  ipPtr(c.IP()),
-		})
-
 		return c.Next()
 	}
+}
+
+func validateStaffAuth(c *fiber.Ctx, secret string, uow repository.UnitOfWork) bool {
+	raw, ok := bearerToken(c.Get(fiber.HeaderAuthorization))
+	if !ok {
+		raw = strings.TrimSpace(c.Cookies("sai_session"))
+		ok = raw != ""
+	}
+	if !ok {
+		return false
+	}
+
+	claims, err := auth.ParseToken(secret, raw)
+	if err != nil {
+		return false
+	}
+
+	personalID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return false
+	}
+
+	ctx := c.Context()
+	repos := uow.Repositories()
+	now := time.Now()
+
+	sesion, err := repos.Sesiones().GetByID(ctx, claims.SessionID)
+	if err != nil || sesion.RevocadoEn != nil || !sesion.VenceAbsoluto.After(now) || !sesion.UltimaActividad.Add(auth.IdleTimeout).After(now) {
+		return false
+	}
+	if sesion.TitularID != personalID {
+		return false
+	}
+
+	hash := sha256.Sum256([]byte(raw))
+	if subtle.ConstantTimeCompare(hash[:], sesion.TokenHash) != 1 {
+		return false
+	}
+
+	personal, err := repos.Personal().GetByID(ctx, personalID)
+	if err != nil || personal.Estado != models.PersonalActivo {
+		return false
+	}
+	if personal.BloqueadoHasta != nil && personal.BloqueadoHasta.After(now) {
+		return false
+	}
+	if personal.VersionPermisos != claims.PermVersion {
+		return false
+	}
+
+	// Actualiza ultima_actividad sin escribir en cada petición.
+	if now.Sub(sesion.UltimaActividad) > time.Minute {
+		_ = repos.Sesiones().Touch(ctx, sesion.ID, now)
+	}
+
+	c.Locals(localPersonalID, personalID)
+	c.Locals(localActorID, claims.ActorID)
+	c.Locals(localSessionID, sesion.ID)
+	c.Locals(localRol, claims.Rol)
+	c.Locals(localPermisos, claims.Permisos)
+	c.Locals(localCSRFHash, sesion.CSRFHash)
+	c.Locals(localActor, repository.ActorContext{
+		ActorID:   claims.ActorID,
+		RequestID: RequestID(c),
+		IPOrigen:  ipPtr(c.IP()),
+	})
+
+	return true
 }
 
 func bearerToken(header string) (string, bool) {

@@ -6,10 +6,12 @@ import (
 	"github.com/joho/godotenv"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type Config struct {
+	Env          string
 	Server       ServerConfig
 	DB           DBConfig
 	JWT          JWTConfig
@@ -72,6 +74,7 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
+		Env: strings.ToLower(strings.TrimSpace(getEnv("APP_ENV", "production"))),
 		Server: ServerConfig{
 			Port:       getEnv("PORT", "3000"),
 			CORSOrigin: getEnv("CORS_ORIGIN", "http://localhost:3000"),
@@ -111,6 +114,16 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// IsDev indica si la API corre en modo desarrollo local (APP_ENV=dev|development|local).
+func (c *Config) IsDev() bool {
+	switch strings.ToLower(strings.TrimSpace(c.Env)) {
+	case "dev", "development", "local":
+		return true
+	default:
+		return false
+	}
 }
 
 func getEnv(key, defaultValue string) string {
