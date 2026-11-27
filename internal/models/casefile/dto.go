@@ -62,14 +62,19 @@ type Summary struct {
 type ListQuery struct {
 	Estado models.EstadoExpediente
 	Alias  string
+	From   *time.Time
+	To     *time.Time
 }
 
 // API-022
 type UpdateRequest struct {
 	Alias      *string                  `json:"alias"`
 	Estado     *models.EstadoExpediente `json:"estado"`
+	Status     *models.EstadoExpediente `json:"status"` // alias compat
 	Motivo     *string                  `json:"motivo"`
 	TipoCasoID *string                  `json:"tipoCasoId"`
+	Version    *int64                   `json:"version,omitempty"`    // compat If-Match
+	VersionTag string                   `json:"versionTag,omitempty"` // compat If-Match
 }
 
 // API-023
@@ -90,6 +95,7 @@ type TimelineItem struct {
 // API-028
 type DisclosureRequest struct {
 	Campo  string `json:"campo"` // nombre|curp|fechaNacimiento|telefono|domicilio
+	Field  string `json:"field"` // alias compat
 	Motivo string `json:"motivo"`
 }
 type DisclosureResponse struct {
@@ -100,9 +106,11 @@ type DisclosureResponse struct {
 // API-024 / API-025
 type AssignRequest struct {
 	PersonalID     string  `json:"personalId"`
+	StaffID        string  `json:"staffId"` // alias compat
 	DepartamentoID string  `json:"departamentoId"`
 	Motivo         string  `json:"motivo"`
 	SolicitudID    *string `json:"solicitudId,omitempty"`
+	LinkRequestID  *string `json:"linkRequestId,omitempty"` // alias compat
 }
 type AssignmentView struct {
 	ID             uuid.UUID  `json:"id"`
@@ -145,15 +153,19 @@ type RevokeConsentRequest struct {
 
 // API-033
 type ReferralCreateRequest struct {
-	DestinoID string `json:"destinoId"`
-	Resumen   string `json:"resumen"`
+	Tipo          string  `json:"tipo,omitempty"`          // interna|externa, default interna
+	DestinoID     *string `json:"destinoId,omitempty"`     // departamento (interna), compat
+	InstitucionID *string `json:"institucionId,omitempty"` // institución (externa)
+	Resumen       string  `json:"resumen"`
 }
 type ReferralView struct {
-	ID           uuid.UUID                 `json:"id"`
-	ExpedienteID uuid.UUID                 `json:"expedienteId"`
-	OrigenID     uuid.UUID                 `json:"origenId"`
-	DestinoID    uuid.UUID                 `json:"destinoId"`
-	Estado       models.EstadoCanalizacion `json:"estado"`
-	VersionTag   string                    `json:"versionTag"`
-	CreatedAt    time.Time                 `json:"createdAt"`
+	ID            uuid.UUID                 `json:"id"`
+	ExpedienteID  uuid.UUID                 `json:"expedienteId"`
+	OrigenID      uuid.UUID                 `json:"origenId"`
+	Tipo          models.TipoCanalizacion   `json:"tipo"`
+	DestinoID     *uuid.UUID                `json:"destinoId"`
+	InstitucionID *uuid.UUID                `json:"institucionId"`
+	Estado        models.EstadoCanalizacion `json:"estado"`
+	VersionTag    string                    `json:"versionTag"`
+	CreatedAt     time.Time                 `json:"createdAt"`
 }

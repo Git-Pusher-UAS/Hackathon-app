@@ -39,20 +39,9 @@ func uuidParam(c *fiber.Ctx, name string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// X-Operation-Id (UUID generado por el cliente) hace idempotentes las escrituras.
+// X-Operation-Id/Idempotency-Key (header) u operationId (body) hace idempotentes las escrituras.
 func operationID(c *fiber.Ctx, required bool) (*uuid.UUID, error) {
-	raw := strings.TrimSpace(c.Get("X-Operation-Id"))
-	if raw == "" {
-		if required {
-			return nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "X-Operation-Id requerido (UUID)")
-		}
-		return nil, nil
-	}
-	id, err := uuid.Parse(raw)
-	if err != nil {
-		return nil, httpx.E(fiber.StatusUnprocessableEntity, "VALIDATION_ERROR", "X-Operation-Id inv\u00e1lido")
-	}
-	return &id, nil
+	return httpx.OperationIDFromRequest(c, required)
 }
 
 func parsePage(c *fiber.Ctx) (repository.PageRequest, error) {
@@ -294,12 +283,22 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 		return err
 	}
 	ifMatch, ok := httpx.ParseIfMatch(c.Get(fiber.HeaderIfMatch))
-	if !ok {
-		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
-	}
 	var req casemodels.UpdateRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
+	}
+	if req.Estado == nil && req.Status != nil {
+		req.Estado = req.Status
+	}
+	if !ok {
+		if v := strings.TrimSpace(req.VersionTag); v != "" {
+			ifMatch, ok = v, true
+		} else if req.Version != nil && *req.Version > 0 {
+			ifMatch, ok = strconv.FormatInt(*req.Version, 10), true
+		}
+	}
+	if !ok {
+		return httpx.E(fiber.StatusPreconditionRequired, "PRECONDITION_REQUIRED", "If-Match requerido")
 	}
 	res, err := h.service.Update(c.Context(), actor, id, req, ifMatch)
 	if err != nil {
@@ -388,6 +387,9 @@ func (h *Handler) Disclose(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
 	}
+	if strings.TrimSpace(req.Campo) == "" && strings.TrimSpace(req.Field) != "" {
+		req.Campo = req.Field
+	}
 	res, err := h.service.Disclose(c.Context(), actor, id, req)
 	if err != nil {
 		return mapError(err)
@@ -424,6 +426,12 @@ func (h *Handler) Assign(c *fiber.Ctx) error {
 	var req casemodels.AssignRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
+	}
+	if strings.TrimSpace(req.PersonalID) == "" && strings.TrimSpace(req.StaffID) != "" {
+		req.PersonalID = req.StaffID
+	}
+	if req.SolicitudID == nil && req.LinkRequestID != nil {
+		req.SolicitudID = req.LinkRequestID
 	}
 	res, err := h.service.Assign(c.Context(), actor, id, req)
 	if err != nil {

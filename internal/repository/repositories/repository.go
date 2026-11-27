@@ -143,4 +143,8 @@ type Repositories interface {
 	// bolsa
 	Vacantes() VacanteRepository
 	Postulaciones() PostulacionRepository
+	Empleadores() EmpleadorRepository
+	EmpleadorDesafios() EmpleadorDesafioRepository
+	EmpleadorSesiones() EmpleadorSesionRepository
+	CV() CVRepository
 }

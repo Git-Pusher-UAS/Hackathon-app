@@ -173,7 +173,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Param        request       body    usermodels.CreateRequest  true  "Datos de la cuenta"
 // @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
-// @Success      201           {object}  usermodels.StaffSummary
+// @Success      201           {object}  usermodels.CreateResponse
 // @Header       201           {string}  ETag  "ETag de la versión creada"
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
@@ -197,7 +197,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	if err != nil {
 		return mapError(err)
 	}
-	c.Set(fiber.HeaderETag, httpx.FormatETag(result.VersionTag))
+	c.Set(fiber.HeaderETag, httpx.FormatETag(result.Cuenta.VersionTag))
 	return c.Status(fiber.StatusCreated).JSON(result)
 }
 

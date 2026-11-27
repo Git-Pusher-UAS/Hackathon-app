@@ -43,6 +43,7 @@ type Service interface {
 	CreateAccount(ctx context.Context, in pmodels.CreateAccountRequest) (*pmodels.ChallengeResponse, error)
 	Me(ctx context.Context, cuentaID uuid.UUID) (*pmodels.MeResponse, error)
 	PatchMe(ctx context.Context, cuentaID uuid.UUID, in pmodels.PatchMeRequest) (*pmodels.MeResponse, error)
+	Logout(ctx context.Context, sessionID uuid.UUID) error
 	CreateAlert(ctx context.Context, cuentaID uuid.UUID, in pmodels.CreateAlertRequest) (*pmodels.AlertResponse, error)
 	NotifyTrustedContacts(ctx context.Context, cuentaID uuid.UUID, alertID uuid.UUID) (*pmodels.AlertResponse, error)
 	CancelAlert(ctx context.Context, cuentaID uuid.UUID, alertID uuid.UUID, motivo string) (*pmodels.AlertResponse, error)
@@ -383,4 +384,10 @@ func (s *service) CancelAlert(ctx context.Context, cuentaID uuid.UUID, alertID u
 		return nil, err
 	}
 	return out, nil
+}
+
+func (s *service) Logout(ctx context.Context, sessionID uuid.UUID) error {
+	return s.uow.DoSystem(ctx, func(ctx context.Context, r repository.Repositories) error {
+		return r.PortalSesiones().Revoke(ctx, sessionID, s.now())
+	})
 }

@@ -7,12 +7,13 @@ import (
 )
 
 // RequirePermiso exige que el token autenticado incluya el permiso indicado.
-// Debe montarse después de AuthMiddleware.
+// El permiso "admin" otorga acceso total. Debe montarse después de AuthMiddleware.
 func RequirePermiso(codigo string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		if !slices.Contains(Permisos(c), codigo) {
-			return fiber.NewError(fiber.StatusForbidden, "permiso insuficiente")
+		perms := Permisos(c)
+		if slices.Contains(perms, "admin") || slices.Contains(perms, codigo) {
+			return c.Next()
 		}
-		return c.Next()
+		return fiber.NewError(fiber.StatusForbidden, "permiso insuficiente")
 	}
 }

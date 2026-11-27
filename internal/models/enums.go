@@ -38,6 +38,7 @@ const (
 	FaseAnonimo      FaseContexto = "anonimo"
 	FaseTOTP         FaseContexto = "totp"
 	FaseEnrolamiento FaseContexto = "enrolamiento"
+	FaseActivacion   FaseContexto = "activacion"
 )
 
 type EstadoExpediente string

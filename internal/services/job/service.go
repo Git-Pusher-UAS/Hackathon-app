@@ -40,6 +40,10 @@ func view(v *models.Vacante, postulaciones int, postulada *bool) jmodels.Job {
 
 func (s *service) List(ctx context.Context, f repository.VacanteFilter, portalUsuariaID *uuid.UUID) ([]jmodels.Job, error) {
 	r := s.uow.Repositories()
+	if f.Estado == nil {
+		pub := models.VacantePublicada
+		f.Estado = &pub
+	}
 	rp, err := r.Vacantes().List(ctx, f, repository.PageRequest{Limit: 100})
 	if err != nil {
 		return nil, err
@@ -125,11 +129,26 @@ func (s *service) Create(ctx context.Context, in jmodels.CreateRequest) (*jmodel
 
 func (s *service) Apply(ctx context.Context, vacanteID, usuariaID uuid.UUID) error {
 	return s.uow.DoSystem(ctx, func(ctx context.Context, r repository.Repositories) error {
-		if _, err := r.Vacantes().GetByID(ctx, vacanteID); err != nil {
+		v, err := r.Vacantes().GetByID(ctx, vacanteID)
+		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return ErrNotFound
 			}
 			return err
+		}
+		if v.Estado != models.VacantePublicada {
+			return ErrNotFound
+		}
+		// Validar CV antes de postular
+		perfil, err := r.CV().GetPerfil(ctx, usuariaID)
+		if err != nil || perfil == nil || strings.TrimSpace(perfil.Nombre) == "" {
+			return httpx.Invalid("cv incompleto", map[string]string{"cv": "debes completar tu CV antes de postularte"})
+		}
+		exps, _ := r.CV().ListExperiencias(ctx, usuariaID)
+		eds, _ := r.CV().ListEstudios(ctx, usuariaID)
+		hasSkills := strings.TrimSpace(perfil.Habilidades) != "" && strings.TrimSpace(perfil.Habilidades) != "[]"
+		if len(exps) == 0 && len(eds) == 0 && !hasSkills {
+			return httpx.Invalid("cv incompleto", map[string]string{"cv": "agrega habilidades, experiencia o estudios"})
 		}
 		exists, err := r.Postulaciones().Exists(ctx, vacanteID, usuariaID)
 		if err != nil {
@@ -138,7 +157,8 @@ func (s *service) Apply(ctx context.Context, vacanteID, usuariaID uuid.UUID) err
 		if exists {
 			return ErrDuplicate
 		}
-		err = r.Postulaciones().Create(ctx, &models.Postulacion{ID: uuid.New(), VacanteID: vacanteID, UsuariaID: usuariaID, CreadoEn: s.now()})
+		now := s.now()
+		err = r.Postulaciones().Create(ctx, &models.Postulacion{ID: uuid.New(), VacanteID: vacanteID, UsuariaID: usuariaID, Estado: models.PostulacionEnviada, CreadoEn: now, ActualizadoEn: now})
 		if errors.Is(err, repository.ErrConflict) {
 			return ErrDuplicate
 		}

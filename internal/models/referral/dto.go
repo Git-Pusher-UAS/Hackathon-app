@@ -38,8 +38,10 @@ type View struct {
 }
 
 type TransitionRequest struct {
-	Action string  `json:"action"`
-	Motivo *string `json:"motivo,omitempty"`
+	Action     string  `json:"action"`
+	Motivo     *string `json:"motivo,omitempty"`
+	Version    *int64  `json:"version,omitempty"`
+	VersionTag string  `json:"versionTag,omitempty"`
 }
 
 type ListQuery struct {

@@ -3,6 +3,7 @@ package referral
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -69,17 +70,27 @@ func (s *service) Transition(ctx context.Context, actor repository.ActorContext,
 	if n := utf8.RuneCountInString(motivo); (t.needsMotivo && n < 10) || n > 500 {
 		return nil, httpx.Invalid("motivo invalido", map[string]string{"motivo": "longitud_invalida"})
 	}
-	tag, ok := httpx.ParseIfMatch(ifMatch)
-	if !ok {
+	raw := strings.TrimSpace(ifMatch)
+	if raw == "" {
 		return nil, ErrPreconditionRequired
 	}
-	expected, err := httpx.DecodeVersionTag(s.secret, tag)
-	if err != nil {
+	var expected int64
+	if tag, ok := httpx.ParseIfMatch(raw); ok {
+		v, err := httpx.DecodeVersionTag(s.secret, tag)
+		if err != nil {
+			return nil, ErrVersionMismatch
+		}
+		expected = v
+	} else if v, err := strconv.ParseInt(raw, 10, 64); err == nil && v > 0 {
+		expected = v
+	} else if v, err := httpx.DecodeVersionTag(s.secret, raw); err == nil {
+		expected = v
+	} else {
 		return nil, ErrVersionMismatch
 	}
 
 	var out refmodels.View
-	err = s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
+	err := s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
 		c, err := r.Canalizaciones().GetByIDForUpdate(ctx, id)
 		if errors.Is(err, repository.ErrNotFound) {
 			return ErrNotFound

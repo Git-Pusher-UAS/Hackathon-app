@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend-hackathon/internal/httpx"
 	"errors"
 	"log"
 	"strings"
@@ -320,6 +321,49 @@ func (h *AuthHandler) VerifyMFA(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(res)
+}
+
+// ActivationRequest es el cuerpo de POST /auth/activations.
+type ActivationRequest struct {
+	Usuario  string `json:"usuario" example:"mperez"`
+	Codigo   string `json:"codigo" example:"K7P2-9QX4"`
+	Password string `json:"password"`
+}
+
+// Activate fija la contraseña de una cuenta nueva con su código de activación.
+//
+// @Summary      Activar cuenta
+// @Description  El personal elige su contraseña con el código entregado por TI. El código es de un solo uso y vence en 72 h.
+// @Tags         auth
+// @Accept       json
+// @Param        request  body  ActivationRequest  true  "Usuario, código y contraseña nueva"
+// @Success      204  "Contraseña fijada"
+// @Failure      401  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      429  {object}  httpx.ErrorResponse
+// @Router       /auth/activations [post]
+func (h *AuthHandler) Activate(c *fiber.Ctx) error {
+	var req ActivationRequest
+	if err := c.BodyParser(&req); err != nil {
+		return httpx.E(fiber.StatusBadRequest, "INVALID_JSON", "cuerpo de la petición inválido")
+	}
+	err := h.authService.Activar(c.Context(), auth.ActivacionInput{
+		Usuario: req.Usuario, Codigo: req.Codigo, Password: req.Password,
+		IP: c.IP(), RequestID: middleware.RequestID(c),
+	})
+	switch {
+	case err == nil:
+		return c.SendStatus(fiber.StatusNoContent)
+	case errors.Is(err, auth.ErrActivacionInvalida):
+		return httpx.E(fiber.StatusUnauthorized, "INVALID_CODE", "código de activación inválido o vencido")
+	case errors.Is(err, auth.ErrPasswordInvalida):
+		return httpx.Invalid(err.Error(), map[string]string{"password": "longitud_invalida"})
+	case errors.Is(err, auth.ErrDemasiadosIntentos):
+		return httpx.E(fiber.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "demasiados intentos")
+	default:
+		log.Printf("auth: activation: %v", err)
+		return httpx.E(fiber.StatusInternalServerError, "INTERNAL_ERROR", "error interno")
+	}
 }
 
 func authError(c *fiber.Ctx, err error) error {

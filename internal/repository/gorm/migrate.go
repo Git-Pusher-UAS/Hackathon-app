@@ -94,6 +94,9 @@ func Tables() []any {
 		&models.PortalDesafioOTP{},
 		&models.PortalSesion{},
 		&models.PortalAlertaAyuda{},
+		&models.CVPerfil{},
+		&models.CVExperiencia{},
+		&models.CVEstudio{},
 
 		// capacitacion
 		&models.Curso{},
@@ -107,6 +110,9 @@ func Tables() []any {
 		&models.AsignacionEncuesta{},
 
 		// bolsa
+		&models.Empleador{},
+		&models.EmpleadorDesafioOTP{},
+		&models.EmpleadorSesion{},
 		&models.Vacante{},
 		&models.Postulacion{},
 	}

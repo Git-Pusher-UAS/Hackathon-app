@@ -183,6 +183,12 @@ func (r *expedienteRepo) List(ctx context.Context, f repository.ExpedienteFilter
 	if f.Alias != "" {
 		q = q.Where("alias ILIKE ?", "%"+f.Alias+"%")
 	}
+	if f.From != nil {
+		q = q.Where("creado_en >= ?", *f.From)
+	}
+	if f.To != nil {
+		q = q.Where("creado_en <= ?", *f.To)
+	}
 
 	limit := pageLimit(page)
 	q = applyPage(q, page, "creado_en", "id", false)

@@ -53,3 +53,10 @@ func RecordResource(
 		RequestID:   requestID,
 	})
 }
+
+func RecordWithMeta(ctx context.Context, repos repository.Repositories, actorID *uuid.UUID, accion, tipoRecurso string, resultado models.ResultadoAuditoria, recursoID *uuid.UUID, requestID uuid.UUID, ip *string, meta []byte) error {
+	if requestID == uuid.Nil {
+		requestID = uuid.New()
+	}
+	return repos.EventosAuditoria().Append(ctx, &models.EventoAuditoria{ActorID: actorID, Accion: accion, TipoRecurso: tipoRecurso, RecursoID: recursoID, Resultado: resultado, Metadatos: meta, OcurridoEn: time.Now(), IPOrigen: ip, RequestID: requestID})
+}

@@ -4,6 +4,7 @@ package casefile
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -461,12 +462,19 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, opI
 
 func (s *service) List(ctx context.Context, actor repository.ActorContext, q casemodels.ListQuery, page repository.PageRequest) (*casemodels.Page[casemodels.Summary], error) {
 	alias := strings.TrimSpace(q.Alias)
-	filterHash := httpx.FilterHash(string(q.Estado), alias)
+	fromS, toS := "", ""
+	if q.From != nil {
+		fromS = q.From.Format(time.RFC3339)
+	}
+	if q.To != nil {
+		toS = q.To.Format(time.RFC3339)
+	}
+	filterHash := httpx.FilterHash(string(q.Estado), alias, fromS, toS)
 	plain, err := httpx.DecodeCursor(s.secret, page.Cursor, actor.ActorID, cursorScopeList, filterHash)
 	if err != nil {
-		return nil, vErr("cursor inv\u00e1lido")
+		return nil, vErr("cursor inválido")
 	}
-	f := repository.ExpedienteFilter{AsignadoA: &actor.ActorID, Alias: alias}
+	f := repository.ExpedienteFilter{AsignadoA: &actor.ActorID, Alias: alias, From: q.From, To: q.To}
 	if q.Estado != "" {
 		est := q.Estado
 		f.Estado = &est
@@ -524,12 +532,16 @@ func (s *service) Update(ctx context.Context, actor repository.ActorContext, rec
 	if err := validateUpdate(in); err != nil {
 		return nil, err
 	}
-	if ifMatch == "" {
+	if strings.TrimSpace(ifMatch) == "" {
 		return nil, ErrPreconditionRequired
 	}
-	expected, err := httpx.DecodeVersionTag(s.secret, ifMatch)
+	expected, err := httpx.DecodeVersionTag(s.secret, strings.TrimSpace(ifMatch))
 	if err != nil {
-		return nil, ErrVersionMismatch
+		if n, e2 := strconv.ParseInt(strings.TrimSpace(ifMatch), 10, 64); e2 == nil && n > 0 {
+			expected = n
+		} else {
+			return nil, ErrVersionMismatch
+		}
 	}
 
 	var out casemodels.Summary

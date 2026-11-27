@@ -148,7 +148,16 @@ func (h *Handler) Transition(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return err
 	}
-	res, err := h.service.Transition(c.Context(), actor, id, c.Get(fiber.HeaderIfMatch), req)
+	ifMatch := c.Get(fiber.HeaderIfMatch)
+	if strings.TrimSpace(ifMatch) == "" {
+		if strings.TrimSpace(req.VersionTag) != "" {
+			ifMatch = req.VersionTag
+		}
+		if ifMatch == "" && req.Version != nil && *req.Version > 0 {
+			ifMatch = strconv.FormatInt(*req.Version, 10)
+		}
+	}
+	res, err := h.service.Transition(c.Context(), actor, id, ifMatch, req)
 	if err != nil {
 		return MapError(err)
 	}

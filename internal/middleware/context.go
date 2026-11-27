@@ -18,9 +18,12 @@ const (
 	localActor      = "actor"
 	localCSRFHash   = "csrfHash"
 
-	localPortalCuentaID  = "portalCuentaID"
-	localPortalSessionID = "portalSessionID"
-	localPortalCSRFHash  = "portalCSRFHash"
+	localPortalCuentaID    = "portalCuentaID"
+	localPortalSessionID   = "portalSessionID"
+	localPortalCSRFHash    = "portalCSRFHash"
+	localEmpleadorID       = "empleadorID"
+	localEmpleadorSesionID = "empleadorSessionID"
+	localEmpleadorCSRFHash = "empleadorCSRFHash"
 )
 
 // RequestID devuelve el id de correlación de Fiber como UUID.
@@ -80,5 +83,18 @@ func PortalSessionID(c *fiber.Ctx) (uuid.UUID, bool) {
 
 func PortalCSRFHash(c *fiber.Ctx) ([]byte, bool) {
 	hash, ok := c.Locals(localPortalCSRFHash).([]byte)
+	return hash, ok
+}
+
+func EmpleadorID(c *fiber.Ctx) (uuid.UUID, bool) {
+	id, ok := c.Locals(localEmpleadorID).(uuid.UUID)
+	return id, ok
+}
+func EmpleadorSessionID(c *fiber.Ctx) (uuid.UUID, bool) {
+	id, ok := c.Locals(localEmpleadorSesionID).(uuid.UUID)
+	return id, ok
+}
+func EmpleadorCSRFHash(c *fiber.Ctx) ([]byte, bool) {
+	hash, ok := c.Locals(localEmpleadorCSRFHash).([]byte)
 	return hash, ok
 }
