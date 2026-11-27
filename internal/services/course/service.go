@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -45,6 +46,8 @@ type Service interface {
 	List(ctx context.Context, actor repository.ActorContext, q ListQuery, page repository.PageRequest) (*cmodels.Page, error)
 	Get(ctx context.Context, id uuid.UUID) (*cmodels.Curso, error)
 	Create(ctx context.Context, actor repository.ActorContext, in cmodels.CreateRequest) (*cmodels.Curso, error)
+	Attendance(ctx context.Context, id uuid.UUID) ([]cmodels.Asistencia, error)
+	SetAttendance(ctx context.Context, actor repository.ActorContext, id uuid.UUID, marcas []cmodels.MarcaAsistencia) error
 }
 
 type service struct {
@@ -179,4 +182,47 @@ func (s *service) Create(ctx context.Context, actor repository.ActorContext, in 
 	}
 	v := view(c, 0)
 	return &v, nil
+}
+
+func (s *service) Attendance(ctx context.Context, id uuid.UUID) ([]cmodels.Asistencia, error) {
+	r := s.uow.Repositories()
+	if _, err := r.Cursos().GetByID(ctx, id); errors.Is(err, repository.ErrNotFound) {
+		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	ins, err := r.Inscripciones().ListByCurso(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]cmodels.Asistencia, 0, len(ins))
+	for _, x := range ins {
+		out = append(out, cmodels.Asistencia{EnrollmentID: x.ID, Alias: x.Alias, Presente: x.Presente})
+	}
+	return out, nil
+}
+
+// SetAttendance marca la asistencia en una sola transacción: si alguna
+// inscripción no es del curso, no se cambia nada.
+func (s *service) SetAttendance(ctx context.Context, actor repository.ActorContext, id uuid.UUID, marcas []cmodels.MarcaAsistencia) error {
+	if len(marcas) == 0 {
+		return httpx.Invalid("la lista está vacía", map[string]string{"body": "requerido"})
+	}
+	return s.uow.Do(ctx, actor, func(ctx context.Context, r repository.Repositories) error {
+		if _, err := r.Cursos().GetByID(ctx, id); errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
+		} else if err != nil {
+			return err
+		}
+		for i, m := range marcas {
+			if err := r.Inscripciones().SetPresente(ctx, id, m.EnrollmentID, m.Presente); err != nil {
+				if errors.Is(err, repository.ErrNotFound) {
+					return httpx.Invalid("inscripción ajena al curso", map[string]string{"[" + strconv.Itoa(i) + "].enrollmentId": "no_pertenece"})
+				}
+				return err
+			}
+		}
+		return audit.RecordResource(ctx, r, &actor.ActorID, "course.attendance", "curso",
+			models.ResultadoExito, &id, actor.RequestID, actor.IPOrigen)
+	})
 }
