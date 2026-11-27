@@ -378,7 +378,7 @@ func (h *Handler) Timeline(c *fiber.Ctx) error {
 // Disclose revela un campo protegido o sensible de un expediente según permisos y reglas.
 //
 // @Summary      Revelar campo del expediente
-// @Description  Solicita la divulgación o consulta de un campo específico del expediente.
+// @Description  Muestra el valor completo de un dato oculto. Exige motivo (10 a 500 caracteres): la bitácora guarda el campo revelado y el motivo, nunca el valor. Respuesta con Cache-Control: no-store. Requiere casefile.disclose.
 // @Tags         case-files
 // @Security     BearerAuth
 // @Accept       json
@@ -408,7 +408,7 @@ func (h *Handler) Disclose(c *fiber.Ctx) error {
 	if err := httpx.DecodeJSON(c, &req); err != nil {
 		return mapError(err)
 	}
-	res, err := h.service.Disclose(c.Context(), actor, id, req.Campo)
+	res, err := h.service.Disclose(c.Context(), actor, id, req)
 	if err != nil {
 		return mapError(err)
 	}
