@@ -316,6 +316,67 @@ func (h *Handler) ResetMFA(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{"resetId": resetID})
 }
 
+func (h *Handler) RevokeOthers(c *fiber.Ctx) error {
+	actorID, ok := middleware.PersonalID(c)
+	if !ok {
+		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+	}
+	sessionID, ok := middleware.SessionID(c)
+	if !ok {
+		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+	}
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+	}
+	if err := h.service.RevokeOthers(c.Context(), actor, actorID, sessionID); err != nil {
+		return mapError(err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *Handler) Get(c *fiber.Ctx) error {
+	actorID, ok := middleware.PersonalID(c)
+	if !ok {
+		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+	}
+	targetID, err := parseUUIDParam(c, "userId")
+	if err != nil {
+		return err
+	}
+	res, err := h.service.Get(c.Context(), actorID, targetID)
+	if err != nil {
+		return mapError(err)
+	}
+	c.Set(fiber.HeaderETag, httpx.FormatETag(res.VersionTag))
+	return c.JSON(res)
+}
+
+func (h *Handler) ForceLogout(c *fiber.Ctx) error {
+	actor, ok := middleware.ActorFrom(c)
+	if !ok {
+		return httpx.E(fiber.StatusUnauthorized, "UNAUTHENTICATED", "sesión inválida")
+	}
+	targetID, err := parseUUIDParam(c, "userId")
+	if err != nil {
+		return err
+	}
+	var req usermodels.RevokeSessionsRequest
+	if len(c.Body()) > 0 {
+		if err := httpx.DecodeJSON(c, &req); err != nil {
+			return mapError(err)
+		}
+	}
+	motivo := req.Motivo
+	if motivo == "" {
+		motivo = "Force logout administrativo"
+	}
+	if err := h.service.RevokeAllSessions(c.Context(), actor, targetID, motivo); err != nil {
+		return mapError(err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
 func parsePage(c *fiber.Ctx) (repository.PageRequest, error) {
 	limit := 20
 	if raw := c.Query("limit"); raw != "" {
