@@ -646,15 +646,6 @@ components:
         idleExpiresAt:
           type: string
       type: object
-    UserPageSessionSummary:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/UserSessionSummary'
-          type: array
-        nextCursor:
-          type: string
-      type: object
     UserPageStaffSummary:
       properties:
         items:
@@ -2532,25 +2523,15 @@ paths:
         - users
   /users/me/sessions:
     get:
-      description: Devuelve las sesiones de la cuenta autenticada en orden de actividad reciente.
-      parameters:
-        - description: Tamaño de página (1-100)
-          in: query
-          name: limit
-          schema:
-            default: 20
-            type: integer
-        - description: Cursor opaco de paginación
-          in: query
-          name: cursor
-          schema:
-            type: string
+      description: Sesiones vigentes de la cuenta autenticada, de la actividad más reciente a la más antigua. Arreglo directo de hasta 10 elementos (lista corta, sin paginar).
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserPageSessionSummary'
+                items:
+                  $ref: '#/components/schemas/UserSessionSummary'
+                type: array
           description: OK
         "401":
           content:
@@ -2558,18 +2539,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
           description: Unauthorized
-        "422":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-          description: Unprocessable Entity
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-          description: Internal Server Error
       security:
         - BearerAuth: []
       summary: Listar sesiones propias

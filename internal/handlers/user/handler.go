@@ -59,19 +59,18 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
+// maxOwnSessions es el tope de sesiones propias que se listan (§2.6).
+const maxOwnSessions = 10
+
 // ListMySessions responde API-008.
 //
 // @Summary      Listar sesiones propias
-// @Description  Devuelve las sesiones de la cuenta autenticada en orden de actividad reciente.
+// @Description  Sesiones vigentes de la cuenta autenticada, de la actividad más reciente a la más antigua. Arreglo directo de hasta 10 elementos (lista corta, sin paginar).
 // @Tags         users
 // @Produce      json
 // @Security     BearerAuth
-// @Param        limit   query   int     false  "Tamaño de página (1-100)"  default(20)
-// @Param        cursor  query   string  false  "Cursor opaco de paginación"
-// @Success      200     {object}  usermodels.Page[usermodels.SessionSummary]
+// @Success      200     {array}   usermodels.SessionSummary
 // @Failure      401     {object}  httpx.ErrorResponse
-// @Failure      422     {object}  httpx.ErrorResponse
-// @Failure      500     {object}  httpx.ErrorResponse
 // @Router       /users/me/sessions [get]
 func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
@@ -83,15 +82,11 @@ func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 		return httpx.E(fiber.StatusUnauthorized, "session_expired", "sesión inválida")
 	}
 
-	page, err := parsePage(c)
-	if err != nil {
-		return err
-	}
-	result, err := h.service.ListMySessions(c.Context(), actorID, sessionID, page)
+	result, err := h.service.ListMySessions(c.Context(), actorID, sessionID, repository.PageRequest{Limit: maxOwnSessions})
 	if err != nil {
 		return mapError(err)
 	}
-	return c.JSON(result)
+	return c.JSON(result.Items)
 }
 
 // RevokeMySession responde API-009.

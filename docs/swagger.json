@@ -1987,7 +1987,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Devuelve las sesiones de la cuenta autenticada en orden de actividad reciente.",
+                "description": "Sesiones vigentes de la cuenta autenticada, de la actividad más reciente a la más antigua. Arreglo directo de hasta 10 elementos (lista corta, sin paginar).",
                 "produces": [
                     "application/json"
                 ],
@@ -1995,42 +1995,18 @@
                     "users"
                 ],
                 "summary": "Listar sesiones propias",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Tamaño de página (1-100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor opaco de paginación",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_user.SessionSummary"
+                            }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
                         }
@@ -3293,20 +3269,6 @@
                     "type": "string"
                 },
                 "idleExpiresAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "backend-hackathon_internal_models_user.Page-backend-hackathon_internal_models_user_SessionSummary": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/backend-hackathon_internal_models_user.SessionSummary"
-                    }
-                },
-                "nextCursor": {
                     "type": "string"
                 }
             }
