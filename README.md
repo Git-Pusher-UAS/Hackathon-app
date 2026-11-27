@@ -8,7 +8,7 @@
 
 ### Equipo: Git Pushers
 
-Backend del **Sistema de Ayuda Integral (SAI)**, una API para la gestión segura de expedientes, canalizaciones, acompañamiento, bolsa de trabajo, portal ciudadano y analítica institucional.
+Backend del **Sistema de Atención Integral (SAI)**, una API para la gestión segura de expedientes, canalizaciones, acompañamiento, bolsa de trabajo, portal ciudadano y analítica institucional.
 
 [![Go](https://img.shields.io/badge/Go-1.27-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Fiber](https://img.shields.io/badge/Fiber-v2-00ACD7)](https://gofiber.io/)
@@ -242,7 +242,7 @@ El proyecto implementa controles de seguridad como:
 
 ## Equipo Git Pushers
 
-Proyecto desarrollado por el equipo **Git Pushers** de la **Universidad Autónoma de Sinaloa, Facultad de Informática Mazatlán**, para el **Hackathon 2 FIM UAS**.
+Proyecto desarrollado por el equipo **Git Pushers** de la **Universidad Autónoma de Sinaloa, Facultad de Ingenieria Mochis**, para el **Hackathon 2 FIM UAS**.
 
 - Equipo: **Git Pushers**
 - Institución: **Universidad Autónoma de Sinaloa (UAS)**
