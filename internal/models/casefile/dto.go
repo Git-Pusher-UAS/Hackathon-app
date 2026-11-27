@@ -103,6 +103,8 @@ type AssignRequest struct {
 	PersonalID     string `json:"personalId"`
 	DepartamentoID string `json:"departamentoId"`
 	Motivo         string `json:"motivo"`
+	// SolicitudID aprueba esa solicitud de acceso en la misma transacción.
+	SolicitudID *string `json:"solicitudId,omitempty"`
 }
 type AssignmentView struct {
 	ID             uuid.UUID  `json:"id"`
