@@ -300,6 +300,40 @@ definitions:
       tipoCasoId:
         type: string
     type: object
+  backend-hackathon_internal_models_casefile.Detail:
+    properties:
+      alias:
+        type: string
+      areas:
+        description: Areas son los códigos de los departamentos con asignación vigente.
+        items:
+          type: string
+        type: array
+      closedAt:
+        type: string
+      createdAt:
+        type: string
+      edad:
+        example: 36
+        type: integer
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoExpediente'
+      id:
+        type: string
+      ocultos:
+        $ref: '#/definitions/backend-hackathon_internal_models_casefile.Ocultos'
+      origenContacto:
+        $ref: '#/definitions/backend-hackathon_internal_models.OrigenContacto'
+      sector:
+        example: Sector 12
+        type: string
+      tipoCasoId:
+        type: string
+      updatedAt:
+        type: string
+      versionTag:
+        type: string
+    type: object
   backend-hackathon_internal_models_casefile.DisclosureRequest:
     properties:
       campo:
@@ -358,6 +392,21 @@ definitions:
       ocurridoEn:
         type: string
       texto:
+        type: string
+    type: object
+  backend-hackathon_internal_models_casefile.Ocultos:
+    properties:
+      curp:
+        example: ••••••••••••••••07
+        type: string
+      domicilio:
+        example: Col. •••••
+        type: string
+      nombre:
+        example: N•••• A•••••
+        type: string
+      telefono:
+        example: •• •••• 81
         type: string
     type: object
   backend-hackathon_internal_models_casefile.Page-backend-hackathon_internal_models_casefile_NoteView:
@@ -1300,8 +1349,9 @@ paths:
       - case-files
   /case-files/{recordId}:
     get:
-      description: Devuelve los datos de un expediente por recordId y su cabecera
-        ETag.
+      description: Encabezado y resumen del expediente con sector, edad (nunca la
+        fecha de nacimiento), áreas y los datos sensibles ya enmascarados en ocultos.
+        404 si no existe o no está asignado al actor. Devuelve ETag.
       parameters:
       - description: UUID del expediente
         in: path
@@ -1318,7 +1368,7 @@ paths:
               description: Versión actual del recurso
               type: string
           schema:
-            $ref: '#/definitions/backend-hackathon_internal_models_casefile.Summary'
+            $ref: '#/definitions/backend-hackathon_internal_models_casefile.Detail'
         "401":
           description: Unauthorized
           schema:
@@ -1343,8 +1393,9 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Actualiza un expediente requiriendo la cabecera If-Match con la
-        versión esperada.
+      description: Cambia estado, alias o tipo de caso con If-Match. Reabrir un expediente
+        cerrado exige motivo (10 a 500 caracteres). Responde el mismo objeto que GET
+        con su nuevo ETag.
       parameters:
       - description: UUID del expediente
         in: path
@@ -1377,7 +1428,7 @@ paths:
               description: Nueva versión del recurso
               type: string
           schema:
-            $ref: '#/definitions/backend-hackathon_internal_models_casefile.Summary'
+            $ref: '#/definitions/backend-hackathon_internal_models_casefile.Detail'
         "400":
           description: Bad Request
           schema:
