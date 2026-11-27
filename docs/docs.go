@@ -1588,6 +1588,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/catalogs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Una sola llamada al entrar: departamentos, sectores (sin geometría), orígenes de contacto, instituciones, tipos de caso, finalidades del consentimiento, motivos para revelar datos y el vocabulario de la bolsa de trabajo. Cacheable: ETag y Cache-Control private, max-age=3600.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalogs"
+                ],
+                "summary": "Catálogos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ETag de una respuesta anterior",
+                        "name": "If-None-Match",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Response"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Versión de los catálogos"
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Sin cambios"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.",
@@ -2450,6 +2498,19 @@ const docTemplate = `{
                 "OrigenEmergenciaReferida"
             ]
         },
+        "backend-hackathon_internal_models.TipoSector": {
+            "type": "string",
+            "enum": [
+                "sector",
+                "colonia",
+                "sindicatura"
+            ],
+            "x-enum-varnames": [
+                "SectorSector",
+                "SectorColonia",
+                "SectorSindicatura"
+            ]
+        },
         "backend-hackathon_internal_models_casefile.AssignRequest": {
             "type": "object",
             "properties": {
@@ -2807,6 +2868,213 @@ const docTemplate = `{
                 },
                 "tipoCasoId": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Departamento": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Finalidad": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "obligatoria": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Institucion": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.InstitucionDestino": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Opcion": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Response": {
+            "type": "object",
+            "properties": {
+                "departamentos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Departamento"
+                    }
+                },
+                "finalidadesConsentimiento": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Finalidad"
+                    }
+                },
+                "institucionesDestino": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.InstitucionDestino"
+                    }
+                },
+                "institucionesOrigen": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Institucion"
+                    }
+                },
+                "motivosRevelacion": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "origenesContacto": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Opcion"
+                    }
+                },
+                "sectores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Sector"
+                    }
+                },
+                "tiposCaso": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.TipoCaso"
+                    }
+                },
+                "vacantes": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Vacantes"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Sector": {
+            "type": "object",
+            "properties": {
+                "ageb": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.TipoSector"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.TipoCaso": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Vacantes": {
+            "type": "object",
+            "properties": {
+                "escolaridad": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "habilidades": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "horario": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "inicio": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "motivosNoSeleccion": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sector": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tiempoExperiencia": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tipoEmpleo": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ubicacion": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
