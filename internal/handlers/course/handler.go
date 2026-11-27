@@ -146,3 +146,59 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	c.Set(fiber.HeaderLocation, "/api/v1/courses/"+res.ID.String())
 	return c.Status(fiber.StatusCreated).JSON(res)
 }
+
+// Attendance devuelve la lista de asistencia de un curso.
+//
+// @Summary      Lista de asistencia
+// @Description  Arreglo directo de inscripciones con alias y presente. Nunca nombre ni teléfono. Requiere courses.manage.
+// @Tags         courses
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "UUID del curso"
+// @Success      200  {array}   cmodels.Asistencia
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Router       /courses/{id}/attendance [get]
+func (h *Handler) Attendance(c *fiber.Ctx) error {
+	id, err := hu.UUIDParam(c, "id")
+	if err != nil {
+		return err
+	}
+	res, err := h.service.Attendance(c.Context(), id)
+	if err != nil {
+		return MapError(err)
+	}
+	return c.JSON(res)
+}
+
+// SetAttendance pasa lista.
+//
+// @Summary      Pasar lista
+// @Description  Marca presente o ausente cada inscripción, todo o nada: si una inscripción no es del curso responde 422 y no cambia ninguna. Requiere courses.manage.
+// @Tags         courses
+// @Accept       json
+// @Security     BearerAuth
+// @Param        id            path    string                     true  "UUID del curso"
+// @Param        X-CSRF-Token  header  string                     true  "Token CSRF de la sesión"
+// @Param        request       body    []cmodels.MarcaAsistencia  true  "Marcas de asistencia"
+// @Success      204  "Guardada"
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Router       /courses/{id}/attendance [put]
+func (h *Handler) SetAttendance(c *fiber.Ctx) error {
+	actor, err := hu.Actor(c)
+	if err != nil {
+		return err
+	}
+	id, err := hu.UUIDParam(c, "id")
+	if err != nil {
+		return err
+	}
+	var req []cmodels.MarcaAsistencia
+	if err := httpx.DecodeJSON(c, &req); err != nil {
+		return err
+	}
+	if err := h.service.SetAttendance(c.Context(), actor, id, req); err != nil {
+		return MapError(err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}

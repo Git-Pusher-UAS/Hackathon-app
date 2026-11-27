@@ -232,6 +232,8 @@ func main() {
 	priv.Get("/analytics/heatmap", analyticsmw.Require(analyticsmw.PermHeatmap), analyticsHandler.Heatmap)
 	priv.Get("/courses", coursemw.Require(coursemw.PermManage), courseHandler.List)
 	priv.Get("/courses/:id", coursemw.Require(coursemw.PermManage), courseHandler.Get)
+	priv.Get("/courses/:id/attendance", coursemw.Require(coursemw.PermManage), courseHandler.Attendance)
+	priv.Put("/courses/:id/attendance", coursemw.Require(coursemw.PermManage), courseHandler.SetAttendance)
 	priv.Post("/courses", coursemw.Require(coursemw.PermManage), idem(false), courseHandler.Create)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
