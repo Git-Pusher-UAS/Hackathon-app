@@ -494,7 +494,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Consulta si ya existe una persona con ese CURP. Si existe, devuelve además linkToken (un solo uso, 15 minutos) para pedir acceso con POST /case-access-requests. El CURP viaja solo en el cuerpo, nunca en la URL.",
+                "description": "Consulta si ya existe una persona con ese CURP. Si existe, devuelve el área que lleva el caso y un linkToken de un solo uso (30 minutos) para pedir acceso con POST /case-access-requests sin volver a enviar la CURP. La CURP viaja solo en el cuerpo, nunca en la URL.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2806,8 +2806,20 @@ const docTemplate = `{
         "backend-hackathon_internal_models_casefile.DuplicateCheckResponse": {
             "type": "object",
             "properties": {
-                "duplicate": {
+                "department": {
+                    "description": "Solo si exists: el área que lleva el caso y un token de un solo uso\n(30 min) para POST /case-access-requests sin volver a enviar la CURP.",
+                    "type": "string",
+                    "example": "Trabajo social"
+                },
+                "exists": {
                     "type": "boolean"
+                },
+                "linkExpiresAt": {
+                    "type": "string"
+                },
+                "linkToken": {
+                    "type": "string",
+                    "example": "lt_9f..."
                 }
             }
         },

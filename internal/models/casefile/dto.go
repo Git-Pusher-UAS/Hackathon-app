@@ -19,7 +19,12 @@ type DuplicateCheckRequest struct {
 	CURP string `json:"curp"`
 }
 type DuplicateCheckResponse struct {
-	Duplicate bool `json:"duplicate"`
+	Exists bool `json:"exists"`
+	// Solo si exists: el área que lleva el caso y un token de un solo uso
+	// (30 min) para POST /case-access-requests sin volver a enviar la CURP.
+	Department    *string    `json:"department,omitempty" example:"Trabajo social"`
+	LinkToken     *string    `json:"linkToken,omitempty" example:"lt_9f..."`
+	LinkExpiresAt *time.Time `json:"linkExpiresAt,omitempty"`
 }
 
 type ConsentInput struct {
