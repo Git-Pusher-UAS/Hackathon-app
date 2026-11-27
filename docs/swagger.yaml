@@ -549,6 +549,14 @@ definitions:
         example: "911"
         type: string
     type: object
+  backend-hackathon_internal_models_user.Activacion:
+    properties:
+      codigo:
+        example: K7P2-9QX4
+        type: string
+      expiresAt:
+        type: string
+    type: object
   backend-hackathon_internal_models_user.Actor:
     properties:
       departmentId:
@@ -570,12 +578,17 @@ definitions:
         type: string
       nombreLaboral:
         type: string
-      password:
-        type: string
       rol:
         type: string
       usuario:
         type: string
+    type: object
+  backend-hackathon_internal_models_user.CreateResponse:
+    properties:
+      activacion:
+        $ref: '#/definitions/backend-hackathon_internal_models_user.Activacion'
+      cuenta:
+        $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
     type: object
   backend-hackathon_internal_models_user.MFAResetRequest:
     properties:
@@ -650,6 +663,17 @@ definitions:
       rol:
         type: string
     type: object
+  internal_handlers.ActivationRequest:
+    properties:
+      codigo:
+        example: K7P2-9QX4
+        type: string
+      password:
+        type: string
+      usuario:
+        example: mperez
+        type: string
+    type: object
   internal_handlers.EnrollMFARequest:
     properties:
       challengeId:
@@ -719,6 +743,39 @@ info:
   title: SAI API
   version: "1.0"
 paths:
+  /auth/activations:
+    post:
+      consumes:
+      - application/json
+      description: La persona elige su contraseña con el código que TI le entregó
+        al crear la cuenta (POST /users). El código es de un solo uso y vence a las
+        72 h. Después entra con POST /auth/login y configura su segundo factor. Pública,
+        sin CSRF. No revela si el usuario existe.
+      parameters:
+      - description: Usuario, código y contraseña nueva
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.ActivationRequest'
+      responses:
+        "204":
+          description: Contraseña fijada
+        "401":
+          description: invalid_code
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: validation_failed (contraseña de 12 a 128 caracteres)
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "429":
+          description: too_many_attempts
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Activar cuenta
+      tags:
+      - auth
   /auth/csrf-token:
     get:
       description: Genera un token CSRF nuevo para la sesión e invalida el anterior.
@@ -1960,7 +2017,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Crea una cuenta de personal. Requiere permiso de administración.
+      description: 'Crea una cuenta de personal sin contraseña. Devuelve un código
+        de activación de un solo uso (72 h) que se muestra una sola vez: con él la
+        persona elige su contraseña (POST /auth/activations) y después configura su
+        segundo factor al entrar. Requiere permiso de administración.'
       parameters:
       - description: Datos de la cuenta
         in: body
@@ -1983,7 +2043,7 @@ paths:
               description: ETag de la versión creada
               type: string
           schema:
-            $ref: '#/definitions/backend-hackathon_internal_models_user.StaffSummary'
+            $ref: '#/definitions/backend-hackathon_internal_models_user.CreateResponse'
         "400":
           description: Bad Request
           schema:
