@@ -137,8 +137,8 @@ func TestChecksFailOnBrokenServer(t *testing.T) {
 			}),
 		},
 		{
-			name:  "ruta protegida responde 404 en vez de 401",
-			check: CheckProtectedWithoutToken,
+			name:   "ruta protegida responde 404 en vez de 401",
+			check:  CheckProtectedWithoutToken,
 			modify: func(t *Target) { t.ProtectedRoutes = []string{"/no-existe"} },
 		},
 		{

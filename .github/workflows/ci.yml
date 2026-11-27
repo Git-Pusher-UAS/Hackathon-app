@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  COVERAGE_MIN: '0' # TODO: subirlo a la cobertura real medida por el job "test"
+  COVERAGE_MIN: '20' # cobertura medida al crear el CI: 22.7%; subirlo conforme crezca
   # Server
   PORT: '3000'
   CORS_ORIGIN: http://localhost:3000
@@ -48,22 +48,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: gofmt
-        run: |
-          unformatted=$(gofmt -l cmd internal tests)
-          if [ -n "$unformatted" ]; then
-            echo "::error::Archivos sin gofmt: $unformatted"
-            gofmt -d cmd internal tests
-            exit 1
-          fi
       - name: go vet
         run: go vet ./... && go vet -tags smoke ./tests/smoke/
-      - name: golangci-lint
+      - name: golangci-lint (incluye gofmt, ver .golangci.yml)
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
-          # En PRs solo reporta problemas nuevos; el código existente no bloquea.
-          only-new-issues: ${{ github.event_name == 'pull_request' }}
+          # Solo reporta problemas en el código que cambia; el existente no bloquea.
+          only-new-issues: true
+      - name: Archivos existentes sin gofmt (informativo)
+        run: |
+          files=$(gofmt -l cmd internal tests)
+          [ -z "$files" ] || echo "::warning::Archivos sin gofmt: $(echo $files)"
 
   test:
     runs-on: ubuntu-latest

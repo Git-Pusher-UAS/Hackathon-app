@@ -45,9 +45,9 @@ Env vars are loaded from `.env` via godotenv (git-ignored). `.env.example` lists
 
 - Unit tests sit next to the code (`*_test.go`). Handlers are tested with Fiber + fakes.
 - `tests/smoke/checks.go` holds the smoke checks as plain functions over a `Target`. `checks_test.go` unit-tests them against fake `httptest` servers, so they must fail on a broken backend. `smoke_test.go` runs them against a live API. Routes are overridable with `SMOKE_*` env vars.
-- `.github/workflows/ci.yml` runs:
-  - lint: gofmt, vet, golangci-lint, with only new issues reported on PRs;
-  - unit tests with `-race` and the `COVERAGE_MIN` gate;
+- `.github/workflows/ci.yml` runs (lint config in `.golangci.yml`):
+  - lint: vet + golangci-lint with gofmt, reporting only issues in changed code (some existing files are not gofmt-clean; that is only a warning);
+  - unit tests with `-race` and the `COVERAGE_MIN` gate (total coverage was 22.7% when CI was added);
   - smoke: Postgres service → migrate → seed → API → admin login → smoke tests;
   - k6 (`tests/load/k6_load_test.js`), on push to `develop`/`main` only.
 
