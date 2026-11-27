@@ -26,7 +26,9 @@ type stubUserService struct {
 	meFn                func(ctx context.Context, actorID, sessionID uuid.UUID) (*usermodels.MeResponse, error)
 	listMySessionsFn    func(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)
 	revokeMySessionFn   func(ctx context.Context, actor repository.ActorContext, actorID, sessionID uuid.UUID) error
+	revokeOthersFn      func(ctx context.Context, actor repository.ActorContext, actorID, currentSessionID uuid.UUID) error
 	listFn              func(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
+	getFn               func(ctx context.Context, actorID, targetID uuid.UUID) (*usermodels.StaffSummary, error)
 	createFn            func(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
 	updateFn            func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	revokeAllSessionsFn func(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
@@ -45,8 +47,16 @@ func (s *stubUserService) RevokeMySession(ctx context.Context, actor repository.
 	return s.revokeMySessionFn(ctx, actor, actorID, sessionID)
 }
 
+func (s *stubUserService) RevokeOthers(ctx context.Context, actor repository.ActorContext, actorID, currentSessionID uuid.UUID) error {
+	return s.revokeOthersFn(ctx, actor, actorID, currentSessionID)
+}
+
 func (s *stubUserService) List(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
 	return s.listFn(ctx, actorID, q, page)
+}
+
+func (s *stubUserService) Get(ctx context.Context, actorID, targetID uuid.UUID) (*usermodels.StaffSummary, error) {
+	return s.getFn(ctx, actorID, targetID)
 }
 
 func (s *stubUserService) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {
@@ -96,12 +106,14 @@ func newTestAppWithPerms(svc userservice.Service, withAuth bool, actorID, sessio
 	apiGroup.Get("/users/me/sessions", h.ListMySessions)
 	apiGroup.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, h.RevokeMySession)
 
-	admin := apiGroup.Group("/users", middleware.RequirePermiso("admin"))
-	admin.Get("", h.List)
-	admin.Post("", usermiddleware.RequireCSRF, h.Create)
-	admin.Patch("/:userId", usermiddleware.RequireCSRF, h.Update)
-	admin.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, h.RevokeAllSessions)
-	admin.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, h.ResetMFA)
+	staff := apiGroup.Group("/users/staff", middleware.RequirePermiso("admin"))
+	staff.Get("", h.List)
+	staff.Post("", usermiddleware.RequireCSRF, h.Create)
+	staff.Get("/:userId", h.Get)
+	staff.Patch("/:userId", usermiddleware.RequireCSRF, h.Update)
+	staff.Post("/:userId/force-logout", usermiddleware.RequireCSRF, h.ForceLogout)
+	staff.Post("/:userId/session-revocations", usermiddleware.RequireCSRF, h.RevokeAllSessions)
+	staff.Post("/:userId/mfa-resets", usermiddleware.RequireCSRF, h.ResetMFA)
 
 	return app
 }
@@ -315,11 +327,11 @@ func TestHandlerAdminPermissionRequired(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"GET", "/api/users"},
-		{"POST", "/api/users"},
-		{"PATCH", "/api/users/" + targetID},
-		{"POST", "/api/users/" + targetID + "/session-revocations"},
-		{"POST", "/api/users/" + targetID + "/mfa-resets"},
+		{"GET", "/api/users/staff"},
+		{"POST", "/api/users/staff"},
+		{"PATCH", "/api/users/staff/" + targetID},
+		{"POST", "/api/users/staff/" + targetID + "/session-revocations"},
+		{"POST", "/api/users/staff/" + targetID + "/mfa-resets"},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
 		req.Header.Set("X-CSRF-Token", "csrf-123")
@@ -348,7 +360,7 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		resp, err := app.Test(httptest.NewRequest("GET", "/api/users?q=ana&limit=10", nil))
+		resp, err := app.Test(httptest.NewRequest("GET", "/api/users/staff?q=ana&limit=10", nil))
 		if err != nil {
 			t.Fatalf("app.Test: %v", err)
 		}
@@ -372,7 +384,7 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/users", bytes.NewBufferString(`{"usuario":"ana","nombreLaboral":"Ana","rol":"TrabajoSocial","departamentoId":"`+deptID.String()+`","password":"Password1234"}`))
+		req := httptest.NewRequest("POST", "/api/users/staff", bytes.NewBufferString(`{"usuario":"ana","nombreLaboral":"Ana","rol":"TrabajoSocial","departamentoId":"`+deptID.String()+`","password":"Password1234"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -388,7 +400,7 @@ func TestHandlerAdminListAndCreate(t *testing.T) {
 
 	t.Run("POST /users rejects unknown JSON fields with 400", func(t *testing.T) {
 		app := newTestApp(&stubUserService{}, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/users", bytes.NewBufferString(`{"extra":true}`))
+		req := httptest.NewRequest("POST", "/api/users/staff", bytes.NewBufferString(`{"extra":true}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -416,7 +428,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
 
-		reqNoMatch := httptest.NewRequest("PATCH", "/api/users/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
+		reqNoMatch := httptest.NewRequest("PATCH", "/api/users/staff/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
 		reqNoMatch.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(reqNoMatch)
 		if err != nil {
@@ -426,7 +438,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			t.Fatalf("status = %d, esperado 428", resp.StatusCode)
 		}
 
-		req := httptest.NewRequest("PATCH", "/api/users/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
+		req := httptest.NewRequest("PATCH", "/api/users/staff/"+targetID.String(), bytes.NewBufferString(`{"estado":"suspendido"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		req.Header.Set(fiber.HeaderIfMatch, `"tag-v1"`)
 		resp, err = app.Test(req)
@@ -448,7 +460,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/users/"+targetID.String()+"/session-revocations", bytes.NewBufferString(`{"motivo":"motivo válido de prueba"}`))
+		req := httptest.NewRequest("POST", "/api/users/staff/"+targetID.String()+"/session-revocations", bytes.NewBufferString(`{"motivo":"motivo válido de prueba"}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {
@@ -470,7 +482,7 @@ func TestHandlerAdminUpdateAndActions(t *testing.T) {
 			},
 		}
 		app := newTestApp(svc, true, actorID, sessionID, "csrf-123")
-		req := httptest.NewRequest("POST", "/api/users/"+targetID.String()+"/mfa-resets", bytes.NewBufferString(`{"motivo":"verificado en persona","verificacionPresencial":true}`))
+		req := httptest.NewRequest("POST", "/api/users/staff/"+targetID.String()+"/mfa-resets", bytes.NewBufferString(`{"motivo":"verificado en persona","verificacionPresencial":true}`))
 		req.Header.Set("X-CSRF-Token", "csrf-123")
 		resp, err := app.Test(req)
 		if err != nil {

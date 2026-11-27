@@ -124,6 +124,9 @@ type SesionPersonalRepository interface {
 	// devuelve cuántas fueron (suspensión, cambio de rol, reset MFA).
 	RevocarTodasDeTitular(ctx context.Context, titularID uuid.UUID, at time.Time) (int64, error)
 
+	// RevocarOtrasDeTitular revoca sesiones activas del titular excepto la actual.
+	RevocarOtrasDeTitular(ctx context.Context, titularID, exceptSessionID uuid.UUID, at time.Time) (int64, error)
+
 	// PurgarAnteriores elimina sesiones revocadas/vencidas anteriores a before (retención).
 	PurgarAnteriores(ctx context.Context, before time.Time) (int64, error)
 }

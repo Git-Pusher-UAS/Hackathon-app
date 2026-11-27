@@ -35,7 +35,9 @@ type Service interface {
 	Me(ctx context.Context, actorID, sessionID uuid.UUID) (*usermodels.MeResponse, error)
 	ListMySessions(ctx context.Context, actorID, currentSessionID uuid.UUID, page repository.PageRequest) (*usermodels.Page[usermodels.SessionSummary], error)
 	RevokeMySession(ctx context.Context, actor repository.ActorContext, actorID, sessionID uuid.UUID) error
+	RevokeOthers(ctx context.Context, actor repository.ActorContext, actorID, currentSessionID uuid.UUID) error
 	List(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error)
+	Get(ctx context.Context, actorID, targetID uuid.UUID) (*usermodels.StaffSummary, error)
 	Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error)
 	Update(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, in usermodels.UpdateRequest, ifMatch string) (*usermodels.StaffSummary, error)
 	RevokeAllSessions(ctx context.Context, actor repository.ActorContext, targetID uuid.UUID, motivo string) error
@@ -165,6 +167,15 @@ func (s *service) RevokeMySession(ctx context.Context, actor repository.ActorCon
 	return err
 }
 
+func (s *service) RevokeOthers(ctx context.Context, actor repository.ActorContext, actorID, currentSessionID uuid.UUID) error {
+	return s.uow.Do(ctx, actor, func(ctx context.Context, repos repository.Repositories) error {
+		if _, err := repos.Sesiones().RevocarOtrasDeTitular(ctx, actorID, currentSessionID, s.now()); err != nil {
+			return err
+		}
+		return audit.RecordResource(ctx, repos, &actorID, "users.sessions.revoke_others", "sesion", models.ResultadoExito, &currentSessionID, actor.RequestID, actor.IPOrigen)
+	})
+}
+
 func (s *service) List(ctx context.Context, actorID uuid.UUID, q string, page repository.PageRequest) (*usermodels.Page[usermodels.StaffSummary], error) {
 	q = strings.TrimSpace(q)
 	filterHash := httpx.FilterHash(q)
@@ -211,6 +222,23 @@ func (s *service) List(ctx context.Context, actorID uuid.UUID, q string, page re
 		next = &cursor
 	}
 	return &usermodels.Page[usermodels.StaffSummary]{Items: items, NextCursor: next}, nil
+}
+
+func (s *service) Get(ctx context.Context, actorID, targetID uuid.UUID) (*usermodels.StaffSummary, error) {
+	repos := s.uow.Repositories()
+	p, err := repos.Personal().GetByID(ctx, targetID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	rol, err := repos.Roles().GetByID(ctx, p.RolID)
+	if err != nil {
+		return nil, err
+	}
+	_ = actorID
+	return s.summary(p, rol.Codigo), nil
 }
 
 func (s *service) Create(ctx context.Context, actor repository.ActorContext, in usermodels.CreateRequest) (*usermodels.StaffSummary, error) {

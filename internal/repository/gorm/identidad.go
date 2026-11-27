@@ -420,6 +420,13 @@ func (r *sesionRepo) RevocarTodasDeTitular(ctx context.Context, titularID uuid.U
 	return res.RowsAffected, translate(res.Error)
 }
 
+func (r *sesionRepo) RevocarOtrasDeTitular(ctx context.Context, titularID, exceptSessionID uuid.UUID, at time.Time) (int64, error) {
+	res := r.db.WithContext(ctx).Model(&models.SesionPersonal{}).
+		Where("titular_id = ? AND id <> ? AND revocado_en IS NULL", titularID, exceptSessionID).
+		Update("revocado_en", at)
+	return res.RowsAffected, translate(res.Error)
+}
+
 func (r *sesionRepo) PurgarAnteriores(ctx context.Context, before time.Time) (int64, error) {
 	res := r.db.WithContext(ctx).
 		Where("(revocado_en IS NOT NULL AND revocado_en < ?) OR vence_absoluto < ?", before, before).
