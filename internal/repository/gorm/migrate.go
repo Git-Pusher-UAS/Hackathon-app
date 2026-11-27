@@ -20,6 +20,7 @@ var schemas = []string{
 	"auditoria",
 	"ayuda",
 	"analitica",
+	"capacitacion",
 }
 
 // Tables devuelve los modelos que representan TABLAS reales.
@@ -83,6 +84,10 @@ func Tables() []any {
 
 		// ayuda
 		&models.EventoLocalAyuda{},
+
+		// capacitacion
+		&models.Curso{},
+		&models.Inscripcion{},
 	}
 }
 

@@ -174,6 +174,16 @@ definitions:
     x-enum-varnames:
     - CanalizacionInternaTipo
     - CanalizacionExternaTipo
+  backend-hackathon_internal_models.TipoCurso:
+    enum:
+    - curso
+    - charla
+    - conferencia
+    type: string
+    x-enum-varnames:
+    - CursoCurso
+    - CursoCharla
+    - CursoConferencia
   backend-hackathon_internal_models.TipoSector:
     enum:
     - sector
@@ -817,6 +827,77 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  backend-hackathon_internal_models_course.CreateRequest:
+    properties:
+      cupo:
+        example: 25
+        type: integer
+      descripcion:
+        type: string
+      fecha:
+        example: "2026-12-12"
+        type: string
+      hora:
+        example: "17:00"
+        type: string
+      lugar:
+        type: string
+      tipo:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models.TipoCurso'
+        enum:
+        - curso
+        - charla
+        - conferencia
+      titulo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_course.Curso:
+    properties:
+      cupo:
+        example: 25
+        type: integer
+      descripcion:
+        type: string
+      fecha:
+        description: AAAA-MM-DD
+        example: "2026-12-12"
+        type: string
+      hora:
+        description: HH:MM
+        example: "17:00"
+        type: string
+      id:
+        type: string
+      inscrita:
+        description: Inscrita solo se llena con sesión de usuaria.
+        type: boolean
+      inscritas:
+        example: 18
+        type: integer
+      lugar:
+        example: Sala 2, Los Mochis
+        type: string
+      tipo:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models.TipoCurso'
+        enum:
+        - curso
+        - charla
+        - conferencia
+      titulo:
+        example: Finanzas para tu negocio
+        type: string
+    type: object
+  backend-hackathon_internal_models_course.Page:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_course.Curso'
+        type: array
+      nextCursor:
+        type: string
     type: object
   backend-hackathon_internal_models_helpevent.CreateRequest:
     properties:
@@ -2528,6 +2609,113 @@ paths:
       summary: Catálogos
       tags:
       - catalogs
+  /courses:
+    get:
+      description: Eventos de Capacitación, de la fecha más próxima a la más lejana,
+        con cupo e inscritas. Requiere courses.manage.
+      parameters:
+      - description: curso | charla | conferencia
+        in: query
+        name: type
+        type: string
+      - description: Fecha desde (AAAA-MM-DD, inclusive)
+        in: query
+        name: from
+        type: string
+      - description: Fecha hasta (AAAA-MM-DD, inclusive)
+        in: query
+        name: to
+        type: string
+      - description: 1..100 (20 por defecto)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_course.Page'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar cursos
+      tags:
+      - courses
+    post:
+      consumes:
+      - application/json
+      description: Se publica en el foro de inmediato. La fecha no puede ser pasada
+        (hora de Los Mochis) y el cupo debe ser de 1 o más. Requiere courses.manage.
+      parameters:
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: UUID de la operación
+        in: header
+        name: Idempotency-Key
+        type: string
+      - description: Datos del curso
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_course.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_course.Curso'
+        "422":
+          description: validation_failed con fields (fecha_pasada, minimo_1...)
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear curso
+      tags:
+      - courses
+  /courses/{id}:
+    get:
+      description: Requiere courses.manage.
+      parameters:
+      - description: UUID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_course.Curso'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener curso
+      tags:
+      - courses
   /health:
     get:
       description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera

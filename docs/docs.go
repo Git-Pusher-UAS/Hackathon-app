@@ -2050,6 +2050,171 @@ const docTemplate = `{
                 }
             }
         },
+        "/courses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Eventos de Capacitación, de la fecha más próxima a la más lejana, con cupo e inscritas. Requiere courses.manage.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Listar cursos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "curso | charla | conferencia",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (AAAA-MM-DD, inclusive)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (AAAA-MM-DD, inclusive)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1..100 (20 por defecto)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor opaco",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_course.Page"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Se publica en el foro de inmediato. La fecha no puede ser pasada (hora de Los Mochis) y el cupo debe ser de 1 o más. Requiere courses.manage.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Crear curso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID de la operación",
+                        "name": "Idempotency-Key",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Datos del curso",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_course.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_course.Curso"
+                        }
+                    },
+                    "422": {
+                        "description": "validation_failed con fields (fecha_pasada, minimo_1...)",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Requiere courses.manage.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Obtener curso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del curso",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_course.Curso"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.",
@@ -3299,6 +3464,19 @@ const docTemplate = `{
                 "CanalizacionExternaTipo"
             ]
         },
+        "backend-hackathon_internal_models.TipoCurso": {
+            "type": "string",
+            "enum": [
+                "curso",
+                "charla",
+                "conferencia"
+            ],
+            "x-enum-varnames": [
+                "CursoCurso",
+                "CursoCharla",
+                "CursoConferencia"
+            ]
+        },
         "backend-hackathon_internal_models.TipoSector": {
             "type": "string",
             "enum": [
@@ -4264,6 +4442,111 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_course.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "cupo": {
+                    "type": "integer",
+                    "example": 25
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "type": "string",
+                    "example": "2026-12-12"
+                },
+                "hora": {
+                    "type": "string",
+                    "example": "17:00"
+                },
+                "lugar": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "enum": [
+                        "curso",
+                        "charla",
+                        "conferencia"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.TipoCurso"
+                        }
+                    ]
+                },
+                "titulo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_course.Curso": {
+            "type": "object",
+            "properties": {
+                "cupo": {
+                    "type": "integer",
+                    "example": 25
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "description": "AAAA-MM-DD",
+                    "type": "string",
+                    "example": "2026-12-12"
+                },
+                "hora": {
+                    "description": "HH:MM",
+                    "type": "string",
+                    "example": "17:00"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "inscrita": {
+                    "description": "Inscrita solo se llena con sesión de usuaria.",
+                    "type": "boolean"
+                },
+                "inscritas": {
+                    "type": "integer",
+                    "example": 18
+                },
+                "lugar": {
+                    "type": "string",
+                    "example": "Sala 2, Los Mochis"
+                },
+                "tipo": {
+                    "enum": [
+                        "curso",
+                        "charla",
+                        "conferencia"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.TipoCurso"
+                        }
+                    ]
+                },
+                "titulo": {
+                    "type": "string",
+                    "example": "Finanzas para tu negocio"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_course.Page": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_course.Curso"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
                 }
             }
         },
