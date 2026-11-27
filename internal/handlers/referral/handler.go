@@ -27,6 +27,16 @@ func MapError(err error) error {
 	switch {
 	case errors.As(err, &he):
 		return he
+	case errors.Is(err, svc.ErrNotFound):
+		return httpx.E(fiber.StatusNotFound, "not_found", "recurso no disponible")
+	case errors.Is(err, svc.ErrInvalidTransition):
+		return httpx.E(fiber.StatusConflict, "invalid_transition", "transición de estado inválida")
+	case errors.Is(err, svc.ErrCaseClosed):
+		return httpx.E(fiber.StatusConflict, "record_closed", "el expediente está cerrado")
+	case errors.Is(err, svc.ErrPreconditionRequired):
+		return httpx.E(fiber.StatusPreconditionRequired, "precondition_required", "If-Match requerido")
+	case errors.Is(err, svc.ErrVersionMismatch):
+		return httpx.E(fiber.StatusPreconditionFailed, "precondition_failed", "versión obsoleta")
 	case errors.Is(err, svc.ErrCryptoUnavailable):
 		return httpx.E(fiber.StatusServiceUnavailable, "encryption_unavailable", "cifrado no configurado")
 	default:
@@ -81,5 +91,46 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	if err != nil {
 		return MapError(err)
 	}
+	return c.JSON(res)
+}
+
+// Transition cambia el estado de una canalización.
+//
+// @Summary      Cambiar estado de una canalización
+// @Description  aceptar (destino, pendiente a aceptada; crea la asignación del área destino), rechazar (destino, motivo obligatorio), completar (destino, aceptada a completada; en una externa la completa el origen desde pendiente), cancelar (origen, pendiente a cancelada, motivo obligatorio). Exige If-Match con el versionTag. Requiere referral.transition.
+// @Tags         referrals
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        referralId    path    string                       true  "UUID de la canalización"
+// @Param        X-CSRF-Token  header  string                       true  "Token CSRF de la sesión"
+// @Param        If-Match      header  string                       true  "versionTag vigente"
+// @Param        request       body    refmodels.TransitionRequest  true  "Acción y motivo"
+// @Success      200  {object}  refmodels.View
+// @Header       200  {string}  ETag  "Nueva versión"
+// @Failure      404  {object}  httpx.ErrorResponse
+// @Failure      409  {object}  httpx.ErrorResponse  "invalid_transition o record_closed"
+// @Failure      412  {object}  httpx.ErrorResponse  "precondition_failed"
+// @Failure      422  {object}  httpx.ErrorResponse
+// @Failure      428  {object}  httpx.ErrorResponse  "precondition_required"
+// @Router       /referrals/{referralId}/transitions [post]
+func (h *Handler) Transition(c *fiber.Ctx) error {
+	actor, err := hu.Actor(c)
+	if err != nil {
+		return err
+	}
+	id, err := hu.UUIDParam(c, "referralId")
+	if err != nil {
+		return err
+	}
+	var req refmodels.TransitionRequest
+	if err := httpx.DecodeJSON(c, &req); err != nil {
+		return err
+	}
+	res, err := h.service.Transition(c.Context(), actor, id, c.Get(fiber.HeaderIfMatch), req)
+	if err != nil {
+		return MapError(err)
+	}
+	c.Set(fiber.HeaderETag, httpx.FormatETag(res.VersionTag))
 	return c.JSON(res)
 }

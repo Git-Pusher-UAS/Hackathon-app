@@ -2155,6 +2155,102 @@ const docTemplate = `{
                 }
             }
         },
+        "/referrals/{referralId}/transitions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "aceptar (destino, pendiente a aceptada; crea la asignación del área destino), rechazar (destino, motivo obligatorio), completar (destino, aceptada a completada; en una externa la completa el origen desde pendiente), cancelar (origen, pendiente a cancelada, motivo obligatorio). Exige If-Match con el versionTag. Requiere referral.transition.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "referrals"
+                ],
+                "summary": "Cambiar estado de una canalización",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID de la canalización",
+                        "name": "referralId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Token CSRF de la sesión",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "versionTag vigente",
+                        "name": "If-Match",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Acción y motivo",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_referral.TransitionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_referral.View"
+                        },
+                        "headers": {
+                            "ETag": {
+                                "type": "string",
+                                "description": "Nueva versión"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "invalid_transition o record_closed",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "412": {
+                        "description": "precondition_failed",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "428": {
+                        "description": "precondition_required",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/status": {
             "get": {
                 "description": "Comprueba la conexión con la base de datos y devuelve el estado del servicio.",
@@ -3976,6 +4072,24 @@ const docTemplate = `{
                     }
                 },
                 "nextCursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_referral.TransitionRequest": {
+            "type": "object",
+            "properties": {
+                "accion": {
+                    "type": "string",
+                    "enum": [
+                        "aceptar",
+                        "rechazar",
+                        "completar",
+                        "cancelar"
+                    ]
+                },
+                "motivo": {
+                    "description": "10 a 500; obligatorio en rechazar y cancelar",
                     "type": "string"
                 }
             }

@@ -214,6 +214,7 @@ func main() {
 
 	priv.Post("/notes/sync", casemw.Require(casemw.PermWrite), noteHandler.Sync)
 	priv.Get("/referrals", refmw.Require(refmw.PermRead), referralHandler.List)
+	priv.Post("/referrals/:referralId/transitions", refmw.Require(refmw.PermTransition), referralHandler.Transition)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")

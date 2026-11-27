@@ -23,6 +23,7 @@ var ErrCryptoUnavailable = errors.New("cryptographic service unavailable")
 
 type Service interface {
 	List(ctx context.Context, actor repository.ActorContext, q refmodels.ListQuery, page repository.PageRequest) (*refmodels.Page, error)
+	Transitioner
 }
 
 type service struct {
