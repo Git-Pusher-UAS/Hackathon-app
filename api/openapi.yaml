@@ -12,6 +12,47 @@ components:
           example: mperez
           type: string
       type: object
+    AuditLogActor:
+      properties:
+        id:
+          type: string
+        nombreLaboral:
+          type: string
+      type: object
+    AuditLogEntry:
+      properties:
+        accion:
+          example: casefile.disclose.telefono
+          type: string
+        actor:
+          allOf:
+            - $ref: '#/components/schemas/AuditLogActor'
+          description: null en acciones anónimas
+        detalle:
+          example: 'Reveló teléfono. Motivo: Contacto de seguimiento'
+          type: string
+        expedienteId:
+          type: string
+        fecha:
+          type: string
+        id:
+          type: string
+        requestId:
+          type: string
+        resultado:
+          $ref: '#/components/schemas/ResultadoAuditoria'
+        rol:
+          type: string
+      type: object
+    AuditLogPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AuditLogEntry'
+          type: array
+        nextCursor:
+          type: string
+      type: object
     AuthCSRFResult:
       properties:
         csrfToken:
@@ -854,6 +895,18 @@ components:
         versionTag:
           type: string
       type: object
+    ResultadoAuditoria:
+      enum:
+        - exito
+        - denegado
+        - error
+        - intento_entrega
+      type: string
+      x-enum-varnames:
+        - ResultadoExito
+        - ResultadoDenegado
+        - ResultadoError
+        - ResultadoIntentoEntrega
     StatusDatabase:
       properties:
         error:
@@ -1044,6 +1097,69 @@ info:
   version: "1.0"
 openapi: 3.0.3
 paths:
+  /audit-logs:
+    get:
+      description: 'Eventos del más reciente al más antiguo: actor, rol, acción, expediente, resultado y detalle (por ejemplo, el campo revelado y el motivo). Nunca incluye la IP ni valores sensibles. La consulta queda en la bitácora. Requiere auditlog.read.'
+      parameters:
+        - description: UUID del actor
+          in: query
+          name: actorId
+          schema:
+            type: string
+        - description: UUID del expediente
+          in: query
+          name: recordId
+          schema:
+            type: string
+        - description: Acción exacta, p. ej. casefile.disclose.telefono
+          in: query
+          name: action
+          schema:
+            type: string
+        - description: Desde (RFC 3339)
+          in: query
+          name: from
+          schema:
+            type: string
+        - description: Hasta (RFC 3339, exclusivo)
+          in: query
+          name: to
+          schema:
+            type: string
+        - description: 1..100 (20 por defecto)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor opaco
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogPage'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Consultar bitácora
+      tags:
+        - audit
   /auth/activations:
     post:
       description: La persona elige su contraseña con el código que TI le entregó al crear la cuenta (POST /users). El código es de un solo uso y vence a las 72 h. Después entra con POST /auth/login y configura su segundo factor. Pública, sin CSRF. No revela si el usuario existe.

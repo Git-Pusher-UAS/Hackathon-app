@@ -9,6 +9,87 @@
     "host": "localhost:3000",
     "basePath": "/api/v1",
     "paths": {
+        "/audit-logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Eventos del más reciente al más antiguo: actor, rol, acción, expediente, resultado y detalle (por ejemplo, el campo revelado y el motivo). Nunca incluye la IP ni valores sensibles. La consulta queda en la bitácora. Requiere auditlog.read.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "Consultar bitácora",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID del actor",
+                        "name": "actorId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID del expediente",
+                        "name": "recordId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Acción exacta, p. ej. casefile.disclose.telefono",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Desde (RFC 3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Hasta (RFC 3339, exclusivo)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1..100 (20 por defecto)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor opaco",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_auditlog.Page"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/activations": {
             "post": {
                 "description": "La persona elige su contraseña con el código que TI le entregó al crear la cuenta (POST /users). El código es de un solo uso y vence a las 72 h. Después entra con POST /auth/login y configura su segundo factor. Pública, sin CSRF. No revela si el usuario existe.",
@@ -3088,6 +3169,21 @@
                 "OrigenEmergenciaReferida"
             ]
         },
+        "backend-hackathon_internal_models.ResultadoAuditoria": {
+            "type": "string",
+            "enum": [
+                "exito",
+                "denegado",
+                "error",
+                "intento_entrega"
+            ],
+            "x-enum-varnames": [
+                "ResultadoExito",
+                "ResultadoDenegado",
+                "ResultadoError",
+                "ResultadoIntentoEntrega"
+            ]
+        },
         "backend-hackathon_internal_models.TipoCanalizacion": {
             "type": "string",
             "enum": [
@@ -3119,6 +3215,70 @@
                 "SectorColonia",
                 "SectorSindicatura"
             ]
+        },
+        "backend-hackathon_internal_models_auditlog.Actor": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombreLaboral": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_auditlog.Entry": {
+            "type": "object",
+            "properties": {
+                "accion": {
+                    "type": "string",
+                    "example": "casefile.disclose.telefono"
+                },
+                "actor": {
+                    "description": "null en acciones anónimas",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_auditlog.Actor"
+                        }
+                    ]
+                },
+                "detalle": {
+                    "type": "string",
+                    "example": "Reveló teléfono. Motivo: Contacto de seguimiento"
+                },
+                "expedienteId": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "requestId": {
+                    "type": "string"
+                },
+                "resultado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.ResultadoAuditoria"
+                },
+                "rol": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_auditlog.Page": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_auditlog.Entry"
+                    }
+                },
+                "nextCursor": {
+                    "type": "string"
+                }
+            }
         },
         "backend-hackathon_internal_models_caseaccessrequest.CreateRequest": {
             "type": "object",
