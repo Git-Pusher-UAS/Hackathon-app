@@ -246,7 +246,7 @@ Proyecto desarrollado por el equipo **Git Pushers** de la **Universidad Autónom
 
 - Equipo: **Git Pushers**
 - Institución: **Universidad Autónoma de Sinaloa (UAS)**
-- Facultad: **Facultad de Informática Mazatlán (FIM)**
+- Facultad: **Facultad de Ingenieria Mochis (FIM)**
 - Evento: **Hackathon 2 FIM UAS**
 
 ## Licencia
