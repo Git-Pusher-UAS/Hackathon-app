@@ -2823,6 +2823,40 @@
                 }
             }
         },
+        "/surveys/results": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Arreglo directo, solo agregados: promedio de las preguntas de escala y conteo por opción. Cualquier cifra con menos de 5 respuestas llega en null. Las respuestas abiertas no se devuelven. Requiere surveys.results.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "surveys"
+                ],
+                "summary": "Resultados de encuestas",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_survey.Resultado"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -3696,6 +3730,27 @@
                 "CursoCurso",
                 "CursoCharla",
                 "CursoConferencia"
+            ]
+        },
+        "backend-hackathon_internal_models.TipoPregunta": {
+            "type": "string",
+            "enum": [
+                "escala",
+                "opcion",
+                "abierta"
+            ],
+            "x-enum-comments": {
+                "PreguntaEscala": "1 a 5"
+            },
+            "x-enum-descriptions": [
+                "1 a 5",
+                "",
+                ""
+            ],
+            "x-enum-varnames": [
+                "PreguntaEscala",
+                "PreguntaOpcion",
+                "PreguntaAbierta"
             ]
         },
         "backend-hackathon_internal_models.TipoSector": {
@@ -5077,6 +5132,75 @@
                 },
                 "versionTag": {
                     "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_survey.Conteo": {
+            "type": "object",
+            "properties": {
+                "opcion": {
+                    "type": "string",
+                    "example": "Sí"
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 30
+                }
+            }
+        },
+        "backend-hackathon_internal_models_survey.Pregunta": {
+            "type": "object",
+            "properties": {
+                "conteo": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_survey.Conteo"
+                    }
+                },
+                "id": {
+                    "type": "string",
+                    "example": "p1"
+                },
+                "promedio": {
+                    "type": "number",
+                    "example": 4.3
+                },
+                "texto": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "enum": [
+                        "escala",
+                        "opcion",
+                        "abierta"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/backend-hackathon_internal_models.TipoPregunta"
+                        }
+                    ]
+                }
+            }
+        },
+        "backend-hackathon_internal_models_survey.Resultado": {
+            "type": "object",
+            "properties": {
+                "encuestaId": {
+                    "type": "string"
+                },
+                "preguntas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_survey.Pregunta"
+                    }
+                },
+                "respuestas": {
+                    "type": "integer",
+                    "example": 37
+                },
+                "titulo": {
+                    "type": "string",
+                    "example": "¿Cómo te atendimos?"
                 }
             }
         },

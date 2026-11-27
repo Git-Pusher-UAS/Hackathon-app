@@ -192,6 +192,22 @@ definitions:
     - CursoCurso
     - CursoCharla
     - CursoConferencia
+  backend-hackathon_internal_models.TipoPregunta:
+    enum:
+    - escala
+    - opcion
+    - abierta
+    type: string
+    x-enum-comments:
+      PreguntaEscala: 1 a 5
+    x-enum-descriptions:
+    - 1 a 5
+    - ""
+    - ""
+    x-enum-varnames:
+    - PreguntaEscala
+    - PreguntaOpcion
+    - PreguntaAbierta
   backend-hackathon_internal_models.TipoSector:
     enum:
     - sector
@@ -1113,6 +1129,52 @@ definitions:
       tipo:
         $ref: '#/definitions/backend-hackathon_internal_models.TipoCanalizacion'
       versionTag:
+        type: string
+    type: object
+  backend-hackathon_internal_models_survey.Conteo:
+    properties:
+      opcion:
+        example: Sí
+        type: string
+      total:
+        example: 30
+        type: integer
+    type: object
+  backend-hackathon_internal_models_survey.Pregunta:
+    properties:
+      conteo:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_survey.Conteo'
+        type: array
+      id:
+        example: p1
+        type: string
+      promedio:
+        example: 4.3
+        type: number
+      texto:
+        type: string
+      tipo:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models.TipoPregunta'
+        enum:
+        - escala
+        - opcion
+        - abierta
+    type: object
+  backend-hackathon_internal_models_survey.Resultado:
+    properties:
+      encuestaId:
+        type: string
+      preguntas:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_survey.Pregunta'
+        type: array
+      respuestas:
+        example: 37
+        type: integer
+      titulo:
+        example: ¿Cómo te atendimos?
         type: string
     type: object
   backend-hackathon_internal_models_user.Activacion:
@@ -3203,6 +3265,29 @@ paths:
       summary: Readiness probe
       tags:
       - status
+  /surveys/results:
+    get:
+      description: 'Arreglo directo, solo agregados: promedio de las preguntas de
+        escala y conteo por opción. Cualquier cifra con menos de 5 respuestas llega
+        en null. Las respuestas abiertas no se devuelven. Requiere surveys.results.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_survey.Resultado'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Resultados de encuestas
+      tags:
+      - surveys
   /users:
     get:
       description: 'Lista las cuentas de personal con ultimoAcceso. Requiere admin,

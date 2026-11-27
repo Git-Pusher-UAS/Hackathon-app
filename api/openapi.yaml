@@ -1144,6 +1144,52 @@ components:
           example: dev
           type: string
       type: object
+    SurveyConteo:
+      properties:
+        opcion:
+          example: Sí
+          type: string
+        total:
+          example: 30
+          type: integer
+      type: object
+    SurveyPregunta:
+      properties:
+        conteo:
+          items:
+            $ref: '#/components/schemas/SurveyConteo'
+          type: array
+        id:
+          example: p1
+          type: string
+        promedio:
+          example: 4.3
+          type: number
+        texto:
+          type: string
+        tipo:
+          allOf:
+            - $ref: '#/components/schemas/TipoPregunta'
+          enum:
+            - escala
+            - opcion
+            - abierta
+      type: object
+    SurveyResultado:
+      properties:
+        encuestaId:
+          type: string
+        preguntas:
+          items:
+            $ref: '#/components/schemas/SurveyPregunta'
+          type: array
+        respuestas:
+          example: 37
+          type: integer
+        titulo:
+          example: ¿Cómo te atendimos?
+          type: string
+      type: object
     TipoCanalizacion:
       enum:
         - interna
@@ -1168,6 +1214,22 @@ components:
         - CursoCurso
         - CursoCharla
         - CursoConferencia
+    TipoPregunta:
+      enum:
+        - escala
+        - opcion
+        - abierta
+      type: string
+      x-enum-comments:
+        PreguntaEscala: 1 a 5
+      x-enum-descriptions:
+        - 1 a 5
+        - ""
+        - ""
+      x-enum-varnames:
+        - PreguntaEscala
+        - PreguntaOpcion
+        - PreguntaAbierta
     TipoSector:
       enum:
         - sector
@@ -3504,6 +3566,29 @@ paths:
       summary: Readiness probe
       tags:
         - status
+  /surveys/results:
+    get:
+      description: 'Arreglo directo, solo agregados: promedio de las preguntas de escala y conteo por opción. Cualquier cifra con menos de 5 respuestas llega en null. Las respuestas abiertas no se devuelven. Requiere surveys.results.'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SurveyResultado'
+                type: array
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+      security:
+        - BearerAuth: []
+      summary: Resultados de encuestas
+      tags:
+        - surveys
   /users:
     get:
       description: 'Lista las cuentas de personal con ultimoAcceso. Requiere admin, o users.read_attention (Coordinación): en ese caso solo devuelve personal activo de áreas de atención, para asignar expedientes.'
