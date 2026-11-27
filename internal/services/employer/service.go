@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"backend-hackathon/internal/httpx"
+	"backend-hackathon/internal/metrics"
 	"backend-hackathon/internal/models"
 	emodels "backend-hackathon/internal/models/employer"
 	repository "backend-hackathon/internal/repository/repositories"
@@ -134,6 +135,7 @@ func (s *service) createChallenge(ctx context.Context, r repository.Repositories
 	if err := r.EmpleadorDesafios().Create(ctx, d); err != nil {
 		return nil, err
 	}
+	metrics.OTPChallengeCreated.Add(1)
 	if s.devMode {
 		s.logf("[DEV OTP] employer challenge=%s correo=%s telefono=%s code=%s", d.ID, e.Correo, maskPhone(e.Telefono), code)
 	}
@@ -180,12 +182,14 @@ func (s *service) Verify(ctx context.Context, challengeID uuid.UUID, code string
 		if subtle.ConstantTimeCompare(expected, d.CodigoHash) != 1 {
 			d.Intentos++
 			_ = r.EmpleadorDesafios().Save(ctx, d)
+			metrics.OTPVerifyFailed.Add(1)
 			return ErrInvalid
 		}
 		d.ConsumidoEn = &now
 		if err := r.EmpleadorDesafios().Save(ctx, d); err != nil {
 			return err
 		}
+		metrics.OTPVerifySuccess.Add(1)
 		token, err := randomToken()
 		if err != nil {
 			return err

@@ -21,6 +21,45 @@ type Handler struct {
 
 func New(uow repository.UnitOfWork) *Handler { return &Handler{uow: uow, admin: adminsvc.New(uow)} }
 
+type AdminJobRequest struct {
+	Puesto      string `json:"puesto"`
+	Empresa     string `json:"empresa"`
+	Sector      string `json:"sector"`
+	Horario     string `json:"horario"`
+	TipoEmpleo  string `json:"tipoEmpleo"`
+	Ubicacion   string `json:"ubicacion"`
+	Descripcion string `json:"descripcion"`
+	Requisitos  string `json:"requisitos"`
+}
+type AdminReviewRequest struct {
+	Decision string `json:"decision"`
+	Motivo   string `json:"motivo"`
+}
+type ContactReleaseRequest struct {
+	Motivo string   `json:"motivo"`
+	Campos []string `json:"campos"`
+}
+
+type InterviewResponseRequest struct {
+	Respuesta string `json:"respuesta"`
+}
+type WithdrawalRequest struct {
+	Motivo string `json:"motivo"`
+}
+type PortalApplicationView struct {
+	ID               uuid.UUID                `json:"id"`
+	VacanteID        uuid.UUID                `json:"vacanteId"`
+	Puesto           string                   `json:"puesto"`
+	Empresa          string                   `json:"empresa"`
+	Estado           models.EstadoPostulacion `json:"estado"`
+	CreadoEn         time.Time                `json:"creadoEn"`
+	ContactoLiberado *bool                    `json:"contactoLiberado,omitempty"`
+}
+type EstadoUpdateResponse struct {
+	ID     uuid.UUID                `json:"id"`
+	Estado models.EstadoPostulacion `json:"estado"`
+}
+
 // AdminListJobs godoc
 // @Summary Listar vacantes (admin)
 // @Tags admin-jobs
@@ -44,7 +83,7 @@ func (h *Handler) AdminListJobs(c *fiber.Ctx) error {
 // @Tags admin-jobs
 // @Accept json
 // @Produce json
-// @Param request body map[string]any true "Vacante"
+// @Param request body AdminJobRequest true "Vacante"
 // @Success 201 {object} models.Vacante
 // @Router /admin/jobs [post]
 func (h *Handler) AdminCreateJob(c *fiber.Ctx) error {
@@ -52,11 +91,11 @@ func (h *Handler) AdminCreateJob(c *fiber.Ctx) error {
 	if !ok {
 		return httpx.E(401, "UNAUTHENTICATED", "sesion invalida")
 	}
-	var in map[string]any
+	var in AdminJobRequest
 	if err := httpx.DecodeJSON(c, &in); err != nil {
 		return err
 	}
-	res, err := h.admin.CreateJob(c.Context(), actor, in)
+	res, err := h.admin.CreateJob(c.Context(), actor, adminsvc.CreateJobRequest{Puesto: in.Puesto, Empresa: in.Empresa, Sector: in.Sector, Horario: in.Horario, TipoEmpleo: in.TipoEmpleo, Ubicacion: in.Ubicacion, Descripcion: in.Descripcion, Requisitos: in.Requisitos})
 	if err != nil {
 		return err
 	}
@@ -92,7 +131,7 @@ func (h *Handler) AdminGetJob(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Job ID"
-// @Param request body map[string]string true "Decisión"
+// @Param request body AdminReviewRequest true "Decisión"
 // @Success 200 {object} models.Vacante
 // @Router /admin/jobs/{id}/review [post]
 func (h *Handler) AdminReviewJob(c *fiber.Ctx) error {
@@ -139,7 +178,7 @@ func (h *Handler) AdminListEmployers(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Employer ID"
-// @Param request body map[string]string true "Decisión"
+// @Param request body AdminReviewRequest true "Decisión"
 // @Success 200 {object} models.Empleador
 // @Router /admin/employers/{id}/review [post]
 func (h *Handler) AdminReviewEmployer(c *fiber.Ctx) error {
@@ -186,7 +225,7 @@ func (h *Handler) AdminHires(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Application ID"
-// @Param request body map[string]any true "Motivo y campos"
+// @Param request body ContactReleaseRequest true "Motivo y campos"
 // @Success 200 {object} models.Postulacion
 // @Router /admin/applications/{id}/contact-release [post]
 func (h *Handler) AdminContactRelease(c *fiber.Ctx) error {
@@ -328,7 +367,7 @@ func (h *Handler) PutCV(c *fiber.Ctx) error {
 // @Summary Mis postulaciones
 // @Tags portal-applications
 // @Produce json
-// @Success 200 {array} object
+// @Success 200 {array} PortalApplicationView
 // @Router /portal/me/applications [get]
 func (h *Handler) MyApplications(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
@@ -339,7 +378,7 @@ func (h *Handler) MyApplications(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	out := make([]fiber.Map, 0, len(rows))
+	out := make([]PortalApplicationView, 0, len(rows))
 	for _, p := range rows {
 		v, _ := h.uow.Repositories().Vacantes().GetByID(c.Context(), p.VacanteID)
 		puesto, empresa := "", ""
@@ -347,7 +386,7 @@ func (h *Handler) MyApplications(c *fiber.Ctx) error {
 			puesto = v.Puesto
 			empresa = v.Empresa
 		}
-		out = append(out, fiber.Map{"id": p.ID, "vacanteId": p.VacanteID, "puesto": puesto, "empresa": empresa, "estado": p.Estado, "creadoEn": p.CreadoEn})
+		out = append(out, PortalApplicationView{ID: p.ID, VacanteID: p.VacanteID, Puesto: puesto, Empresa: empresa, Estado: p.Estado, CreadoEn: p.CreadoEn})
 	}
 	return c.JSON(out)
 }
@@ -357,7 +396,7 @@ func (h *Handler) MyApplications(c *fiber.Ctx) error {
 // @Tags portal-applications
 // @Produce json
 // @Param id path string true "Application ID"
-// @Success 200 {object} object
+// @Success 200 {object} PortalApplicationView
 // @Router /portal/me/applications/{id} [get]
 func (h *Handler) MyApplication(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
@@ -381,7 +420,8 @@ func (h *Handler) MyApplication(c *fiber.Ctx) error {
 		puesto = v.Puesto
 		empresa = v.Empresa
 	}
-	return c.JSON(fiber.Map{"id": p.ID, "vacanteId": p.VacanteID, "puesto": puesto, "empresa": empresa, "estado": p.Estado, "creadoEn": p.CreadoEn, "contactoLiberado": p.ContactoLiberado})
+	cl := p.ContactoLiberado
+	return c.JSON(PortalApplicationView{ID: p.ID, VacanteID: p.VacanteID, Puesto: puesto, Empresa: empresa, Estado: p.Estado, CreadoEn: p.CreadoEn, ContactoLiberado: &cl})
 }
 
 // InterviewResponse godoc
@@ -390,8 +430,8 @@ func (h *Handler) MyApplication(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Application ID"
-// @Param request body map[string]string true "Respuesta"
-// @Success 200 {object} object
+// @Param request body InterviewResponseRequest true "Respuesta"
+// @Success 200 {object} EstadoUpdateResponse
 // @Router /portal/me/applications/{id}/interview-response [post]
 func (h *Handler) InterviewResponse(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
@@ -402,9 +442,7 @@ func (h *Handler) InterviewResponse(c *fiber.Ctx) error {
 	if err != nil {
 		return httpx.E(422, "VALIDATION_ERROR", "id invalido")
 	}
-	var in struct {
-		Respuesta string `json:"respuesta"`
-	}
+	var in InterviewResponseRequest
 	if err := httpx.DecodeJSON(c, &in); err != nil {
 		return err
 	}
@@ -428,7 +466,7 @@ func (h *Handler) InterviewResponse(c *fiber.Ctx) error {
 	if err := r.Postulaciones().Save(c.Context(), p); err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"id": p.ID, "estado": p.Estado})
+	return c.JSON(EstadoUpdateResponse{ID: p.ID, Estado: p.Estado})
 }
 
 // Withdraw godoc
@@ -437,8 +475,8 @@ func (h *Handler) InterviewResponse(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Application ID"
-// @Param request body map[string]string true "Motivo"
-// @Success 200 {object} object
+// @Param request body WithdrawalRequest true "Motivo"
+// @Success 200 {object} EstadoUpdateResponse
 // @Router /portal/me/applications/{id}/withdrawal [post]
 func (h *Handler) Withdraw(c *fiber.Ctx) error {
 	cuentaID, ok := middleware.PortalCuentaID(c)
@@ -462,5 +500,5 @@ func (h *Handler) Withdraw(c *fiber.Ctx) error {
 	if err := r.Postulaciones().Save(c.Context(), p); err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"id": p.ID, "estado": p.Estado})
+	return c.JSON(EstadoUpdateResponse{ID: p.ID, Estado: p.Estado})
 }

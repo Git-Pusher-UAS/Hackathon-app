@@ -133,3 +133,22 @@ func TestEmployerOTPLoggingRespectsDevMode(t *testing.T) {
 		}
 	})
 }
+
+func TestEmployerLoginUnknownDoesNotEnumerate(t *testing.T) {
+	svc, _, _ := newEmployerTestFixture(false)
+	ch, err := svc.Login(context.Background(), "noexiste@empresa.mx")
+	if err != nil {
+		t.Fatalf("expected generic challenge, got err: %v", err)
+	}
+	if ch == nil || ch.ChallengeID == uuid.Nil {
+		t.Fatalf("expected challenge response, got %+v", ch)
+	}
+}
+
+func TestEmployerVerifyNonexistentChallenge(t *testing.T) {
+	svc, _, _ := newEmployerTestFixture(false)
+	_, err := svc.Verify(context.Background(), uuid.New(), "123456")
+	if err != ErrInvalid {
+		t.Fatalf("expected ErrInvalid, got %v", err)
+	}
+}

@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"log"
 	"sync"
 	"time"
 
 	"backend-hackathon/internal/httpx"
+	"backend-hackathon/internal/metrics"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -48,6 +50,8 @@ func (rl *RateLimiter) Middleware(keyFn func(*fiber.Ctx) string) fiber.Handler {
 			key = c.IP()
 		}
 		if !rl.Allow(key) {
+			metrics.RateLimitBlocked.Add(1)
+			log.Printf("rate_limit: blocked key=%s path=%s ip=%s", key, c.Path(), c.IP())
 			return httpx.E(fiber.StatusTooManyRequests, "TOO_MANY_REQUESTS", "demasiados intentos, intenta más tarde")
 		}
 		return c.Next()

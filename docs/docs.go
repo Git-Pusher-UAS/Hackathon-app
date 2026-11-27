@@ -41,8 +41,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.ContactReleaseRequest"
                         }
                     }
                 ],
@@ -104,10 +103,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.AdminReviewRequest"
                         }
                     }
                 ],
@@ -182,8 +178,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.AdminJobRequest"
                         }
                     }
                 ],
@@ -251,10 +246,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.AdminReviewRequest"
                         }
                     }
                 ],
@@ -4343,7 +4335,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/internal_handlers_bolsaextra.PortalApplicationView"
                             }
                         }
                     }
@@ -4372,7 +4364,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.PortalApplicationView"
                         }
                     }
                 }
@@ -4404,10 +4396,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.InterviewResponseRequest"
                         }
                     }
                 ],
@@ -4415,7 +4404,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.EstadoUpdateResponse"
                         }
                     }
                 }
@@ -4447,10 +4436,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.WithdrawalRequest"
                         }
                     }
                 ],
@@ -4458,7 +4444,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/internal_handlers_bolsaextra.EstadoUpdateResponse"
                         }
                     }
                 }
@@ -7937,6 +7923,113 @@ const docTemplate = `{
                 "code": {
                     "type": "string",
                     "example": "123456"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.AdminJobRequest": {
+            "type": "object",
+            "properties": {
+                "descripcion": {
+                    "type": "string"
+                },
+                "empresa": {
+                    "type": "string"
+                },
+                "horario": {
+                    "type": "string"
+                },
+                "puesto": {
+                    "type": "string"
+                },
+                "requisitos": {
+                    "type": "string"
+                },
+                "sector": {
+                    "type": "string"
+                },
+                "tipoEmpleo": {
+                    "type": "string"
+                },
+                "ubicacion": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.AdminReviewRequest": {
+            "type": "object",
+            "properties": {
+                "decision": {
+                    "type": "string"
+                },
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.ContactReleaseRequest": {
+            "type": "object",
+            "properties": {
+                "campos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "motivo": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.EstadoUpdateResponse": {
+            "type": "object",
+            "properties": {
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoPostulacion"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.InterviewResponseRequest": {
+            "type": "object",
+            "properties": {
+                "respuesta": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.PortalApplicationView": {
+            "type": "object",
+            "properties": {
+                "contactoLiberado": {
+                    "type": "boolean"
+                },
+                "creadoEn": {
+                    "type": "string"
+                },
+                "empresa": {
+                    "type": "string"
+                },
+                "estado": {
+                    "$ref": "#/definitions/backend-hackathon_internal_models.EstadoPostulacion"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "puesto": {
+                    "type": "string"
+                },
+                "vacanteId": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers_bolsaextra.WithdrawalRequest": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string"
                 }
             }
         },

@@ -187,3 +187,22 @@ func TestPortalOTPLoggingRespectsDevMode(t *testing.T) {
 		}
 	})
 }
+
+func TestPortalLoginUnknownDoesNotEnumerate(t *testing.T) {
+	svc, _, _ := newPortalTestFixture(false)
+	ch, err := svc.Login(context.Background(), "NOEXISTE00000000000")
+	if err != nil {
+		t.Fatalf("expected generic challenge, got err: %v", err)
+	}
+	if ch == nil || ch.ChallengeID == uuid.Nil {
+		t.Fatalf("expected challenge response, got %+v", ch)
+	}
+}
+
+func TestPortalVerifyNonexistentChallenge(t *testing.T) {
+	svc, _, _ := newPortalTestFixture(false)
+	_, err := svc.Verify(context.Background(), uuid.New(), "123456")
+	if err != ErrChallengeGone {
+		t.Fatalf("expected ErrChallengeGone, got %v", err)
+	}
+}

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"backend-hackathon/internal/httpx"
+	"backend-hackathon/internal/metrics"
 	"backend-hackathon/internal/models"
 	pmodels "backend-hackathon/internal/models/portal"
 	repository "backend-hackathon/internal/repository/repositories"
@@ -129,6 +130,7 @@ func (s *service) createChallenge(ctx context.Context, r repository.Repositories
 	if err := r.PortalDesafios().Create(ctx, d); err != nil {
 		return nil, err
 	}
+	metrics.OTPChallengeCreated.Add(1)
 	if s.devMode {
 		s.logf("[DEV OTP] portal challenge=%s telefono=%s code=%s", d.ID, maskPhone(telefono), code)
 	}
@@ -238,12 +240,14 @@ func (s *service) Verify(ctx context.Context, challengeID uuid.UUID, code string
 		if subtle.ConstantTimeCompare(expected, d.CodigoHash) != 1 {
 			d.Intentos++
 			_ = r.PortalDesafios().Save(ctx, d)
+			metrics.OTPVerifyFailed.Add(1)
 			return ErrInvalidCode
 		}
 		d.ConsumidoEn = &now
 		if err := r.PortalDesafios().Save(ctx, d); err != nil {
 			return err
 		}
+		metrics.OTPVerifySuccess.Add(1)
 		cuenta, err := r.PortalCuentas().GetByID(ctx, d.CuentaID)
 		if err != nil {
 			return err

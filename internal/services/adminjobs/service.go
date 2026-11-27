@@ -8,6 +8,7 @@ import (
 
 	"backend-hackathon/internal/audit"
 	"backend-hackathon/internal/httpx"
+	"backend-hackathon/internal/metrics"
 	"backend-hackathon/internal/models"
 	repository "backend-hackathon/internal/repository/repositories"
 	"github.com/google/uuid"
@@ -19,6 +20,8 @@ type Service struct {
 }
 
 func New(uow repository.UnitOfWork) *Service { return &Service{uow: uow, now: time.Now} }
+
+type CreateJobRequest struct{ Puesto, Empresa, Sector, Horario, TipoEmpleo, Ubicacion, Descripcion, Requisitos string }
 
 func mapRepoErr(err error) error {
 	if err == nil {
@@ -50,24 +53,24 @@ func (s *Service) ListJobs(ctx context.Context, actor repository.ActorContext) (
 	return out, mapRepoErr(err)
 }
 
-func (s *Service) CreateJob(ctx context.Context, actor repository.ActorContext, in map[string]any) (*models.Vacante, error) {
-	str := func(k string) string { v, _ := in[k].(string); return strings.TrimSpace(v) }
+func (s *Service) CreateJob(ctx context.Context, actor repository.ActorContext, in CreateJobRequest) (*models.Vacante, error) {
+	trim := strings.TrimSpace
 	fields := map[string]string{}
-	req := func(k string) string {
-		v := str(k)
+	req := func(name, v string) string {
+		v = trim(v)
 		if v == "" {
-			fields[k] = "requerido"
+			fields[name] = "requerido"
 		}
 		return v
 	}
-	puesto := req("puesto")
-	empresa := str("empresa")
-	sector := req("sector")
-	horario := req("horario")
-	tipo := req("tipoEmpleo")
-	ubic := req("ubicacion")
-	desc := req("descripcion")
-	reqs := req("requisitos")
+	puesto := req("puesto", in.Puesto)
+	empresa := trim(in.Empresa)
+	sector := req("sector", in.Sector)
+	horario := req("horario", in.Horario)
+	tipo := req("tipoEmpleo", in.TipoEmpleo)
+	ubic := req("ubicacion", in.Ubicacion)
+	desc := req("descripcion", in.Descripcion)
+	reqs := req("requisitos", in.Requisitos)
 	if empresa == "" {
 		empresa = "IMM"
 	}
@@ -203,8 +206,10 @@ func (s *Service) ContactRelease(ctx context.Context, actor repository.ActorCont
 		}
 		meta, _ := json.Marshal(map[string]any{"actorId": actor.ActorID, "timestamp": now.UTC(), "applicationId": p.ID, "jobId": p.VacanteID, "candidateAccountId": p.UsuariaID, "motivo": motivo, "camposLiberados": campos})
 		if err := audit.RecordWithMeta(ctx, r, &actor.ActorID, "admin.contact_release", "postulacion", models.ResultadoExito, &p.ID, actor.RequestID, actor.IPOrigen, meta); err != nil {
+			metrics.AuditAppendErrors.Add(1)
 			return err
 		}
+		metrics.ContactReleaseTotal.Add(1)
 		out = p
 		return nil
 	})
