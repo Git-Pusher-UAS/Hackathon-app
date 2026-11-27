@@ -151,6 +151,7 @@ func main() {
 		g.Post("/auth/login", authHandler.Login)
 		g.Post("/auth/mfa/enrollments", authHandler.EnrollMFA)
 		g.Post("/auth/mfa/verify", authHandler.VerifyMFA)
+		g.Post("/auth/activations", authHandler.Activate)
 	}
 
 	v1.Get("/institutional-contacts", icHandler.List) // público, sin sesión

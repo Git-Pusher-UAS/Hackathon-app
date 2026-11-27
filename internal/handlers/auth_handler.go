@@ -45,6 +45,44 @@ type VerifyMFARequest struct {
 	EnrollmentID *uuid.UUID `json:"enrollmentId,omitempty"`
 }
 
+// ActivationRequest es el cuerpo de POST /auth/activations.
+type ActivationRequest struct {
+	Usuario  string `json:"usuario" example:"mperez"`
+	Codigo   string `json:"codigo" example:"K7P2-9QX4"`
+	Password string `json:"password"`
+}
+
+// Activate fija la contraseña de una cuenta nueva con su código de activación.
+//
+// @Summary      Activar cuenta
+// @Description  La persona elige su contraseña con el código que TI le entregó al crear la cuenta (POST /users). El código es de un solo uso y vence a las 72 h. Después entra con POST /auth/login y configura su segundo factor. Pública, sin CSRF. No revela si el usuario existe.
+// @Tags         auth
+// @Accept       json
+// @Param        request  body  ActivationRequest  true  "Usuario, código y contraseña nueva"
+// @Success      204  "Contraseña fijada"
+// @Failure      401  {object}  httpx.ErrorResponse  "invalid_code"
+// @Failure      422  {object}  httpx.ErrorResponse  "validation_failed (contraseña de 12 a 128 caracteres)"
+// @Failure      429  {object}  httpx.ErrorResponse  "too_many_attempts"
+// @Router       /auth/activations [post]
+func (h *AuthHandler) Activate(c *fiber.Ctx) error {
+	var req ActivationRequest
+	if err := httpx.DecodeJSON(c, &req); err != nil {
+		return err
+	}
+	err := h.authService.Activar(c.Context(), auth.ActivacionInput{Usuario: req.Usuario, Codigo: req.Codigo,
+		Password: req.Password, IP: c.IP(), RequestID: middleware.RequestID(c)})
+	switch {
+	case err == nil:
+		return c.SendStatus(fiber.StatusNoContent)
+	case errors.Is(err, auth.ErrActivacionInvalida):
+		return httpx.E(fiber.StatusUnauthorized, "invalid_code", "código de activación inválido o vencido")
+	case errors.Is(err, auth.ErrPasswordInvalida):
+		return httpx.Invalid(err.Error(), map[string]string{"password": "longitud_invalida"})
+	default:
+		return authError(err)
+	}
+}
+
 // setSessionCookie guarda el JWT en sai_staff: HttpOnly, Secure, SameSite=Strict.
 func setSessionCookie(c *fiber.Ctx, token string, expires time.Time) {
 	c.Cookie(&fiber.Cookie{
