@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"net/url"
 	"testing"
 	"time"
 
@@ -116,77 +117,70 @@ func TestCifrarDescifrar(t *testing.T) {
 
 func TestFlujoMFACompleto(t *testing.T) {
 	ctx := context.Background()
-	svc, repos, p := nuevoServicioDePrueba(t)
+	svc, repos, _ := nuevoServicioDePrueba(t)
+	login := func() *Challenge {
+		t.Helper()
+		ch, err := svc.Login(ctx, LoginInput{Usuario: "admin", Password: "admin123", IP: "127.0.0.1", UserAgent: "test", RequestID: uuid.New()})
+		if err != nil {
+			t.Fatalf("Login: %v", err)
+		}
+		return ch
+	}
 
-	enroll, err := svc.EnrollMFA(ctx, p.ID, uuid.New(), "127.0.0.1")
+	// 1. Sin segundo factor: el login nunca da sesión, pide enrolar.
+	ch := login()
+	if ch.Next != NextEnroll || ch.ChallengeID == "" {
+		t.Fatalf("primer login: %+v, quiero next=enroll", ch)
+	}
+	if _, err := svc.EnrollMFA(ctx, "otro-reto", uuid.New(), "127.0.0.1"); !errors.Is(err, ErrDesafioInvalido) {
+		t.Fatalf("enrolar con reto desconocido: %v", err)
+	}
+	enroll, err := svc.EnrollMFA(ctx, ch.ChallengeID, uuid.New(), "127.0.0.1")
 	if err != nil {
 		t.Fatalf("EnrollMFA: %v", err)
 	}
-	if enroll.Secret == "" || enroll.OtpauthURL == "" {
-		t.Fatal("respuesta de enrolamiento incompleta")
+	u, err := url.Parse(enroll.OtpauthURI)
+	if err != nil || u.Query().Get("secret") == "" || enroll.EnrollmentID == uuid.Nil {
+		t.Fatalf("enrolamiento incompleto: %+v", enroll)
 	}
+	secret := u.Query().Get("secret")
 
 	now := time.Now()
-	code, err := totp.GenerateCode(enroll.Secret, now)
-	if err != nil {
-		t.Fatalf("GenerateCode: %v", err)
+	code, _ := totp.GenerateCode(secret, now)
+	// Sin enrollmentId no se confirma.
+	if _, err := svc.VerifyMFA(ctx, VerifyMFAInput{Challenge: ch.ChallengeID, Code: code, IP: "127.0.0.1", RequestID: uuid.New()}); !errors.Is(err, ErrMFANoIniciado) {
+		t.Fatalf("verificar sin enrollmentId: %v", err)
 	}
-	activado, err := svc.VerifyMFA(ctx, VerifyMFAInput{
-		PersonalID: &p.ID,
-		Code:       code,
-		IP:         "127.0.0.1",
-		RequestID:  uuid.New(),
-	})
+	ses, err := svc.VerifyMFA(ctx, VerifyMFAInput{Challenge: ch.ChallengeID, EnrollmentID: &enroll.EnrollmentID, Code: code, IP: "127.0.0.1", UserAgent: "test", RequestID: uuid.New()})
 	if err != nil {
-		t.Fatalf("VerifyMFA (activación): %v", err)
+		t.Fatalf("VerifyMFA (enrolamiento): %v", err)
 	}
-	if !activado.Activado {
-		t.Fatal("no se marcó el MFA como activado")
+	if ses.Token == "" || ses.CSRF == "" || ses.Usuario.Usuario != "admin" || !ses.IdleExpiresAt.After(now) {
+		t.Fatalf("sesión incompleta: %+v", ses)
 	}
 
-	_, err = svc.Login(ctx, LoginInput{
-		Usuario:   "admin",
-		Password:  "admin123",
-		IP:        "127.0.0.1",
-		UserAgent: "test",
-		RequestID: uuid.New(),
-	})
-	var challenge *MFAChallengeError
-	if !errors.As(err, &challenge) || challenge.Challenge == "" {
-		t.Fatalf("Login debía devolver challenge MFA, got %v", err)
+	// 2. Con segundo factor activo: next=totp.
+	ch2 := login()
+	if ch2.Next != NextTOTP {
+		t.Fatalf("segundo login: next=%s", ch2.Next)
 	}
-
+	if _, err := svc.EnrollMFA(ctx, ch2.ChallengeID, uuid.New(), "127.0.0.1"); !errors.Is(err, ErrDesafioInvalido) {
+		t.Fatalf("un reto totp no sirve para enrolar: %v", err)
+	}
 	// El paso usado en la activación ya no puede reutilizarse: usamos el siguiente.
-	code2, err := totp.GenerateCode(enroll.Secret, now.Add(30*time.Second))
-	if err != nil {
-		t.Fatalf("GenerateCode (login): %v", err)
-	}
-	res, err := svc.VerifyMFA(ctx, VerifyMFAInput{
-		Challenge: challenge.Challenge,
-		Code:      code2,
-		IP:        "127.0.0.1",
-		UserAgent: "test",
-		RequestID: uuid.New(),
-	})
+	code2, _ := totp.GenerateCode(secret, now.Add(30*time.Second))
+	res, err := svc.VerifyMFA(ctx, VerifyMFAInput{Challenge: ch2.ChallengeID, Code: code2, IP: "127.0.0.1", UserAgent: "test", RequestID: uuid.New()})
 	if err != nil {
 		t.Fatalf("VerifyMFA (login): %v", err)
 	}
-	if res.Login == nil || res.Login.Token == "" {
-		t.Fatal("el login con challenge no devolvió sesión")
-	}
 
-	// El challenge es de un solo uso.
-	if _, err := svc.VerifyMFA(ctx, VerifyMFAInput{
-		Challenge: challenge.Challenge,
-		Code:      code2,
-		IP:        "127.0.0.1",
-		RequestID: uuid.New(),
-	}); !errors.Is(err, ErrDesafioInvalido) {
-		t.Fatalf("reutilizar challenge: esperaba ErrDesafioInvalido, got %v", err)
+	// El reto es de un solo uso.
+	if _, err := svc.VerifyMFA(ctx, VerifyMFAInput{Challenge: ch2.ChallengeID, Code: code2, IP: "127.0.0.1", RequestID: uuid.New()}); !errors.Is(err, ErrDesafioInvalido) {
+		t.Fatalf("reutilizar reto: esperaba ErrDesafioInvalido, got %v", err)
 	}
 
 	// CSRF rota sobre la sesión emitida.
-	claims, err := ParseToken("secreto-de-prueba", res.Login.Token)
+	claims, err := ParseToken("secreto-de-prueba", res.Token)
 	if err != nil {
 		t.Fatalf("ParseToken: %v", err)
 	}
@@ -389,6 +383,9 @@ type fakeContextoRepo struct {
 }
 
 func (r *fakeContextoRepo) Create(_ context.Context, c *models.ContextoAuth) error {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
+	}
 	r.porHash[string(c.TokenHash)] = c
 	return nil
 }
@@ -418,6 +415,16 @@ func (r *fakeContextoRepo) Consumir(_ context.Context, id uuid.UUID, at time.Tim
 		}
 	}
 	return false, nil
+}
+
+func (r *fakeContextoRepo) VincularEnrolamiento(_ context.Context, id, mfaID uuid.UUID) error {
+	for _, c := range r.porHash {
+		if c.ID == id {
+			c.EnrolamientoID = &mfaID
+			return nil
+		}
+	}
+	return repository.ErrNotFound
 }
 
 type fakeIntentosRepo struct {
