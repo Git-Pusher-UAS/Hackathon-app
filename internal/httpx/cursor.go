@@ -74,3 +74,29 @@ func DecodeCursor(secret, cursor string, actor uuid.UUID, scope, filterHash stri
 	}
 	return payload.Plain, nil
 }
+
+// Cursor liga los cursores de un listado a su ámbito y su secreto.
+type Cursor struct {
+	Secret string
+	Scope  string
+}
+
+// Decode valida el cursor recibido contra el actor y los filtros y devuelve
+// el cursor interno y el hash de filtros. Un cursor ajeno responde 422.
+func (k Cursor) Decode(raw string, actor uuid.UUID, filters ...string) (string, string, error) {
+	hash := FilterHash(filters...)
+	plain, err := DecodeCursor(k.Secret, raw, actor, k.Scope, hash)
+	if err != nil {
+		return "", "", E(422, "validation_failed", "cursor inválido")
+	}
+	return plain, hash, nil
+}
+
+// Encode firma el siguiente cursor; nil si no hay más páginas.
+func (k Cursor) Encode(actor uuid.UUID, hash, next string) *string {
+	if next == "" {
+		return nil
+	}
+	s := EncodeCursor(k.Secret, actor, k.Scope, hash, next)
+	return &s
+}

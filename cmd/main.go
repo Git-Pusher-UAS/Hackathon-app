@@ -13,6 +13,7 @@ import (
 	"backend-hackathon/internal/auth"
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
+	carhandler "backend-hackathon/internal/handlers/caseaccessrequest"
 	casehandler "backend-hackathon/internal/handlers/casefile"
 	cataloghandler "backend-hackathon/internal/handlers/catalog"
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
@@ -20,11 +21,13 @@ import (
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
+	carmw "backend-hackathon/internal/middleware/caseaccessrequest"
 	casemw "backend-hackathon/internal/middleware/casefile"
 	"backend-hackathon/internal/middleware/idempotency"
 	usermiddleware "backend-hackathon/internal/middleware/user"
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
+	carservice "backend-hackathon/internal/services/caseaccessrequest"
 	caseservice "backend-hackathon/internal/services/casefile"
 	catalogservice "backend-hackathon/internal/services/catalog"
 	helpeventservice "backend-hackathon/internal/services/helpevent"
@@ -105,6 +108,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	carHandler := carhandler.New(carservice.New(uow, keyring, cfg.JWT.Secret))
 	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
 	icHandler := ichandler.New(icservice.New(uow))
 	catalogHandler := cataloghandler.New(catalogservice.New(uow))
@@ -196,6 +200,9 @@ func main() {
 	idem := func(required bool) fiber.Handler {
 		return idempotency.New(idempotency.Config{UOW: uow, Keyring: keyring, Secret: cfg.JWT.Secret}, required)
 	}
+
+	priv.Post("/case-access-requests", carmw.Require(carmw.PermRequest), idem(false), carHandler.Create)
+	priv.Get("/case-access-requests", carmw.Require(carmw.PermReview), carHandler.List)
 
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 

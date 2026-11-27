@@ -116,6 +116,16 @@ definitions:
     x-enum-varnames:
     - PersonalActivo
     - PersonalSuspendido
+  backend-hackathon_internal_models.EstadoSolicitudVinculacion:
+    enum:
+    - pendiente
+    - aprobada
+    - rechazada
+    type: string
+    x-enum-varnames:
+    - SolicitudPendiente
+    - SolicitudAprobada
+    - SolicitudRechazada
   backend-hackathon_internal_models.ModalidadConsentimiento:
     enum:
     - presencial
@@ -148,6 +158,61 @@ definitions:
     - SectorSector
     - SectorColonia
     - SectorSindicatura
+  backend-hackathon_internal_models_caseaccessrequest.CreateRequest:
+    properties:
+      linkToken:
+        example: lt_9f...
+        type: string
+      motivo:
+        example: La persona acudió hoy y pide atención psicológica
+        type: string
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Created:
+    properties:
+      estado:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models.EstadoSolicitudVinculacion'
+        example: pendiente
+      requestId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Item:
+    properties:
+      departamento:
+        type: string
+      departamentoId:
+        type: string
+      estado:
+        $ref: '#/definitions/backend-hackathon_internal_models.EstadoSolicitudVinculacion'
+      expedienteAlias:
+        type: string
+      expedienteId:
+        type: string
+      fecha:
+        type: string
+      id:
+        type: string
+      motivo:
+        type: string
+      solicitante:
+        $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Solicitante'
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Page:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Item'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  backend-hackathon_internal_models_caseaccessrequest.Solicitante:
+    properties:
+      id:
+        type: string
+      nombreLaboral:
+        type: string
+    type: object
   backend-hackathon_internal_models_casefile.AssignRequest:
     properties:
       departamentoId:
@@ -967,6 +1032,99 @@ paths:
       summary: Verificar segundo factor (paso 2)
       tags:
       - auth
+  /case-access-requests:
+    get:
+      description: 'Solicitudes de la más antigua a la más reciente. Solo metadatos
+        y el motivo: nunca datos de identidad de la persona ni notas. La consulta
+        queda en la bitácora. Requiere caseaccess.review.'
+      parameters:
+      - description: pendiente | aprobada | rechazada
+        in: query
+        name: status
+        type: string
+      - description: 1..100 (20 por defecto)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Page'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bandeja de solicitudes de acceso
+      tags:
+      - case-access-requests
+    post:
+      consumes:
+      - application/json
+      description: Con el linkToken que devolvió POST /case-files/duplicate-checks,
+        sin volver a enviar la CURP. El token es de un solo uso y solo sirve a quien
+        lo pidió. Coordinación decide en la bandeja sin ver el expediente. Requiere
+        caseaccess.request.
+      parameters:
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: UUID de la operación
+        in: header
+        name: Idempotency-Key
+        type: string
+      - description: Token y motivo (10 a 500 caracteres)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.Created'
+        "404":
+          description: 'not_found: token inexistente o de otra persona'
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: request_exists
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "410":
+          description: link_expired
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: validation_failed con fields
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "503":
+          description: encryption_unavailable
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Solicitar acceso a un expediente
+      tags:
+      - case-access-requests
   /case-files:
     get:
       description: Obtiene una página de expedientes filtrable por estado y alias.

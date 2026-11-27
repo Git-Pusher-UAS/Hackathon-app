@@ -66,6 +66,61 @@ components:
         usuario:
           type: string
       type: object
+    CaseAccessRequestCreateRequest:
+      properties:
+        linkToken:
+          example: lt_9f...
+          type: string
+        motivo:
+          example: La persona acudió hoy y pide atención psicológica
+          type: string
+      type: object
+    CaseAccessRequestCreated:
+      properties:
+        estado:
+          allOf:
+            - $ref: '#/components/schemas/EstadoSolicitudVinculacion'
+          example: pendiente
+        requestId:
+          type: string
+      type: object
+    CaseAccessRequestItem:
+      properties:
+        departamento:
+          type: string
+        departamentoId:
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoSolicitudVinculacion'
+        expedienteAlias:
+          type: string
+        expedienteId:
+          type: string
+        fecha:
+          type: string
+        id:
+          type: string
+        motivo:
+          type: string
+        solicitante:
+          $ref: '#/components/schemas/CaseAccessRequestSolicitante'
+      type: object
+    CaseAccessRequestPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CaseAccessRequestItem'
+          type: array
+        nextCursor:
+          type: string
+      type: object
+    CaseAccessRequestSolicitante:
+      properties:
+        id:
+          type: string
+        nombreLaboral:
+          type: string
+      type: object
     CasefileAssignRequest:
       properties:
         departamentoId:
@@ -513,6 +568,16 @@ components:
       x-enum-varnames:
         - PersonalActivo
         - PersonalSuspendido
+    EstadoSolicitudVinculacion:
+      enum:
+        - pendiente
+        - aprobada
+        - rechazada
+      type: string
+      x-enum-varnames:
+        - SolicitudPendiente
+        - SolicitudAprobada
+        - SolicitudRechazada
     HealthResponse:
       properties:
         status:
@@ -990,6 +1055,113 @@ paths:
       summary: Verificar segundo factor (paso 2)
       tags:
         - auth
+  /case-access-requests:
+    get:
+      description: 'Solicitudes de la más antigua a la más reciente. Solo metadatos y el motivo: nunca datos de identidad de la persona ni notas. La consulta queda en la bitácora. Requiere caseaccess.review.'
+      parameters:
+        - description: pendiente | aprobada | rechazada
+          in: query
+          name: status
+          schema:
+            type: string
+        - description: 1..100 (20 por defecto)
+          in: query
+          name: limit
+          schema:
+            type: integer
+        - description: Cursor opaco
+          in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseAccessRequestPage'
+          description: OK
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
+      security:
+        - BearerAuth: []
+      summary: Bandeja de solicitudes de acceso
+      tags:
+        - case-access-requests
+    post:
+      description: Con el linkToken que devolvió POST /case-files/duplicate-checks, sin volver a enviar la CURP. El token es de un solo uso y solo sirve a quien lo pidió. Coordinación decide en la bandeja sin ver el expediente. Requiere caseaccess.request.
+      parameters:
+        - description: Token CSRF de la sesión
+          in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+        - description: UUID de la operación
+          in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseAccessRequestCreateRequest'
+        description: Token y motivo (10 a 500 caracteres)
+        required: true
+        x-originalParamName: request
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseAccessRequestCreated'
+          description: Created
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: 'not_found: token inexistente o de otra persona'
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: request_exists
+        "410":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: link_expired
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: validation_failed con fields
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: encryption_unavailable
+      security:
+        - BearerAuth: []
+      summary: Solicitar acceso a un expediente
+      tags:
+        - case-access-requests
   /case-files:
     get:
       description: Obtiene una página de expedientes filtrable por estado y alias.
