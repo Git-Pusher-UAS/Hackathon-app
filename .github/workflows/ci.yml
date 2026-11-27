@@ -8,11 +8,10 @@
 # generan al azar en cada ejecución: nunca se usan los valores reales del .env.
 name: CI
 
+# Desactivado temporalmente: solo corre a mano (Actions > CI > Run workflow).
+# Para reactivarlo, restaurar los disparadores push y pull_request.
 on:
-  push:
-    branches: [main, develop, 'feat/**']
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
