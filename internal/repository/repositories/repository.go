@@ -128,4 +128,5 @@ type Repositories interface {
 	// capacitacion
 	Cursos() CursoRepository
 	Inscripciones() InscripcionRepository
+	Visitas() VisitaRepository
 }

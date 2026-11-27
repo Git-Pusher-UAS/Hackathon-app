@@ -22,6 +22,7 @@ import (
 	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
 	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	notehandler "backend-hackathon/internal/handlers/note"
+	outreachhandler "backend-hackathon/internal/handlers/outreach"
 	referralhandler "backend-hackathon/internal/handlers/referral"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
@@ -45,6 +46,7 @@ import (
 	helpeventservice "backend-hackathon/internal/services/helpevent"
 	icservice "backend-hackathon/internal/services/institutionalcontact"
 	noteservice "backend-hackathon/internal/services/note"
+	outreachservice "backend-hackathon/internal/services/outreach"
 	referralservice "backend-hackathon/internal/services/referral"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
@@ -122,6 +124,7 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	outreachHandler := outreachhandler.New(outreachservice.New(uow, cfg.JWT.Secret))
 	courseHandler := coursehandler.New(courseservice.New(uow, cfg.JWT.Secret))
 	analyticsHandler := analyticshandler.New(analyticsservice.New(uow))
 	auditlogHandler := auditloghandler.New(auditlogservice.New(uow, cfg.JWT.Secret))
@@ -235,6 +238,8 @@ func main() {
 	priv.Get("/courses/:id/attendance", coursemw.Require(coursemw.PermManage), courseHandler.Attendance)
 	priv.Put("/courses/:id/attendance", coursemw.Require(coursemw.PermManage), courseHandler.SetAttendance)
 	priv.Post("/courses", coursemw.Require(coursemw.PermManage), idem(false), courseHandler.Create)
+	priv.Get("/outreach-visits", coursemw.Require(coursemw.PermOutreach), outreachHandler.List)
+	priv.Post("/outreach-visits", coursemw.Require(coursemw.PermOutreach), idem(false), outreachHandler.Create)
 	priv.Post("/help-events", idem(true), helpeventHandler.Create)
 
 	cf := priv.Group("/case-files")

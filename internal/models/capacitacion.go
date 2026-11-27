@@ -44,3 +44,25 @@ type Inscripcion struct {
 }
 
 func (Inscripcion) TableName() string { return "capacitacion.inscripciones" }
+
+// EstadoVisita es el estado de una visita a un sector.
+type EstadoVisita string
+
+const (
+	VisitaPlaneada  EstadoVisita = "planeada"
+	VisitaRealizada EstadoVisita = "realizada"
+)
+
+// Visita es una visita de Capacitación a un sector (capacitacion.visitas).
+type Visita struct {
+	ID          uuid.UUID    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	SectorID    uuid.UUID    `gorm:"type:uuid;not null"`
+	Fecha       time.Time    `gorm:"type:date;not null;index"`
+	Tema        string       `gorm:"type:varchar(250);not null"`
+	Responsable string       `gorm:"type:varchar(150);not null"` // área que la realiza
+	Estado      EstadoVisita `gorm:"type:varchar(15);not null"`
+	CreadoPor   uuid.UUID    `gorm:"type:uuid;not null"`
+	CreadoEn    time.Time    `gorm:"not null;default:now();<-:create"`
+}
+
+func (Visita) TableName() string { return "capacitacion.visitas" }

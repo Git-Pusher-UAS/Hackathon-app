@@ -156,3 +156,4 @@ func (s *store) Mapa() repository.MapaRepository                 { return &mapaR
 func (s *store) Indicadores() repository.IndicadoresRepository   { return &indicadoresRepo{db: s.db} }
 func (s *store) Cursos() repository.CursoRepository              { return &cursoRepo{db: s.db} }
 func (s *store) Inscripciones() repository.InscripcionRepository { return &inscripcionRepo{db: s.db} }
+func (s *store) Visitas() repository.VisitaRepository            { return &visitaRepo{db: s.db} }

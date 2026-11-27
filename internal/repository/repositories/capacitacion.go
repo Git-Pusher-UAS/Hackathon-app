@@ -31,3 +31,10 @@ type InscripcionRepository interface {
 	// SetPresente marca la asistencia; ErrNotFound si la inscripción no es de ese curso.
 	SetPresente(ctx context.Context, cursoID, inscripcionID uuid.UUID, presente bool) error
 }
+
+// VisitaRepository · capacitacion.visitas
+type VisitaRepository interface {
+	Create(ctx context.Context, v *models.Visita) error
+	// List ordena por fecha ascendente.
+	List(ctx context.Context, estado *models.EstadoVisita, page PageRequest) (Page[models.Visita], error)
+}

@@ -126,6 +126,14 @@ definitions:
     - SolicitudPendiente
     - SolicitudAprobada
     - SolicitudRechazada
+  backend-hackathon_internal_models.EstadoVisita:
+    enum:
+    - planeada
+    - realizada
+    type: string
+    x-enum-varnames:
+    - VisitaPlaneada
+    - VisitaRealizada
   backend-hackathon_internal_models.ModalidadConsentimiento:
     enum:
     - presencial
@@ -997,6 +1005,50 @@ definitions:
         - blocked
         - conflict
         - retryable
+        type: string
+    type: object
+  backend-hackathon_internal_models_outreach.CreateRequest:
+    properties:
+      fecha:
+        example: "2026-12-03"
+        type: string
+      sectorId:
+        type: string
+      tema:
+        type: string
+    type: object
+  backend-hackathon_internal_models_outreach.Page:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_outreach.Visita'
+        type: array
+      nextCursor:
+        type: string
+    type: object
+  backend-hackathon_internal_models_outreach.Visita:
+    properties:
+      estado:
+        allOf:
+        - $ref: '#/definitions/backend-hackathon_internal_models.EstadoVisita'
+        enum:
+        - planeada
+        - realizada
+      fecha:
+        example: "2026-12-03"
+        type: string
+      id:
+        type: string
+      responsable:
+        example: Capacitación
+        type: string
+      sector:
+        example: Sector 12
+        type: string
+      sectorId:
+        type: string
+      tema:
+        example: Prevención de la violencia en el noviazgo
         type: string
     type: object
   backend-hackathon_internal_models_referral.Destino:
@@ -2941,6 +2993,80 @@ paths:
       summary: Sincronizar notas offline
       tags:
       - notes
+  /outreach-visits:
+    get:
+      description: Visitas de Capacitación de la fecha más próxima a la más lejana.
+        Requiere outreach.manage.
+      parameters:
+      - description: planeada | realizada
+        in: query
+        name: status
+        type: string
+      - description: 1..100 (20 por defecto)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor opaco
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_outreach.Page'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar visitas a sectores
+      tags:
+      - outreach-visits
+    post:
+      consumes:
+      - application/json
+      description: Nace en estado planeada; el responsable es el área de quien la
+        crea. Requiere outreach.manage.
+      parameters:
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: UUID de la operación
+        in: header
+        name: Idempotency-Key
+        type: string
+      - description: Sector, fecha y tema
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_outreach.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_outreach.Visita'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Planear visita a un sector
+      tags:
+      - outreach-visits
   /referrals:
     get:
       description: 'incoming: canalizaciones a las áreas del actor; outgoing: las
