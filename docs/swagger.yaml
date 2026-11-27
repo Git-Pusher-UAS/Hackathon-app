@@ -206,6 +206,12 @@ definitions:
       nextCursor:
         type: string
     type: object
+  backend-hackathon_internal_models_caseaccessrequest.RejectRequest:
+    properties:
+      motivo:
+        example: La atención la lleva otra área
+        type: string
+    type: object
   backend-hackathon_internal_models_caseaccessrequest.Solicitante:
     properties:
       id:
@@ -1123,6 +1129,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Solicitar acceso a un expediente
+      tags:
+      - case-access-requests
+  /case-access-requests/{id}/rejection:
+    post:
+      consumes:
+      - application/json
+      description: Rechaza una solicitud pendiente. Para aprobarla se asigna con solicitudId
+        en POST /case-files/{recordId}/assignments. Requiere caseaccess.review.
+      parameters:
+      - description: UUID de la solicitud
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Token CSRF de la sesión
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: Motivo (10 a 500 caracteres)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_caseaccessrequest.RejectRequest'
+      responses:
+        "204":
+          description: Rechazada
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: request_not_pending
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rechazar solicitud de acceso
       tags:
       - case-access-requests
   /case-files:
