@@ -80,12 +80,13 @@ func (AlertaAuditoria) TableName() string { return "auditoria.alertas" }
 
 // A38 · ayuda.eventos_locales
 type EventoLocalAyuda struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	PersonalID  uuid.UUID `gorm:"type:uuid;not null"`
-	Accion      string    `gorm:"type:varchar(30);not null"` // dialer_opened
-	OcurridoEn  time.Time `gorm:"not null"`                  // fecha declarada (offline)
-	OperacionID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex"`
-	CreadoEn    time.Time `gorm:"not null;default:now();<-:create"`
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	PersonalID  uuid.UUID  `gorm:"type:uuid;not null"`
+	ContactoID  *uuid.UUID `gorm:"type:uuid"`                 // institución del directorio
+	Accion      string     `gorm:"type:varchar(30);not null"` // dialer_opened
+	OcurridoEn  time.Time  `gorm:"not null"`                  // fecha declarada (offline)
+	OperacionID uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex"`
+	CreadoEn    time.Time  `gorm:"not null;default:now();<-:create"`
 }
 
 func (EventoLocalAyuda) TableName() string { return "ayuda.eventos_locales" }

@@ -1,0 +1,55 @@
+// Package institutionalcontact expone GET /api/institutional-contacts.
+package institutionalcontact
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"log"
+
+	"backend-hackathon/internal/httpx"
+	icmodels "backend-hackathon/internal/models/institutionalcontact"
+	svc "backend-hackathon/internal/services/institutionalcontact"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+type Handler struct{ service svc.Service }
+
+func New(service svc.Service) *Handler { return &Handler{service: service} }
+
+var _ icmodels.Contact
+
+// List devuelve el directorio institucional publico.
+//
+// @Summary      Directorio institucional
+// @Description  Contactos de ayuda publicables. Publico, cacheable con ETag.
+// @Tags         institutional-contacts
+// @Produce      json
+// @Param        version        query   string  false  "Version solicitada"
+// @Param        If-None-Match  header  string  false  "ETag de una respuesta anterior"
+// @Success      200  {array}   icmodels.Contact
+// @Success      304  "Sin cambios"
+// @Failure      500  {object}  httpx.ErrorResponse
+// @Router       /institutional-contacts [get]
+func (h *Handler) List(c *fiber.Ctx) error {
+	_ = c.Query("version") // aceptado por contrato; la respuesta actual se versiona por ETag
+	res, err := h.service.List(c.Context())
+	if err != nil {
+		log.Printf("institutionalcontact: %v", err)
+		return httpx.E(fiber.StatusInternalServerError, "INTERNAL_ERROR", "error interno")
+	}
+	body, err := json.Marshal(res)
+	if err != nil {
+		return err
+	}
+	sum := sha256.Sum256(body)
+	etag := httpx.FormatETag(hex.EncodeToString(sum[:8]))
+	c.Set(fiber.HeaderETag, etag)
+	c.Set(fiber.HeaderCacheControl, "public, max-age=3600")
+	if c.Get(fiber.HeaderIfNoneMatch) == etag {
+		return c.SendStatus(fiber.StatusNotModified)
+	}
+	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
+	return c.Send(body)
+}

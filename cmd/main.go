@@ -15,6 +15,9 @@ import (
 	"backend-hackathon/internal/config"
 	"backend-hackathon/internal/handlers"
 	casehandler "backend-hackathon/internal/handlers/casefile"
+	cataloghandler "backend-hackathon/internal/handlers/catalog"
+	helpeventhandler "backend-hackathon/internal/handlers/helpevent"
+	ichandler "backend-hackathon/internal/handlers/institutionalcontact"
 	userhandler "backend-hackathon/internal/handlers/user"
 	"backend-hackathon/internal/httpx"
 	"backend-hackathon/internal/middleware"
@@ -23,6 +26,9 @@ import (
 	gormrepo "backend-hackathon/internal/repository/gorm"
 	"backend-hackathon/internal/security"
 	caseservice "backend-hackathon/internal/services/casefile"
+	catalogservice "backend-hackathon/internal/services/catalog"
+	helpeventservice "backend-hackathon/internal/services/helpevent"
+	icservice "backend-hackathon/internal/services/institutionalcontact"
 	userservice "backend-hackathon/internal/services/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -99,6 +105,9 @@ func main() {
 	}
 	caseService := caseservice.New(uow, keyring, cfg.JWT.Secret, cfg.CURPKey)
 	caseHandler := casehandler.New(caseService)
+	catalogHandler := cataloghandler.New(catalogservice.New(uow))
+	icHandler := ichandler.New(icservice.New(uow))
+	helpeventHandler := helpeventhandler.New(helpeventservice.New(uow))
 	app := fiber.New(fiber.Config{
 		AppName:   handlers.ServiceName,
 		BodyLimit: 256 * 1024,
@@ -140,6 +149,7 @@ func main() {
 
 	api := app.Group("/api")
 	api.Get("/status", statusHandler.Status)
+	api.Get("/institutional-contacts", icHandler.List)
 
 	authMw := middleware.AuthMiddleware(cfg.JWT.Secret, uow)
 
@@ -164,6 +174,8 @@ func main() {
 
 	// Contrato de la API. Comparte el mismo JWT y añade CSRF en escrituras.
 	apiContract := app.Group("/api", middleware.AuthMiddleware(cfg.JWT.Secret, uow), usermiddleware.NoStore)
+	apiContract.Get("/catalogs", catalogHandler.Catalogs)
+	apiContract.Post("/help-events", usermiddleware.RequireCSRF, helpeventHandler.Create)
 	apiContract.Get("/users/me", userHandler.Me)
 	apiContract.Get("/users/me/sessions", userHandler.ListMySessions)
 	apiContract.Delete("/users/me/sessions/:sessionId", usermiddleware.RequireCSRF, userHandler.RevokeMySession)

@@ -82,6 +82,8 @@ type Institucion struct {
 	Telefono      string     `gorm:"type:varchar(20);not null"`
 	Horario       string     `gorm:"type:varchar(250);not null"`
 	RutaAtencion  string     `gorm:"type:varchar(1000);not null"`
+	Descripcion   string     `gorm:"type:varchar(250);not null;default:''"`
+	Prioritario   bool       `gorm:"not null;default:false"`
 	Publicable    bool       `gorm:"not null"`
 	VerificadoEn  *time.Time `gorm:"type:timestamptz"`
 	Activo        bool       `gorm:"not null;default:true"`

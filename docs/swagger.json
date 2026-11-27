@@ -1420,6 +1420,43 @@
                 }
             }
         },
+        "/catalogs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Devuelve departamentos, roles, sectores, orígenes de contacto y propósitos de consentimiento.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalogs"
+                ],
+                "summary": "Catálogos",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Comprueba que el proceso está vivo. Se sirve en la raíz, fuera de /api.",
@@ -1435,6 +1472,128 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/internal_handlers.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/help-events": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registra que el personal abrio el marcador hacia un contacto. Idempotente por operationId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "help-events"
+                ],
+                "summary": "Registrar evento de ayuda",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token CSRF",
+                        "name": "X-CSRF-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Evento",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_models_helpevent.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Registrado"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/institutional-contacts": {
+            "get": {
+                "description": "Contactos de ayuda publicables. Publico, cacheable con ETag.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "institutional-contacts"
+                ],
+                "summary": "Directorio institucional",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Version solicitada",
+                        "name": "version",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ETag de una respuesta anterior",
+                        "name": "If-None-Match",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/backend-hackathon_internal_models_institutionalcontact.Contact"
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Sin cambios"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/backend-hackathon_internal_httpx.ErrorResponse"
                         }
                     }
                 }
@@ -2324,6 +2483,151 @@
                     "type": "string"
                 },
                 "tipoCasoId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Departamento": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Opcion": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.PropositoConsentimiento": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "opcional": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Response": {
+            "type": "object",
+            "properties": {
+                "departamentos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Departamento"
+                    }
+                },
+                "origenesContacto": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Opcion"
+                    }
+                },
+                "propositosConsentimiento": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.PropositoConsentimiento"
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Rol"
+                    }
+                },
+                "sectores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/backend-hackathon_internal_models_catalog.Sector"
+                    }
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Rol": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_catalog.Sector": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "tipo": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_helpevent.CreateRequest": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "contactId": {
+                    "type": "string"
+                },
+                "occurredAt": {
+                    "type": "string"
+                },
+                "operationId": {
+                    "type": "string"
+                }
+            }
+        },
+        "backend-hackathon_internal_models_institutionalcontact.Contact": {
+            "type": "object",
+            "properties": {
+                "descripcion": {
+                    "type": "string"
+                },
+                "horario": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "prioritario": {
+                    "type": "boolean"
+                },
+                "telefono": {
                     "type": "string"
                 }
             }

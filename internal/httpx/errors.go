@@ -15,6 +15,7 @@ type Error struct {
 	Status  int
 	Code    string
 	Message string
+	Fields  map[string]string
 }
 
 func (e *Error) Error() string { return e.Message }
@@ -22,6 +23,11 @@ func (e *Error) Error() string { return e.Message }
 // E construye un Error HTTP.
 func E(status int, code, message string) *Error {
 	return &Error{Status: status, Code: code, Message: message}
+}
+
+// Invalid construye un 422 con detalle por campo.
+func Invalid(message string, fields map[string]string) *Error {
+	return &Error{Status: fiber.StatusUnprocessableEntity, Code: "VALIDATION_ERROR", Message: message, Fields: fields}
 }
 
 // Map traduce cualquier error al sobre de error del contrato /api.
@@ -47,13 +53,15 @@ func Map(err error) *Error {
 func Write(c *fiber.Ctx, err error) error {
 	mapped := Map(err)
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.Status(mapped.Status).JSON(fiber.Map{
-		"error": fiber.Map{
-			"code":      mapped.Code,
-			"message":   mapped.Message,
-			"requestId": RequestID(c),
-		},
-	})
+	detail := fiber.Map{
+		"code":      mapped.Code,
+		"message":   mapped.Message,
+		"requestId": RequestID(c),
+	}
+	if len(mapped.Fields) > 0 {
+		detail["fields"] = mapped.Fields
+	}
+	return c.Status(mapped.Status).JSON(fiber.Map{"error": detail})
 }
 
 // RequestID devuelve el id de correlación de Fiber o uno nuevo si falta.

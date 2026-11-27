@@ -225,6 +225,100 @@ definitions:
       tipoCasoId:
         type: string
     type: object
+  backend-hackathon_internal_models_catalog.Departamento:
+    properties:
+      codigo:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Opcion:
+    properties:
+      codigo:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.PropositoConsentimiento:
+    properties:
+      codigo:
+        type: string
+      descripcion:
+        type: string
+      id:
+        type: string
+      opcional:
+        type: boolean
+    type: object
+  backend-hackathon_internal_models_catalog.Response:
+    properties:
+      departamentos:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Departamento'
+        type: array
+      origenesContacto:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Opcion'
+        type: array
+      propositosConsentimiento:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.PropositoConsentimiento'
+        type: array
+      roles:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Rol'
+        type: array
+      sectores:
+        items:
+          $ref: '#/definitions/backend-hackathon_internal_models_catalog.Sector'
+        type: array
+    type: object
+  backend-hackathon_internal_models_catalog.Rol:
+    properties:
+      codigo:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+    type: object
+  backend-hackathon_internal_models_catalog.Sector:
+    properties:
+      id:
+        type: string
+      nombre:
+        type: string
+      tipo:
+        type: string
+    type: object
+  backend-hackathon_internal_models_helpevent.CreateRequest:
+    properties:
+      action:
+        type: string
+      contactId:
+        type: string
+      occurredAt:
+        type: string
+      operationId:
+        type: string
+    type: object
+  backend-hackathon_internal_models_institutionalcontact.Contact:
+    properties:
+      descripcion:
+        type: string
+      horario:
+        type: string
+      id:
+        type: string
+      nombre:
+        type: string
+      prioritario:
+        type: boolean
+      telefono:
+        type: string
+    type: object
   backend-hackathon_internal_models_user.Actor:
     properties:
       departmentId:
@@ -1341,6 +1435,30 @@ paths:
       summary: Verificar duplicado por CURP
       tags:
       - case-files
+  /catalogs:
+    get:
+      description: Devuelve departamentos, roles, sectores, orígenes de contacto y
+        propósitos de consentimiento.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_models_catalog.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Catálogos
+      tags:
+      - catalogs
   /health:
     get:
       description: Comprueba que el proceso está vivo. Se sirve en la raíz, fuera
@@ -1355,6 +1473,86 @@ paths:
       summary: Liveness probe
       tags:
       - health
+  /help-events:
+    post:
+      consumes:
+      - application/json
+      description: Registra que el personal abrio el marcador hacia un contacto. Idempotente
+        por operationId.
+      parameters:
+      - description: Token CSRF
+        in: header
+        name: X-CSRF-Token
+        required: true
+        type: string
+      - description: Evento
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/backend-hackathon_internal_models_helpevent.CreateRequest'
+      responses:
+        "204":
+          description: Registrado
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Registrar evento de ayuda
+      tags:
+      - help-events
+  /institutional-contacts:
+    get:
+      description: Contactos de ayuda publicables. Publico, cacheable con ETag.
+      parameters:
+      - description: Version solicitada
+        in: query
+        name: version
+        type: string
+      - description: ETag de una respuesta anterior
+        in: header
+        name: If-None-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/backend-hackathon_internal_models_institutionalcontact.Contact'
+            type: array
+        "304":
+          description: Sin cambios
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/backend-hackathon_internal_httpx.ErrorResponse'
+      summary: Directorio institucional
+      tags:
+      - institutional-contacts
   /status:
     get:
       description: Comprueba la conexión con la base de datos y devuelve el estado
