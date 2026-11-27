@@ -2,7 +2,7 @@
 
 Reference document mapping each API endpoint from `ENDPOINTS_SAI_MVP.md` to its corresponding folder under `internal/(handlers|middleware|models|services)/`.
 
-**Base path:** `/api/v1`
+**Base path:** `/api/v1` (contrato en `api/openapi.yaml`). `GET /health` también se sirve fuera de `/api/v1` para los healthchecks.
 
 ---
 
