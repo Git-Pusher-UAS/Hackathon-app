@@ -7,6 +7,7 @@ var (
 	ErrCryptoUnavailable    = errors.New("cryptographic service unavailable")
 	ErrAlreadyAssigned      = errors.New("already assigned")
 	ErrRequestNotPending    = errors.New("access request not pending")
+	ErrAlreadyCorrected     = errors.New("note already corrected")
 	ErrNoPrivacyNotice      = errors.New("privacy notice required")
 	ErrDuplicatePerson      = errors.New("duplicate person")
 	ErrPreconditionRequired = errors.New("precondition required")

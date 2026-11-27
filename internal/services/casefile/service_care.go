@@ -250,12 +250,21 @@ func (s *service) RevokeAssignment(ctx context.Context, actor repository.ActorCo
 
 // ---------------- API-026 / API-027 ----------------
 
+// maxNota es el largo máximo del texto de una nota (§6.2).
+const maxNota = 10000
+
 func (s *service) noteView(ctx context.Context, r repository.Repositories, n *models.Nota) (casemodels.NoteView, error) {
 	texto, err := s.open(ctx, r, n.ClaveID, n.TextoCifrado, "nota", "texto", n.ID)
 	if err != nil {
 		return casemodels.NoteView{}, err
 	}
-	return casemodels.NoteView{ID: n.ID, EpisodioID: n.EpisodioID, AutorID: n.AutorID, Texto: texto,
+	autor := ""
+	if p, err := r.Personal().GetByID(ctx, n.AutorID); err == nil {
+		autor = p.NombreLaboral
+	} else if !errors.Is(err, repository.ErrNotFound) {
+		return casemodels.NoteView{}, err
+	}
+	return casemodels.NoteView{ID: n.ID, EpisodioID: n.EpisodioID, AutorID: n.AutorID, Autor: autor, Texto: texto,
 		OcurridoEn: n.OcurridoEn.UTC(), CorrigeNotaID: n.CorrigeNotaID, CreatedAt: n.CreadoEn.UTC()}, nil
 }
 
@@ -300,8 +309,8 @@ func (s *service) ListNotes(ctx context.Context, actor repository.ActorContext, 
 }
 
 func (s *service) CreateNote(ctx context.Context, actor repository.ActorContext, recordID, depID, opID uuid.UUID, in casemodels.NoteCreateRequest) (*casemodels.NoteView, error) {
-	if !between(in.Texto, 1, 5000) {
-		return nil, vErr("texto debe tener entre 1 y 5000 caracteres")
+	if !between(in.Texto, 1, maxNota) {
+		return nil, httpx.Invalid("texto inválido", map[string]string{"texto": "longitud_invalida"})
 	}
 	if in.OcurridoEn.IsZero() {
 		return nil, vErr("ocurridoEn es obligatorio")
@@ -344,6 +353,14 @@ func (s *service) CreateNote(ctx context.Context, actor repository.ActorContext,
 			if !ok {
 				return vErr("corrigeNotaId no corresponde a una nota previa de esta secci\u00f3n")
 			}
+			// Las notas son inmutables y cada una admite una sola corrección.
+			corregida, err := r.Notas().TieneCorreccion(ctx, *corrige)
+			if err != nil {
+				return err
+			}
+			if corregida {
+				return ErrAlreadyCorrected
+			}
 		}
 		id := uuid.New()
 		clave, payload, err := s.seal(ctx, r, "nota", "texto", id, strings.TrimSpace(in.Texto))
@@ -356,7 +373,11 @@ func (s *service) CreateNote(ctx context.Context, actor repository.ActorContext,
 			return err
 		}
 		n.CreadoEn = s.now()
-		out = casemodels.NoteView{ID: n.ID, EpisodioID: n.EpisodioID, AutorID: n.AutorID, Texto: strings.TrimSpace(in.Texto),
+		autor := ""
+		if p, err := r.Personal().GetByID(ctx, actor.ActorID); err == nil {
+			autor = p.NombreLaboral
+		}
+		out = casemodels.NoteView{ID: n.ID, EpisodioID: n.EpisodioID, AutorID: n.AutorID, Autor: autor, Texto: strings.TrimSpace(in.Texto),
 			OcurridoEn: n.OcurridoEn.UTC(), CorrigeNotaID: corrige, CreatedAt: n.CreadoEn.UTC()}
 		return s.audit(ctx, r, actor, "casefile.notes.create", "nota", &n.ID)
 	})
