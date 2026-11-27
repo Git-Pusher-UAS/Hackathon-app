@@ -107,6 +107,8 @@ func mapError(err error) error {
 		return httpx.E(fiber.StatusConflict, "invalid_transition", "transici\u00f3n de estado inv\u00e1lida")
 	case errors.Is(err, svc.ErrCaseClosed):
 		return httpx.E(fiber.StatusConflict, "record_closed", "el expediente est\u00e1 cerrado")
+	case errors.Is(err, svc.ErrAlreadyCorrected):
+		return httpx.E(fiber.StatusConflict, "already_corrected", "esa nota ya tiene una corrección")
 	case errors.Is(err, svc.ErrRequestNotPending):
 		return httpx.E(fiber.StatusConflict, "request_not_pending", "la solicitud ya fue resuelta")
 	case errors.Is(err, svc.ErrAlreadyAssigned):
