@@ -41,7 +41,7 @@ type MFAResetResponse struct {
 // @Success      200  {object}  usermodels.MeResponse
 // @Failure      401  {object}  httpx.ErrorResponse
 // @Failure      500  {object}  httpx.ErrorResponse
-// @Router       /v1/users/me [get]
+// @Router       /users/me [get]
 func (h *Handler) Me(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -72,7 +72,7 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 // @Failure      401     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /v1/users/me/sessions [get]
+// @Router       /users/me/sessions [get]
 func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -102,14 +102,14 @@ func (h *Handler) ListMySessions(c *fiber.Ctx) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        sessionId      path    string  true   "ID de la sesión"
-// @Param        X-CSRF-Token   header  string  true   "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Param        X-CSRF-Token   header  string  true   "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)"
 // @Success      204            "Sin contenido"
 // @Failure      401            {object}  httpx.ErrorResponse
 // @Failure      403            {object}  httpx.ErrorResponse
 // @Failure      404            {object}  httpx.ErrorResponse
 // @Failure      422            {object}  httpx.ErrorResponse
 // @Failure      500            {object}  httpx.ErrorResponse
-// @Router       /v1/users/me/sessions/{sessionId} [delete]
+// @Router       /users/me/sessions/{sessionId} [delete]
 func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -145,7 +145,7 @@ func (h *Handler) RevokeMySession(c *fiber.Ctx) error {
 // @Failure      403     {object}  httpx.ErrorResponse
 // @Failure      422     {object}  httpx.ErrorResponse
 // @Failure      500     {object}  httpx.ErrorResponse
-// @Router       /v1/users [get]
+// @Router       /users [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	actorID, ok := middleware.PersonalID(c)
 	if !ok {
@@ -172,7 +172,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request       body    usermodels.CreateRequest  true  "Datos de la cuenta"
-// @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)"
 // @Success      201           {object}  usermodels.StaffSummary
 // @Header       201           {string}  ETag  "ETag de la versión creada"
 // @Failure      400           {object}  httpx.ErrorResponse
@@ -181,7 +181,7 @@ func (h *Handler) List(c *fiber.Ctx) error {
 // @Failure      409           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /v1/users [post]
+// @Router       /users [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -211,7 +211,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Param        userId        path    string                    true  "ID de la cuenta"
 // @Param        request       body    usermodels.UpdateRequest  true  "Campos a actualizar"
-// @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Param        X-CSRF-Token  header  string                    true  "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)"
 // @Param        If-Match      header  string                    true  "ETag de la versión actual (versionTag)"
 // @Success      200           {object}  usermodels.StaffSummary
 // @Header       200           {string}  ETag  "Nuevo ETag de la versión"
@@ -224,7 +224,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      428           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /v1/users/{userId} [patch]
+// @Router       /users/{userId} [patch]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -263,7 +263,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Param        userId        path    string                         true  "ID de la cuenta"
 // @Param        request       body    usermodels.RevokeSessionsRequest  true  "Motivo de la revocación"
-// @Param        X-CSRF-Token  header  string                         true  "Token CSRF de la sesión (GET /api/auth/csrf-token)"
+// @Param        X-CSRF-Token  header  string                         true  "Token CSRF de la sesión (GET /api/v1/auth/csrf-token)"
 // @Success      204           "Sin contenido"
 // @Failure      400           {object}  httpx.ErrorResponse
 // @Failure      401           {object}  httpx.ErrorResponse
@@ -271,7 +271,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 // @Failure      404           {object}  httpx.ErrorResponse
 // @Failure      422           {object}  httpx.ErrorResponse
 // @Failure      500           {object}  httpx.ErrorResponse
-// @Router       /v1/users/{userId}/session-revocations [post]
+// @Router       /users/{userId}/session-revocations [post]
 func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
@@ -294,6 +294,24 @@ func (h *Handler) RevokeAllSessions(c *fiber.Ctx) error {
 }
 
 // ResetMFA responde API-014.
+//
+// @Summary      Restablecer MFA de una cuenta
+// @Description  Invalida el segundo factor de la cuenta; en su próximo acceso el login responde next=enroll. Exige verificación presencial. Requiere permiso de administración.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId        path    string                     true  "ID de la cuenta"
+// @Param        request       body    usermodels.MFAResetRequest true  "Motivo y verificación presencial"
+// @Param        X-CSRF-Token  header  string                     true  "Token CSRF de la sesión"
+// @Success      202           {object}  object{resetId=string}
+// @Failure      400           {object}  httpx.ErrorResponse
+// @Failure      401           {object}  httpx.ErrorResponse
+// @Failure      403           {object}  httpx.ErrorResponse
+// @Failure      404           {object}  httpx.ErrorResponse
+// @Failure      409           {object}  httpx.ErrorResponse
+// @Failure      422           {object}  httpx.ErrorResponse
+// @Router       /users/{userId}/mfa-resets [post]
 func (h *Handler) ResetMFA(c *fiber.Ctx) error {
 	actor, ok := middleware.ActorFrom(c)
 	if !ok {
