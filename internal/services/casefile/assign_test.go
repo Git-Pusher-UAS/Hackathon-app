@@ -84,6 +84,13 @@ func (f assignClaves) Create(_ context.Context, c *models.ClaveRegistro) error {
 	return nil
 }
 
+func (f assignClaves) GetByID(_ context.Context, id uuid.UUID) (*models.ClaveRegistro, error) {
+	if c, ok := f.st.claves[id]; ok {
+		return c, nil
+	}
+	return nil, repository.ErrNotFound
+}
+
 func (r *dupRepos) SolicitudesVinculacion() repository.SolicitudVinculacionRepository {
 	return assignSols{st: assignStates[r]}
 }

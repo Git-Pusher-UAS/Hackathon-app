@@ -245,7 +245,16 @@ components:
     CasefileDisclosureRequest:
       properties:
         campo:
-          description: nombre|curp|fechaNacimiento|telefono|domicilio
+          enum:
+            - nombre
+            - curp
+            - fechaNacimiento
+            - telefono
+            - domicilio
+          type: string
+        motivo:
+          description: 10 a 500 caracteres
+          example: Contacto de seguimiento
           type: string
       type: object
     CasefileDisclosureResponse:
@@ -2057,7 +2066,7 @@ paths:
         - case-files-notes
   /case-files/{recordId}/disclosures:
     post:
-      description: Solicita la divulgación o consulta de un campo específico del expediente.
+      description: 'Muestra el valor completo de un dato oculto. Exige motivo (10 a 500 caracteres): la bitácora guarda el campo revelado y el motivo, nunca el valor. Respuesta con Cache-Control: no-store. Requiere casefile.disclose.'
       parameters:
         - description: UUID del expediente
           in: path

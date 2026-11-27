@@ -1570,7 +1570,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Solicita la divulgación o consulta de un campo específico del expediente.",
+                "description": "Muestra el valor completo de un dato oculto. Exige motivo (10 a 500 caracteres): la bitácora guarda el campo revelado y el motivo, nunca el valor. Respuesta con Cache-Control: no-store. Requiere casefile.disclose.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3155,8 +3155,19 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "campo": {
-                    "description": "nombre|curp|fechaNacimiento|telefono|domicilio",
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "nombre",
+                        "curp",
+                        "fechaNacimiento",
+                        "telefono",
+                        "domicilio"
+                    ]
+                },
+                "motivo": {
+                    "description": "10 a 500 caracteres",
+                    "type": "string",
+                    "example": "Contacto de seguimiento"
                 }
             }
         },

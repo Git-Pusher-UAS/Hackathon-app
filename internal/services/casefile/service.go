@@ -39,7 +39,7 @@ type Service interface {
 	Get(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID) (*casemodels.Detail, error)
 	Update(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.UpdateRequest, ifMatch string) (*casemodels.Detail, error)
 	Timeline(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, q casemodels.TimelineQuery, page repository.PageRequest) (*casemodels.Page[casemodels.TimelineItem], error)
-	Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, campo string) (*casemodels.DisclosureResponse, error)
+	Disclose(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.DisclosureRequest) (*casemodels.DisclosureResponse, error)
 	Assign(ctx context.Context, actor repository.ActorContext, recordID uuid.UUID, in casemodels.AssignRequest) (*casemodels.AssignmentView, error)
 	RevokeAssignment(ctx context.Context, actor repository.ActorContext, recordID, assignmentID uuid.UUID) error
 	ListNotes(ctx context.Context, actor repository.ActorContext, recordID, depID uuid.UUID, episodeID *uuid.UUID, page repository.PageRequest) (*casemodels.Page[casemodels.NoteView], error)
